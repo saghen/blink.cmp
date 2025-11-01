@@ -585,8 +585,6 @@ sources.providers = {
       use_show_condition = true,
       -- Whether to show autosnippets in the completion list
       show_autosnippets = true,
-      -- Whether to prefer docTrig placeholders over trig when expanding regTrig snippets
-      prefer_doc_trig = false,
       -- Whether to put the snippet description in the label description
       use_label_description = false,
     }

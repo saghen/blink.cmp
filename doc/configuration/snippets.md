@@ -89,9 +89,7 @@ There's a great introduction to writing custom snippets [in the nvim-scissors re
 ```lua
 {
   'saghen/blink.cmp',
-  version = '1.*',
-  -- `main` is untested, please open a PR if you've confirmed it works as expected
-  dependencies = { 'L3MON4D3/LuaSnip', version = 'v2.*' },
+  dependencies = { 'L3MON4D3/LuaSnip' },
   opts = {
     snippets = { preset = 'luasnip' },
     -- ensure you have the `snippets` source (enabled by default)
@@ -107,7 +105,7 @@ There's a great introduction to writing custom snippets [in the nvim-scissors re
 ```lua
 {
   'saghen/blink.cmp',
-  dependencies = 'echasnovski/mini.snippets',
+  dependencies = { 'echasnovski/mini.snippets' },
   opts = {
     snippets = { preset = 'mini_snippets' },
     -- ensure you have the `snippets` source (enabled by default)
@@ -123,9 +121,10 @@ There's a great introduction to writing custom snippets [in the nvim-scissors re
 ```lua
 {
   'saghen/blink.cmp',
-  dependencies = {'hrsh7th/vim-vsnip', 'https://codeberg.org/FelipeLema/bink-cmp-vsnip.git'},
+  dependencies = { 'hrsh7th/vim-vsnip', 'https://codeberg.org/FelipeLema/bink-cmp-vsnip.git' },
   opts = {
     snippets = { preset = 'vsnip' },
+    -- ensure you have the `snippets` source (enabled by default)
     sources = {
       default = { 'lsp', 'path', 'snippets', 'buffer' },
     },
