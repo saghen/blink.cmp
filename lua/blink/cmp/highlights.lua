@@ -1,6 +1,6 @@
 local highlights = {}
 
-function highlights.setup()
+local function setup_highlights()
   local use_nvim_cmp = require('blink.cmp.config').appearance.use_nvim_cmp_as_default
 
   --- @param hl_group string Highlight group name, e.g. 'ErrorMsg'
@@ -41,6 +41,15 @@ function highlights.setup()
   set_hl('BlinkCmpSignatureHelp', { link = 'NormalFloat' })
   set_hl('BlinkCmpSignatureHelpBorder', { link = 'NormalFloat' })
   set_hl('BlinkCmpSignatureHelpActiveParameter', { link = 'LspSignatureActiveParameter' })
+end
+
+function highlights.setup()
+  setup_highlights()
+
+  vim.api.nvim_create_autocmd('ColorScheme', {
+    group = vim.api.nvim_create_augroup('BlinkCmpHighlights', { clear = true }),
+    callback = setup_highlights,
+  })
 end
 
 return highlights
