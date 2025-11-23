@@ -1,12 +1,13 @@
 local highlights = {}
 
-local function setup_highlights()
+---@param is_initial boolean Whether this is the initial setup
+local function setup_highlights(is_initial)
   local use_nvim_cmp = require('blink.cmp.config').appearance.use_nvim_cmp_as_default
 
   --- @param hl_group string Highlight group name, e.g. 'ErrorMsg'
   --- @param opts vim.api.keyset.highlight Highlight definition map
   local set_hl = function(hl_group, opts)
-    opts.default = true -- Prevents overriding existing definitions
+    if is_initial then opts.default = true end -- Prevents overriding existing definitions
     vim.api.nvim_set_hl(0, hl_group, opts)
   end
 
@@ -44,11 +45,11 @@ local function setup_highlights()
 end
 
 function highlights.setup()
-  setup_highlights()
+  setup_highlights(true)
 
   vim.api.nvim_create_autocmd('ColorScheme', {
     group = vim.api.nvim_create_augroup('BlinkCmpHighlights', { clear = true }),
-    callback = setup_highlights,
+    callback = function() setup_highlights(false) end,
   })
 end
 
