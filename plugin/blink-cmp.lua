@@ -11,10 +11,12 @@ local subcommands = {
   ['build-log'] = function() require('blink.cmp.fuzzy.build').build_log() end,
 }
 vim.api.nvim_create_user_command('BlinkCmp', function(cmd)
-  local subcommand = subcommands[cmd.fargs[1]]
-  if subcommand then
-    subcommand()
+  local subcmd_name = cmd.fargs[1]
+  local subcmd = subcommands[subcmd_name]
+
+  if subcmd then
+    subcmd()
   else
-    vim.notify("[blink.cmp] invalid subcommand '" .. subcommand.args .. "'", vim.log.levels.ERROR)
+    vim.notify("[blink.cmp] invalid subcommand '" .. tostring(subcmd_name) .. "'", vim.log.levels.ERROR)
   end
-end, { nargs = 1, complete = function() vim.tbl_keys(subcommands) end, desc = 'blink.cmp' })
+end, { nargs = 1, complete = function() return vim.tbl_keys(subcommands) end, desc = 'blink.cmp' })
