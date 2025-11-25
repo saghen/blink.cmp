@@ -136,6 +136,7 @@ function win:open()
   vim.api.nvim_set_option_value('cursorline', false, { win = self.id })
   vim.api.nvim_set_option_value('scrolloff', self.config.scrolloff, { win = self.id })
   vim.api.nvim_set_option_value('filetype', self.config.filetype, { buf = self.buf })
+  vim.api.nvim_set_option_value('modifiable', false, { buf = self.buf })
 
   self.cursor_line:update(self.id)
   if self.scrollbar then self.scrollbar:update(self.id) end
