@@ -56,7 +56,7 @@ end
 --- @param t table
 --- @return table
 function utils.flatten(t)
-  if type(t) == "string" then return {t} end
+  if type(t) == 'string' then return { t } end
   if t[1] == nil then return t end
 
   local flattened = {}
