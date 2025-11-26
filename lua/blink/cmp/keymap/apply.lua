@@ -14,18 +14,19 @@ local function get_desc(commands)
     -- Filter out "fallback" & "fallback_to_mappings"
     if cmd ~= 'fallback' and cmd ~= 'fallback_to_mappings' then
       if type(cmd) == 'string' then
-        -- Substitute all '_' with space, then captilize separated token
+        -- Separate on '_', then captilize each token
         local readable_cmd = cmd:gsub('_', ' ')
         readable_cmd = readable_cmd:gsub('(%a)(%w*)', function(first, rest) return first:upper() .. rest end)
         table.insert(parts, readable_cmd)
       elseif type(cmd) == 'function' then
-        table.insert(parts, '<Custom Function>')
+        table.insert(parts, '<Custom Fn>')
       end
     end
   end
 
   -- In case the list consisted of only fallbacks
   if #parts == 0 then return prefix .. 'Default Behavior' end
+
   return prefix .. table.concat(parts, ', ')
 end
 
