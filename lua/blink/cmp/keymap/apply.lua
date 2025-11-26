@@ -2,42 +2,31 @@ local apply = {}
 
 local snippet_commands = { 'snippet_forward', 'snippet_backward', 'show_signature', 'hide_signature' }
 
-local readable_names = {
-  ['show'] = 'Show',
-  ['hide'] = 'Hide',
-  ['accept'] = 'Accept',
-  ['select_prev'] = 'Select Prev',
-  ['select_next'] = 'Select Next',
-  ['show_documentation'] = 'Show Docs',
-  ['hide_documentation'] = 'Hide Docs',
-  ['scroll_documentation_up'] = 'Scroll Docs Up',
-  ['scroll_documentation_down'] = 'Scroll Docs Down',
-  ['snippet_forward'] = 'Snippet Forward',
-  ['snippet_backward'] = 'Snippet Backward',
-}
+-- The prefix each description begins with
+local prefix = 'blink.cmp: '
 
--- Generates descriptions for the commands
-local function get_desc(commands, mode_label)
-  local suffix = mode_label and (' ' .. mode_label) or ''
-
-  if type(commands) ~= 'table' then return 'Blink: ' .. tostring(commands) .. suffix end
-
+-- Generates description based on commands
+--- @param commands blink.cmp.KeymapCommand[]
+--- @return string
+local function get_desc(commands)
   local parts = {}
   for _, cmd in ipairs(commands) do
-    -- Filter out "fallback"
+    -- Filter out "fallback" & "fallback_to_mappings"
     if cmd ~= 'fallback' and cmd ~= 'fallback_to_mappings' then
       if type(cmd) == 'string' then
-        table.insert(parts, readable_names[cmd] or cmd)
+        -- Substitute all '_' with space, then captilize seperated token
+        local readable_cmd = cmd:gsub('_', ' ')
+        readable_cmd = readable_cmd:gsub('(%a)(%w*)', function(first, rest) return first:upper() .. rest end)
+        table.insert(parts, readable_cmd)
       elseif type(cmd) == 'function' then
-        table.insert(parts, 'Custom')
+        table.insert(parts, '<Custom Function>')
       end
     end
   end
 
-  -- If the list is empty (Only Fallback)
-  if #parts == 0 then return 'Blink: Default Behavior' .. suffix end
-
-  return 'Blink: ' .. table.concat(parts, ', ') .. suffix
+  -- In case the list consisted of only fallbacks
+  if #parts == 0 then return prefix .. 'Default Behavior' end
+  return prefix .. table.concat(parts, ', ')
 end
 
 --- Applies the keymaps to the current buffer
@@ -45,13 +34,13 @@ end
 function apply.keymap_to_current_buffer(keys_to_commands)
   -- skip if we've already applied the keymaps
   for _, mapping in ipairs(vim.api.nvim_buf_get_keymap(0, 'i')) do
-    if mapping.desc and mapping.desc:find('^Blink:') then return end
+    if mapping.desc and mapping.desc:find('^' .. prefix) then return end
   end
 
   -- insert mode: uses both snippet and insert commands
   for key, commands in pairs(keys_to_commands) do
     local fallback = require('blink.cmp.keymap.fallback').wrap('i', key)
-    local desc = get_desc(commands, '(insert)')
+    local desc = get_desc(commands)
     apply.set('i', key, function()
       if not require('blink.cmp.config').enabled() then return fallback() end
 
@@ -79,7 +68,7 @@ function apply.keymap_to_current_buffer(keys_to_commands)
     if not apply.has_snippet_commands(commands) then goto continue end
 
     local fallback = require('blink.cmp.keymap.fallback').wrap('s', key)
-    local desc = get_desc(commands, '(snippet)')
+    local desc = get_desc(commands)
 
     apply.set('s', key, function()
       if not require('blink.cmp.config').enabled() then return fallback() end
@@ -122,7 +111,7 @@ end
 function apply.term_keymaps(keys_to_commands)
   -- skip if we've already applied the keymaps
   for _, mapping in ipairs(vim.api.nvim_buf_get_keymap(0, 't')) do
-    if mapping.desc and mapping.desc:find('^Blink:') then return end
+    if mapping.desc and mapping.desc:find('^' .. prefix) then return end
   end
 
   -- terminal mode: uses insert commands only
@@ -130,7 +119,7 @@ function apply.term_keymaps(keys_to_commands)
     if not apply.has_insert_command(commands) then goto continue end
 
     local fallback = require('blink.cmp.keymap.fallback').wrap('i', key)
-    local desc = get_desc(commands, '(terminal)')
+    local desc = get_desc(commands)
 
     apply.set('t', key, function()
       for _, command in ipairs(commands) do
@@ -156,7 +145,7 @@ end
 function apply.cmdline_keymaps(keys_to_commands)
   -- skip if we've already applied the keymaps
   for _, mapping in ipairs(vim.api.nvim_get_keymap('c')) do
-    if mapping.desc and mapping.desc:find('^Blink:') then return end
+    if mapping.desc and mapping.desc:find('^' .. prefix) then return end
   end
 
   -- cmdline mode: uses only insert commands
@@ -164,7 +153,7 @@ function apply.cmdline_keymaps(keys_to_commands)
     if not apply.has_insert_command(commands) then goto continue end
 
     local fallback = require('blink.cmp.keymap.fallback').wrap('c', key)
-    local desc = get_desc(commands, '(cmdline)')
+    local desc = get_desc(commands)
 
     apply.set('c', key, function()
       for _, command in ipairs(commands) do
