@@ -1,6 +1,24 @@
 local apply = {}
 
-local snippet_commands = { 'snippet_forward', 'snippet_backward', 'show_signature', 'hide_signature' }
+local snippet_commands = {
+  'snippet_forward',
+  'snippet_backward',
+  'show_signature',
+  'hide_signature',
+}
+
+---@param key string
+---@return boolean
+local function is_multikey_mapping(key)
+  local _, special_count = key:gsub('>', '')
+
+  if special_count <= 1 then
+    local without_special = key:gsub('<[^>]+>', '')
+    return special_count + #without_special > 1
+  end
+
+  return true
+end
 
 --- Applies the keymaps to the current buffer
 --- @param keys_to_commands table<string, blink.cmp.KeymapCommand[]>
@@ -147,26 +165,37 @@ end
 --- @param key string
 --- @param callback fun(): string | nil
 function apply.set(mode, key, callback)
+  local is_multikey = is_multikey_mapping(key)
+  local keymap_callback = callback
+
+  -- Multi-key mappings (e.g., <C-x><C-o>) can't use expr mode because
+  -- expr triggers immediately on the first key, breaking the sequence.
+  -- Instead, we wrap the callback to manually feed any returned keys back to Neovim.
+  if is_multikey then
+    keymap_callback = function()
+      local result = callback()
+      if type(result) == 'string' and result ~= '' then
+        local keys = vim.api.nvim_replace_termcodes(result, true, false, true)
+        vim.api.nvim_feedkeys(keys, 'n', false)
+      end
+    end
+  end
+
+  local opts = {
+    callback = keymap_callback,
+    expr = not is_multikey,
+    -- silent must be false for fallback to work
+    -- otherwise, you get very weird behavior
+    silent = (mode ~= 'c' and mode ~= 't'),
+    noremap = true,
+    replace_keycodes = false,
+    desc = 'blink.cmp',
+  }
+
   if mode == 'c' or mode == 't' then
-    vim.api.nvim_set_keymap(mode, key, '', {
-      callback = callback,
-      expr = true,
-      -- silent must be false for fallback to work
-      -- otherwise, you get very weird behavior
-      silent = false,
-      noremap = true,
-      replace_keycodes = false,
-      desc = 'blink.cmp',
-    })
+    vim.api.nvim_set_keymap(mode, key, '', opts)
   else
-    vim.api.nvim_buf_set_keymap(0, mode, key, '', {
-      callback = callback,
-      expr = true,
-      silent = true,
-      noremap = true,
-      replace_keycodes = false,
-      desc = 'blink.cmp',
-    })
+    vim.api.nvim_buf_set_keymap(0, mode, key, '', opts)
   end
 end
 
