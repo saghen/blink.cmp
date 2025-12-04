@@ -122,7 +122,13 @@ end
 function trigger.show(opts)
   opts = opts or {}
 
-  if not opts.force and not config.enabled then return end
+  if
+    not opts.force
+    and not config.enabled
+    and not (require('blink.cmp.config').signature.enabled and require('blink.cmp.signature.window').win:is_open())
+  then
+    return
+  end
 
   -- update context
   local cursor = vim.api.nvim_win_get_cursor(0)
