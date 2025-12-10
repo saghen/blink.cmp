@@ -310,7 +310,7 @@ function cmp.hide_signature()
   return true
 end
 
---- Scroll the documentation window up
+--- Scroll the signature window up
 --- @param count? number
 function cmp.scroll_signature_up(count)
   local sig = require('blink.cmp.signature.window')
@@ -320,7 +320,7 @@ function cmp.scroll_signature_up(count)
   return true
 end
 
---- Scroll the documentation window down
+--- Scroll the signature window down
 --- @param count? number
 function cmp.scroll_signature_down(count)
   local sig = require('blink.cmp.signature.window')
