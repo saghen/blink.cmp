@@ -126,3 +126,4 @@ See [blink.compat](https://github.com/Saghen/blink.compat) for using `nvim-cmp` 
 - [blink-cmp-words](https://github.com/archie-judd/blink-cmp-words): Definitions and synonyms
 - [blink-cmp-vsnip](https://codeberg.org/FelipeLema/blink-cmp-vsnip)
 - [blink-cmp-dat-word](https://github.com/xieyonn/blink-cmp-dat-word): Word completion
+- [blink-cmp-dap](https://github.com/mayromr/blink-cmp-dap): Completions for DAP repl
