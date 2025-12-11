@@ -73,17 +73,29 @@ function signature.open_with_signature_help(context, signature_help)
     sources.get_signature_help_trigger_characters().trigger_characters
   )
   if active_highlight ~= nil then
-    -- TODO: nvim 0.11+ returns the start and end line which we should use
-    local start_col = vim.fn.has('nvim-0.11.0') == 1 and active_highlight[2] or active_highlight[1]
-    local end_col = vim.fn.has('nvim-0.11.0') == 1 and active_highlight[4] or active_highlight[2]
-
-    vim.api.nvim_buf_set_extmark(
-      signature.win:get_buf(),
-      require('blink.cmp.config').appearance.highlight_ns,
-      0,
-      start_col,
-      { end_col = end_col, hl_group = 'BlinkCmpSignatureHelpActiveParameter' }
-    )
+    if vim.fn.has('nvim-0.11.0') == 1 then
+      local start_line = active_highlight[1] - 1
+      local start_col = active_highlight[2]
+      local end_line = active_highlight[3] - 1
+      local end_col = active_highlight[4]
+      vim.api.nvim_buf_set_extmark(
+        signature.win:get_buf(),
+        require('blink.cmp.config').appearance.highlight_ns,
+        start_line,
+        start_col,
+        { end_line = end_line, end_col = end_col, hl_group = 'BlinkCmpSignatureHelpActiveParameter' }
+      )
+    else
+      local start_col = active_highlight[1]
+      local end_col = active_highlight[2]
+      vim.api.nvim_buf_set_extmark(
+        signature.win:get_buf(),
+        require('blink.cmp.config').appearance.highlight_ns,
+        0,
+        start_col,
+        { end_col = end_col, hl_group = 'BlinkCmpSignatureHelpActiveParameter' }
+      )
+    end
   end
 
   signature.win:open()
