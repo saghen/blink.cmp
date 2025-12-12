@@ -42,7 +42,9 @@ function docs.render_detail_and_documentation(opts)
   -- skip original separator in doc_lines, so we can highlight it later
   vim.list_extend(combined_lines, doc_lines, doc_already_has_separator and 2 or 1)
 
+  vim.api.nvim_set_option_value('modifiable', true, { buf = opts.bufnr })
   vim.api.nvim_buf_set_lines(opts.bufnr, 0, -1, true, combined_lines)
+  vim.api.nvim_set_option_value('modifiable', false, { buf = opts.bufnr })
   vim.api.nvim_set_option_value('modified', false, { buf = opts.bufnr })
 
   -- Highlight with treesitter
