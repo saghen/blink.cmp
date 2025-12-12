@@ -58,6 +58,12 @@ local function apply_item(ctx, item)
     temp_text_edit.newText = ''
     text_edits_lib.apply(temp_text_edit, all_text_edits)
 
+    -- Because we resolve the item asynchronously, we must ensure we're still in insert mode
+    -- and set the cursor back to its position before accepting the item, since the snippet expansion
+    -- inserts at the cursor position
+    if not vim.api.nvim_get_mode().mode:match('i') then vim.cmd('startinsert') end
+    vim.api.nvim_win_set_cursor(0, { ctx.cursor[1], ctx.cursor[2] })
+
     -- Expand the snippet
     require('blink.cmp.config').snippets.expand(item.textEdit.newText)
 
@@ -105,8 +111,9 @@ local function accept(ctx, item, callback)
     :catch(function() return item end)
     :map(function(resolved_item)
       -- Updates the text edit based on the cursor position and converts it to utf-8
+      -- Use the cursor at the time of resolving the item, since it may have moved since then
       resolved_item = vim.deepcopy(resolved_item)
-      resolved_item.textEdit = text_edits_lib.get_from_item(resolved_item)
+      resolved_item.textEdit = text_edits_lib.get_from_item(resolved_item, ctx.cursor)
 
       return sources.execute(
         ctx,
