@@ -176,6 +176,17 @@ text is not visible) by using the `force` option.
 }
 ```
 
+**Option 3: If there is only one completion candidate, select and accept it without showing the completion menu; otherwise, open the completion menu and select the first candidate** 
+
+```lua
+['<C-y>'] = {
+  function(cmp)
+    return cmp.show_and_insert_or_accept_single({ force = true })
+  end,
+  'fallback',
+}
+```
+
 Note that if you already pre-select the first item in the list (see
 [`completion.list`](./configuration/completion.md#list)), the `index` option is not needed.
 
