@@ -5,7 +5,9 @@
 local commands = {}
 
 function commands.register()
-  vim.lsp.commands['editor.action.triggerParameterHints'] = function() require('blink.cmp').show_signature() end
+  vim.lsp.commands['editor.action.triggerParameterHints'] = vim.schedule_wrap(
+    function() require('blink.cmp.signature.trigger').show() end
+  )
   vim.lsp.commands['editor.action.triggerSuggest'] = function()
     require('blink.cmp.completion.trigger').show({ trigger_kind = 'manual' })
   end
