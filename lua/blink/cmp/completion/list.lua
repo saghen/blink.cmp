@@ -176,7 +176,9 @@ function list.get_item_idx_in_list(item)
 end
 
 function list.select(idx, opts)
+  if idx ~= nil and idx < 0 then idx = math.max(#list.items + idx + 1, 1) end
   opts = opts or {}
+
   local item = list.items[idx]
 
   local auto_insert = opts.auto_insert

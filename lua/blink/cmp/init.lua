@@ -52,8 +52,13 @@ function cmp.is_ghost_text_visible() return require('blink.cmp.completion.window
 --- @return boolean
 function cmp.is_documentation_visible() return require('blink.cmp.completion.windows.documentation').win:is_open() end
 
+--- @class blink.cmp.ShowOpts
+--- @field providers? string[] List of providers to show
+--- @field initial_selected_item_idx? number The index of the item to select initially
+--- @field callback? fun() Called after the menu is shown
+
 --- Show the completion window
---- @param opts? { providers?: string[], initial_selected_item_idx?: number, callback?: fun() }
+--- @param opts? blink.cmp.ShowOpts
 function cmp.show(opts)
   opts = opts or {}
 
@@ -92,30 +97,32 @@ end
 --- @params opts? { providers?: string[], callback?: fun() }
 function cmp.show_and_insert(opts)
   opts = opts or {}
-  opts.initial_selected_item_idx = 1
+  opts.initial_selected_item_idx = opts.initial_selected_item_idx or 1
   return cmp.show(opts)
 end
 
 --- Select the first completion item if there are multiple candidates, or accept it if there is only one, after showing
---- @param opts? blink.cmp.CompletionListSelectAndAcceptOpts
+--- @param opts? blink.cmp.ShowOpts
 function cmp.show_and_insert_or_accept_single(opts)
   local list = require('blink.cmp.completion.list')
+  opts = opts or {}
 
   -- If the candidate list has been filtered down to exactly one item, accept it.
   if #list.items == 1 then
-    vim.schedule(function() list.accept({ index = 1, callback = opts and opts.callback }) end)
+    vim.schedule(function() list.accept({ index = 1, callback = opts.callback }) end)
     return true
   end
 
-  return cmp.show_and_insert({
-    callback = function()
-      if #list.items == 1 then
-        list.accept({ index = 1, callback = opts and opts.callback })
-      elseif opts and opts.callback then
-        opts.callback()
-      end
-    end,
-  })
+  local callback = opts.callback
+  opts.initial_selected_item_idx = opts.initial_selected_item_idx or 1
+  opts.callback = function()
+    if #list.items == 1 then
+      list.accept({ index = 1, callback = opts and opts.callback })
+    elseif callback then
+      callback()
+    end
+  end
+  return cmp.show(opts)
 end
 
 --- Hide the completion window
