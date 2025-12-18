@@ -117,7 +117,7 @@ function cmp.show_and_insert_or_accept_single(opts)
   opts.initial_selected_item_idx = opts.initial_selected_item_idx or 1
   opts.callback = function()
     if #list.items == 1 then
-      list.accept({ index = 1, callback = opts and opts.callback })
+      list.accept({ index = 1, callback = callback })
     elseif callback then
       callback()
     end
