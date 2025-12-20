@@ -148,7 +148,9 @@ function buffer_events:listen(opts)
     callback = make_char_added(self, snippet, opts.on_char_added),
   })
 
+  vim.api.nvim_create_augroup('Blink_MakeCursorMovedGroup', { clear = true })
   vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI', 'InsertEnter' }, {
+    group = 'Blink_MakeCursorMovedGroup',
     callback = make_cursor_moved(self, snippet, opts.on_cursor_moved),
   })
 
