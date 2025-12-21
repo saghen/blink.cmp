@@ -70,9 +70,10 @@ function docs.show_item(context, item)
       end
 
       if docs.shown_item ~= item then
+        local docs_buf = docs.win:get_buf()
         --- @type blink.cmp.RenderDetailAndDocumentationOpts
         local default_render_opts = {
-          bufnr = docs.win:get_buf(),
+          bufnr = docs_buf,
           detail = item.detail,
           documentation = item.documentation,
           max_width = docs.win.config.max_width,
@@ -87,12 +88,14 @@ function docs.show_item(context, item)
         -- allow the provider to override the drawing optionally
         -- TODO: should the default_implementation be the configured draw function instead of the built-in?
         local draw = item.documentation and item.documentation.draw or config.draw
+        vim.api.nvim_set_option_value('modifiable', true, { buf = docs_buf })
         draw({
           item = item,
           window = docs.win,
           config = config,
           default_implementation = default_impl,
         })
+        vim.api.nvim_set_option_value('modifiable', false, { buf = docs_buf })
       end
       docs.shown_item = item
 
