@@ -180,3 +180,31 @@ MiniDeps.add({
   },
 })
 ```
+
+### vim-plug
+
+In `init.vim`, install `blink.cmp` and config fetching the pre-built binary as the post-installation action:
+
+```
+Plug 'saghen/blink.cmp', {'tag': 'v1.*'}
+```
+
+Next, manually call the setup function either from a standalone lua configuration file or a lua heredoc section in vimscript:
+
+```lua
+require('blink.cmp').setup({
+	keymap = { preset = 'default' },
+	appearance = {
+		nerd_font_variant = 'mono'
+	},
+	completion = {
+		documentation = { auto_show = false }
+	},
+	sources = {
+		default = { 'lsp', 'path', 'snippets', 'buffer' },
+	},
+	fuzzy = {
+		implementation = "prefer_rust_with_warning"
+	}
+})
+```
