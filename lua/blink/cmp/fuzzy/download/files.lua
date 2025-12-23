@@ -169,9 +169,30 @@ end
 --- @param new_path string
 function files.rename(old_path, new_path)
   return async.task.new(function(resolve, reject)
-    vim.uv.fs_rename(old_path, new_path, function(err)
-      if err then return reject(err) end
-      resolve()
+    -- Generate a temporary filename with timestamp
+    local time = os.date('%Y%m%d%H%M%S')
+    local dirname = vim.fs.dirname(new_path)
+    local basename = vim.fs.basename(new_path)
+    local tmpfile = vim.fs.joinpath(dirname or '.', '.trash-' .. time .. '-' .. basename)
+
+    -- Try to move new_path out of the way unconditionally
+    vim.uv.fs_rename(new_path, tmpfile, function(rename_existing_err)
+      if rename_existing_err then
+        -- Signal the fact that there is no tmp file to delete
+        tmpfile = ''
+      end
+      -- Now move old_path to new_path
+      vim.uv.fs_rename(old_path, new_path, function(rename_err)
+        if rename_err then return reject(rename_err) end
+        -- If we moved the original new_path, try to delete the temp file
+        if string.len(tmpfile) > 0 then
+          vim.uv.fs_unlink(tmpfile, function()
+            -- TODO: either report the error or just automatically delete
+            -- stray trash files as part of a routine cleanup.
+          end)
+        end
+        resolve()
+      end)
     end)
   end)
 end
