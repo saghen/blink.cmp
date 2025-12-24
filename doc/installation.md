@@ -181,30 +181,79 @@ MiniDeps.add({
 })
 ```
 
-### vim-plug
+## vim-plug
 
-In `init.vim`, install `blink.cmp` and config fetching the pre-built binary as the post-installation action:
+This section shows how to perform the equivalent default setup as demonstrated in the [lazy.nvim](#lazy.nvim) section using `vim-plug`.
+To install, add `blink.cmp` and its optional dependencies, then manually call `setup()` for further configuration:
 
+VimScript:
+
+```vim
+call plug#begin()
+" use a release tag to download pre-built binaries.
+" To build from source, use { 'do': 'cargo build --release' } instead
+" If you use nix, use { 'do': 'nix run .#build-plugin' }
+Plug 'saghen/blink.cmp', { 'tag': 'v1.*' }
+
+" optional: provides snippets for the snippet source
+Plug 'rafamadriz/friendly-snippets'
+call plug#end()
+
+lua << EOF
+require('blink.cmp').setup({
+  keymap = { preset = 'default' },
+  appearance = {
+    nerd_font_variant = 'mono'
+  },
+  completion = {
+    documentation = { auto_show = false }
+  },
+  sources = {
+    default = { 'lsp', 'path', 'snippets', 'buffer' },
+  },
+  fuzzy = {
+    implementation = "prefer_rust_with_warning"
+  }
+})
+EOF
 ```
-Plug 'saghen/blink.cmp', {'tag': 'v1.*'}
-```
 
-Next, manually call the setup function either from a standalone lua configuration file or a lua heredoc section in vimscript:
+Lua:
 
 ```lua
+local Plug = vim.fn['plug#']
+
+-- Plugin installation
+vim.call('plug#begin')
+
+-- use a release tag to download pre-built binaries.
+-- To build from source, use { ['do'] = 'cargo build --release' } instead
+-- If you use nix, use { ['do'] = 'nix run .#build-plugin' }
+Plug('saghen/blink.cmp', { ['tag'] = 'v1.*' })
+
+-- optional: provides snippets for the snippet source
+Plug('rafamadriz/friendly-snippets')
+
+vim.call('plug#end')
+
+-- Plugin configuration
 require('blink.cmp').setup({
-	keymap = { preset = 'default' },
-	appearance = {
-		nerd_font_variant = 'mono'
-	},
-	completion = {
-		documentation = { auto_show = false }
-	},
-	sources = {
-		default = { 'lsp', 'path', 'snippets', 'buffer' },
-	},
-	fuzzy = {
-		implementation = "prefer_rust_with_warning"
-	}
+  keymap = { preset = 'default' },
+
+  appearance = {
+    nerd_font_variant = 'mono'
+  },
+
+  completion = {
+    documentation = { auto_show = false }
+  },
+
+  sources = {
+    default = { 'lsp', 'path', 'snippets', 'buffer' },
+  },
+
+  fuzzy = {
+    implementation = "prefer_rust_with_warning"
+  }
 })
 ```
