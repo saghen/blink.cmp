@@ -120,13 +120,15 @@ end
 
 local function make_insert_leave(self, on_insert_leave)
   return function()
-    self.last_char = ''
     -- HACK: when using vim.snippet.expand, the mode switches from insert -> normal -> visual -> select
     -- so we schedule to ignore the intermediary modes
     -- TODO: deduplicate requests
     vim.schedule(function()
       local mode = vim.api.nvim_get_mode().mode
-      if not mode:match('i') and not mode:match('s') then on_insert_leave() end
+      if not mode:match('i') and not mode:match('s') then
+        self.last_char = ''
+        on_insert_leave()
+      end
     end)
   end
 end
