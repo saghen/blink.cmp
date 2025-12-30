@@ -70,7 +70,6 @@ Note: By default, Blink will attempt to use the rust implementation of the fuzzy
     -- See the fuzzy documentation for more information
     fuzzy = { implementation = "prefer_rust_with_warning" }
   },
-  opts_extend = { "sources.default" }
 }
 ```
 
