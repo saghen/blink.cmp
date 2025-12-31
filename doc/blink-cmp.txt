@@ -1887,25 +1887,7 @@ use `extended_filetypes`.
       }
     }
 <
-To filter which snippets are shown, use `filter_snippets` which provides the filetype
-and name of the snippets file. This function returns `true` if the snippet
-should be included in completion results, and `false` if it should be filtered out.
 
->lua
-    sources = {
-      providers = {
-        snippets = {
-          opts = {
-	    -- disable friendly-snippets frameworks
-            filter_snippets = function(ft, file)
-	      return not (string.match(file, "friendly.snippets") and string.match(file, "framework"))
-	    end,
-            }
-          }
-        }
-      }
-    }
-<
 
 CUSTOM SNIPPETS ~
 
