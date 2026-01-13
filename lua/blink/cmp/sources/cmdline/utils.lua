@@ -129,4 +129,46 @@ function utils.get_completions(pattern, type, completion_type)
   return vim.fn.getcompletion(pattern, type, true)
 end
 
+---@param func_str string v:lua function string, e.g. "v:lua.foo.bar"
+---@param prefix string
+---@param line string
+---@param col number
+---@return boolean success
+---@return table|string|nil result
+function utils.call_vlua(func_str, prefix, line, col)
+  local parts = vim.split(func_str, '.', { plain = true })
+  if #parts < 2 then return false, nil end
+
+  local func_name = parts[#parts]
+
+  ---@type function|nil
+  local fn
+
+  -- Prefer global table lookup, supporting deep module functions (e.g., v:lua.foo.bar.baz)
+  ---@type table|nil
+  local tbl = _G
+  for i = 2, #parts - 1 do
+    if type(tbl) ~= 'table' then
+      tbl = nil
+      break
+    end
+    tbl = tbl[parts[i]]
+  end
+  if type(tbl) == 'table' then fn = tbl[func_name] end
+
+  -- Fallback to require()
+  if not fn and #parts > 2 then
+    local module_name = table.concat(parts, '.', 2, #parts - 1)
+    local ok, mod = pcall(require, module_name)
+    if ok and type(mod) == 'table' then fn = mod[func_name] end
+  end
+
+  if type(fn) == 'function' then
+    local ok, result = pcall(fn, prefix, line, col)
+    return ok, result
+  end
+
+  return false, nil
+end
+
 return utils
