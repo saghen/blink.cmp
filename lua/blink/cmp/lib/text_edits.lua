@@ -1,3 +1,4 @@
+local async = require('blink.cmp.lib.async')
 local config = require('blink.cmp.config')
 local utils = require('blink.cmp.lib.utils')
 local context = require('blink.cmp.completion.trigger.context')
@@ -408,10 +409,22 @@ end
 --- Moves the cursor while preserving dot repeat
 --- @param amount number Number of characters to move the cursor by, can be negative to move left
 function text_edits.move_cursor_in_dot_repeat(amount)
-  if amount == 0 then return end
+  if amount == 0 then return async.task.empty() end
 
-  local keys = string.rep('<C-g>U' .. (amount > 0 and '<Right>' or '<Left>'), math.abs(amount))
-  vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(keys, true, true, true), 'in', false)
+  return async.task.new(function(resolve)
+    local augroup = vim.api.nvim_create_augroup('BlinkCmpDotRepeatCursorCallback', { clear = true })
+    vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI' }, {
+      group = augroup,
+      callback = function()
+        resolve()
+        vim.api.nvim_del_augroup_by_id(augroup)
+      end,
+      once = true,
+    })
+
+    local keys = string.rep('<C-g>U' .. (amount > 0 and '<Right>' or '<Left>'), math.abs(amount))
+    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(keys, true, true, true), 'in', false)
+  end)
 end
 
 return text_edits
