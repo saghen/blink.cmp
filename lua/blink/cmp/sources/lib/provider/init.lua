@@ -115,7 +115,9 @@ function source:should_show_items(context, items)
     end
   end
 
-  local min_keyword_length = math.max(provider_min_keyword_length, global_min_keyword_length)
+  local min_keyword_length = global_min_keyword_length
+  if provider_min_keyword_length > 0 then min_keyword_length = provider_min_keyword_length end
+
   local current_keyword_length = context.bounds.length
   if current_keyword_length < min_keyword_length then return false end
 
@@ -123,8 +125,9 @@ function source:should_show_items(context, items)
   if self.module.should_show_items ~= nil and not self.module:should_show_items(context, items) then return false end
 
   -- check if the user wants to show items
-  if self.config.should_show_items == nil then return true end
-  return self.config.should_show_items(context, items)
+  if self.config.should_show_items ~= nil and not self.config.should_show_items(context, items) then return false end
+
+  return true
 end
 
 function source:transform_items(context, items)
