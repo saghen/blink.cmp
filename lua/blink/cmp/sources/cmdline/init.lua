@@ -77,22 +77,31 @@ function cmdline:get_completions(context, callback)
       -- Input mode (vim.fn.input())
       if utils.is_command_line({ '@' }) then
         local completion_args = vim.split(completion_type, ',', { plain = true })
-        local completion_type = completion_args[1]
+        local custom_type = completion_args[1]
         local completion_func = completion_args[2]
 
-        -- Handle custom completions explicitly, since `getcompletion()` will fail when using this type
-        -- TODO: we cannot handle v:lua, s:, and <sid> completions. is there a better solution here where we can
-        -- get completions in input() mode without calling ourselves?
-        if
-          vim.startswith(completion_type, 'custom')
-          and not vim.startswith(completion_func:lower(), 's:')
-          and not vim.startswith(completion_func:lower(), 'v:lua')
-          and not vim.startswith(completion_func:lower(), '<sid>')
-        then
-          local success, fn_completions =
-            pcall(vim.fn.call, completion_func, { current_arg_prefix, context.get_line(), context.cursor[2] + 1 })
+        -- Handle custom completions
+        if vim.startswith(custom_type, 'custom') then
+          local custom_func = completion_func:lower()
 
-          if success then
+          -- Missing function or script-local functions cannot be resolved safely
+          if not completion_func or vim.startswith(custom_func, 's:') or vim.startswith(custom_func, '<sid>') then
+            return completions
+          end
+
+          local success, fn_completions
+
+          -- Handle v:lua functions (:h v:lua-call)
+          if vim.startswith(custom_func, 'v:lua') then
+            success, fn_completions =
+              cmdline_utils.call_vlua(completion_func, current_arg_prefix, context.get_line(), context.cursor[2] + 1)
+          else
+            -- Regular vimscript/Lua functions
+            success, fn_completions =
+              pcall(vim.fn.call, completion_func, { current_arg_prefix, context.get_line(), context.cursor[2] + 1 })
+          end
+
+          if success and fn_completions then
             if type(fn_completions) == 'table' then
               completions = fn_completions
             -- `custom,` type returns a string, delimited by newlines
@@ -104,8 +113,8 @@ function cmdline:get_completions(context, callback)
         -- Regular input completions, use the type defined by the input
         else
           local query = (text_before_argument .. current_arg_prefix):gsub([[\\]], [[\\\\]])
-          -- TODO: handle `custom` type
-          local compl_type = not vim.startswith(completion_type, 'custom') and completion_type or 'cmdline'
+          -- Custom types aren't supported by getcompletion(), fallback to 'cmdline'
+          local compl_type = vim.startswith(custom_type, 'custom') and 'cmdline' or custom_type
           if compl_type ~= '' then
             -- path completions uniquely expect only the current path
             query = is_path_completion and current_arg_prefix or query
