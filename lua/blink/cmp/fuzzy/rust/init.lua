@@ -5,16 +5,20 @@ local function get_lib_extension()
   return '.so'
 end
 
--- search for the lib in the /target/release directory with and without the lib prefix
--- since MSVC doesn't include the prefix
-package.cpath = package.cpath
-  .. ';'
-  .. debug.getinfo(1).source:match('@?(.*/)')
-  .. '../../../../../target/release/lib?'
-  .. get_lib_extension()
-  .. ';'
-  .. debug.getinfo(1).source:match('@?(.*/)')
-  .. '../../../../../target/release/?'
-  .. get_lib_extension()
+local base = assert(debug.getinfo(1)).source:match('@?(.*/)')
+local so_paths = {
+  base .. '../../../../../target/release/libblink_cmp_fuzzy' .. get_lib_extension(),
+  base .. '../../../../../target/release/blink_cmp_fuzzy' .. get_lib_extension(),
+}
 
-return require('blink_cmp_fuzzy')
+local modname = 'blink_cmp_fuzzy'
+local funcname = 'luaopen_' .. modname
+local loader
+for _, so_path in ipairs(so_paths) do
+  loader = package.loadlib(so_path, funcname)
+  if loader then
+    package.preload[modname] = loader
+    break
+  end
+end
+return require(modname)
