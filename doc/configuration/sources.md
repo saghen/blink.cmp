@@ -6,7 +6,7 @@ title: Sources
 Check out the [recipes](../recipes.md#sources) for some common configurations
 :::
 
-Blink provides a sources interface, modelled after LSPs, for getting completion items, trigger characters, documentation and signature help. The `lsp`, `path`, `snippets`, `luasnip`, `buffer`, and `omni` sources are built-in. You may add additional [community sources](#community-sources) as well. Check out the [source boilerplate](../development/source-boilerplate.md) to learn how to write your own!
+Blink provides a sources interface, modelled after LSPs, for getting completion items, trigger characters, documentation and signature help. The `lsp`, `path`, `snippets`, `buffer`, and `omni` sources are built-in. You may add additional [community sources](#community-sources) as well. Check out the [source boilerplate](../development/source-boilerplate.md) to learn how to write your own!
 
 ## Providers
 
@@ -127,3 +127,4 @@ See [blink.compat](https://github.com/Saghen/blink.compat) for using `nvim-cmp` 
 - [blink-cmp-vsnip](https://codeberg.org/FelipeLema/blink-cmp-vsnip)
 - [blink-cmp-dat-word](https://github.com/xieyonn/blink-cmp-dat-word): Word completion
 - [blink-cmp-dap](https://github.com/mayromr/blink-cmp-dap): Completions for DAP repl
+- [blink-cmp-luasnip-choice](https://github.com/becknik/blink-cmp-luasnip-choice): (LuaSnip)[https://github.com/L3MON4D3/LuaSnip] choice node completion

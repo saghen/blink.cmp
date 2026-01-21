@@ -39,7 +39,7 @@ function files.get_checksum_for_file(path)
   return async.task.new(function(resolve, reject)
     local os = system.get_info()
     local args
-    if os == 'linux' then
+    if os == 'linux' or os == 'freebsd' then
       args = { 'sha256sum', path }
     elseif os == 'mac' or os == 'osx' then
       args = { 'shasum', '-a', '256', path }

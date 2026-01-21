@@ -1,4 +1,4 @@
-*blink-cmp.txt*         For NVIM v0.10.0         Last change: 2025 December 15
+*blink-cmp.txt*          For NVIM v0.10.0         Last change: 2026 January 16
 
 ==============================================================================
 Table of Contents                                *blink-cmp-table-of-contents*
@@ -12,6 +12,7 @@ Table of Contents                                *blink-cmp-table-of-contents*
   - Requirements                         |blink-cmp-installation-requirements|
   - lazy.nvim                               |blink-cmp-installation-lazy.nvim|
   - mini.deps                               |blink-cmp-installation-mini.deps|
+  - vim-plug                                 |blink-cmp-installation-vim-plug|
 3. Recipes                                                 |blink-cmp-recipes|
   - General                                        |blink-cmp-recipes-general|
   - Fuzzy (sorting/filtering)    |blink-cmp-recipes-fuzzy-(sorting/filtering)|
@@ -297,6 +298,86 @@ configuration options and setting up `nvim-lspconfig`.
         post_install = build_blink,
         post_checkout = build_blink,
       },
+    })
+<
+
+
+VIM-PLUG                                     *blink-cmp-installation-vim-plug*
+
+This section shows how to perform the equivalent default setup as demonstrated
+in the |blink-cmp-lazy.nvim| section using `vim-plug`. To install, add
+`blink.cmp` and its optional dependencies, then manually call `setup()` for
+further configuration:
+
+VimScript:
+
+>vim
+    call plug#begin()
+    " use a release tag to download pre-built binaries.
+    " To build from source, use { 'do': 'cargo build --release' } instead
+    " If you use nix, use { 'do': 'nix run .#build-plugin' }
+    Plug 'saghen/blink.cmp', { 'tag': 'v1.*' }
+    
+    " optional: provides snippets for the snippet source
+    Plug 'rafamadriz/friendly-snippets'
+    call plug#end()
+    
+    lua << EOF
+    require('blink.cmp').setup({
+      keymap = { preset = 'default' },
+      appearance = {
+        nerd_font_variant = 'mono'
+      },
+      completion = {
+        documentation = { auto_show = false }
+      },
+      sources = {
+        default = { 'lsp', 'path', 'snippets', 'buffer' },
+      },
+      fuzzy = {
+        implementation = "prefer_rust_with_warning"
+      }
+    })
+    EOF
+<
+
+Lua:
+
+>lua
+    local Plug = vim.fn['plug#']
+    
+    -- Plugin installation
+    vim.call('plug#begin')
+    
+    -- use a release tag to download pre-built binaries.
+    -- To build from source, use { ['do'] = 'cargo build --release' } instead
+    -- If you use nix, use { ['do'] = 'nix run .#build-plugin' }
+    Plug('saghen/blink.cmp', { ['tag'] = 'v1.*' })
+    
+    -- optional: provides snippets for the snippet source
+    Plug('rafamadriz/friendly-snippets')
+    
+    vim.call('plug#end')
+    
+    -- Plugin configuration
+    require('blink.cmp').setup({
+      keymap = { preset = 'default' },
+    
+      appearance = {
+        nerd_font_variant = 'mono'
+      },
+    
+      completion = {
+        documentation = { auto_show = false }
+      },
+    
+      sources = {
+        default = { 'lsp', 'path', 'snippets', 'buffer' },
+      },
+    
+      fuzzy = {
+        implementation = "prefer_rust_with_warning"
+      }
     })
 <
 
@@ -845,9 +926,7 @@ Original discussion <https://github.com/Saghen/blink.cmp/discussions/1146>
                         icon = dev_icon
                     end
                 else
-                    icon = require("lspkind").symbolic(ctx.kind, {
-                        mode = "symbol",
-                    })
+                    icon = require("lspkind").symbol_map[ctx.kind] or ""
                 end
     
                 return icon .. ctx.icon_gap
@@ -888,7 +967,7 @@ kinds.
             kind_icon = {
               text = function(ctx)
                 if ctx.source_name ~= "Path" then
-                  return require("lspkind").symbolic(ctx.kind, { mode = "symbol" }) .. ctx.icon_gap
+                  return require("lspkind").symbol_map[ctx.kind] or "" .. ctx.icon_gap
                 end
     
                 local is_unknown_type = vim.tbl_contains({ "link", "socket", "fifo", "char", "block", "unknown" }, ctx.item.data.type)
@@ -1888,6 +1967,26 @@ use `extended_filetypes`.
     }
 <
 
+To filter which snippets are shown, use `filter_snippets` which provides the
+filetype and name of the snippets file. This function returns `true` if the
+snippet should be included in completion results, and `false` if it should be
+filtered out.
+
+>lua
+    sources = {
+      providers = {
+        snippets = {
+          opts = {
+            -- disable friendly-snippets frameworks
+            filter_snippets = function(ft, file)
+              return not (string.match(file, "friendly.snippets") and string.match(file, "framework"))
+            end,
+          }
+        }
+      }
+    }
+<
+
 
 CUSTOM SNIPPETS ~
 
@@ -2047,10 +2146,9 @@ SOURCES                                             *blink-cmp-config-sources*
 
 Blink provides a sources interface, modelled after LSPs, for getting completion
 items, trigger characters, documentation and signature help. The `lsp`, `path`,
-`snippets`, `luasnip`, `buffer`, and `omni` sources are built-in. You may add
-additional |blink-cmp-community-sources| as well. Check out the source
-boilerplate <../development/source-boilerplate.md> to learn how to write your
-own!
+`snippets`, `buffer`, and `omni` sources are built-in. You may add additional
+|blink-cmp-community-sources| as well. Check out the source boilerplate
+<../development/source-boilerplate.md> to learn how to write your own!
 
 
 PROVIDERS ~
@@ -2190,6 +2288,7 @@ sources
 - blink-cmp-vsnip <https://codeberg.org/FelipeLema/blink-cmp-vsnip>
 - blink-cmp-dat-word <https://github.com/xieyonn/blink-cmp-dat-word>: Word completion
 - blink-cmp-dap <https://github.com/mayromr/blink-cmp-dap>: Completions for DAP repl
+- blink-cmp-luasnip-choice <https://github.com/becknik/blink-cmp-luasnip-choice>: (LuaSnip)[https://github.com/L3MON4D3/LuaSnip] choice node completion
 
 
 REFERENCE                                         *blink-cmp-config-reference*

@@ -31,6 +31,26 @@ sources = {
 }
 ```
 
+To filter which snippets are shown, use `filter_snippets` which provides the filetype
+and name of the snippets file. This function returns `true` if the snippet
+should be included in completion results, and `false` if it should be filtered out.
+
+```lua
+sources = {
+  providers = {
+    snippets = {
+      opts = {
+        -- disable friendly-snippets frameworks
+        filter_snippets = function(ft, file)
+          return not (string.match(file, "friendly.snippets") and string.match(file, "framework"))
+        end,
+      }
+    }
+  }
+}
+
+```
+
 ## Custom snippets
 
 By default, the `snippets` source will check `~/.config/nvim/snippets` for your custom snippets, but you may add additional folders via `sources.providers.snippets.opts.search_paths`. Currently, only VSCode style snippets are supported, but you may look into [Luasnip](https://github.com/L3MON4D3/LuaSnip) if you'd like more advanced functionality. If you're coming from snipmate snippets, [nadiamoe](https://github.com/nadiamoe) wrote [a small tool for converting them to JSON](https://github.com/nadiamoe/snipmate-to-json) (here be dragons! [original discussion](https://github.com/Saghen/blink.cmp/discussions/654#discussioncomment-12083447))

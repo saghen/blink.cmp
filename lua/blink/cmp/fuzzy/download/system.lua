@@ -15,6 +15,9 @@ system.triples = {
     arm = function(libc) return 'aarch64-unknown-linux-' .. libc end,
     x64 = function(libc) return 'x86_64-unknown-linux-' .. libc end,
   },
+  freebsd = {
+    x64 = 'x86_64-unknown-freebsd',
+  },
 }
 
 --- Gets the operating system and architecture of the current system
@@ -22,6 +25,9 @@ system.triples = {
 function system.get_info()
   local os = jit.os:lower()
   if os == 'osx' then os = 'mac' end
+
+  if os == 'bsd' and vim.loop.os_uname().sysname:lower() == 'freebsd' then os = 'freebsd' end
+
   local arch = jit.arch:lower():match('arm') and 'arm' or jit.arch:lower():match('x64') and 'x64' or nil
   return os, arch
 end

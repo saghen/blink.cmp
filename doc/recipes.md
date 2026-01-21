@@ -486,9 +486,7 @@ completion = {
                     icon = dev_icon
                 end
             else
-                icon = require("lspkind").symbolic(ctx.kind, {
-                    mode = "symbol",
-                })
+                icon = require("lspkind").symbol_map[ctx.kind] or ""
             end
 
             return icon .. ctx.icon_gap
@@ -526,7 +524,7 @@ completion = {
         kind_icon = {
           text = function(ctx)
             if ctx.source_name ~= "Path" then
-              return require("lspkind").symbolic(ctx.kind, { mode = "symbol" }) .. ctx.icon_gap
+              return require("lspkind").symbol_map[ctx.kind] or "" .. ctx.icon_gap
             end
 
             local is_unknown_type = vim.tbl_contains({ "link", "socket", "fifo", "char", "block", "unknown" }, ctx.item.data.type)

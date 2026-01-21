@@ -379,7 +379,7 @@ function text_edits.write_to_dot_repeat(text_edit)
         col = 0,
         noautocmd = true,
       })
-      vim.api.nvim_buf_set_text(0, 0, 0, 0, 0, { '_' .. string.rep('a', chars_to_delete) })
+      vim.api.nvim_buf_set_text(buf, 0, 0, 0, 0, { '_' .. string.rep('a', chars_to_delete) })
       vim.api.nvim_win_set_cursor(0, { 1, chars_to_delete + 1 })
 
       -- emulate builtin completion (dot repeat)

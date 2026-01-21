@@ -57,6 +57,12 @@
             cargoLock = { lockFile = ./Cargo.lock; };
             buildInputs = with pkgs; lib.optionals stdenv.hostPlatform.isAarch64 [ rust-jemalloc-sys ]; # revisit once https://github.com/NixOS/nix/issues/12426 is solved
             nativeBuildInputs = with pkgs; [ git ];
+            env = {
+              # Allow undefined symbols on Darwin - they will be provided by Neovim's LuaJIT runtime
+              RUSTFLAGS = with pkgs;
+                lib.optionalString
+                stdenv.hostPlatform.isDarwin "-C link-arg=-undefined -C link-arg=dynamic_lookup";
+            };
           };
 
           blink-cmp = pkgs.vimUtils.buildVimPlugin {

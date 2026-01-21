@@ -33,6 +33,10 @@ jobs:
           - os: ubuntu-latest
             target: aarch64-linux-android
             artifact_name: target/aarch64-linux-android/release/libblink_cmp_fuzzy.so
+          # FreeBSD
+          - os: ubuntu-latest
+            target: x86_64-unknown-freebsd
+            artifact_name: target/x86_64-unknown-freebsd/release/libblink_cmp_fuzzy.so
 
           ## macOS builds
           - os: macos-latest
