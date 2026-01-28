@@ -128,3 +128,4 @@ See [blink.compat](https://github.com/Saghen/blink.compat) for using `nvim-cmp` 
 - [blink-cmp-dat-word](https://github.com/xieyonn/blink-cmp-dat-word): Word completion
 - [blink-cmp-dap](https://github.com/mayromr/blink-cmp-dap): Completions for DAP repl
 - [blink-cmp-luasnip-choice](https://github.com/becknik/blink-cmp-luasnip-choice): (LuaSnip)[https://github.com/L3MON4D3/LuaSnip] choice node completion
+- [blink-cmp-copilot-chat](https://github.com/pxwg/blink-cmp-copilot-chat): Completion for [CopilotChat.nvim](https://github.com/CopilotC-Nvim/CopilotChat.nvim).
