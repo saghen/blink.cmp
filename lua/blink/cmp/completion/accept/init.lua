@@ -4,7 +4,7 @@ local brackets_lib = require('blink.cmp.completion.brackets')
 
 --- @param ctx blink.cmp.Context
 --- @param item blink.cmp.CompletionItem
-local function apply_item(ctx, item)
+local function apply_item(ctx, item, is_accept)
   item = vim.deepcopy(item)
 
   -- Get additional text edits, converted to utf-8
@@ -79,7 +79,7 @@ local function apply_item(ctx, item)
   if brackets_status == 'check_semantic_token' then
     brackets_lib.add_brackets_via_semantic_token(ctx, vim.bo.filetype, item):map(function(added_brackets)
       if added_brackets then
-        require('blink.cmp.completion.trigger').show_if_on_trigger_character({ is_accept = true })
+        require('blink.cmp.completion.trigger').show_if_on_trigger_character({ is_accept = is_accept })
         require('blink.cmp.signature.trigger').show_if_on_trigger_character()
       end
     end)
@@ -90,9 +90,12 @@ end
 --- @param ctx blink.cmp.Context
 --- @param item blink.cmp.CompletionItem
 --- @param callback fun()
-local function accept(ctx, item, callback)
+--- @param opts blink.cmp.CompletionListAcceptOpts
+local function accept(ctx, item, callback, opts)
   local sources = require('blink.cmp.sources.lib')
   require('blink.cmp.completion.trigger').hide()
+
+  local is_accept = opts and opts.is_accept ~= false
 
   -- Start the resolve immediately since text changes can invalidate the item
   -- with some LSPs (e.g. rust-analyzer) causing them to return the item as-is
@@ -111,11 +114,13 @@ local function accept(ctx, item, callback)
       return sources.execute(
         ctx,
         resolved_item,
-        function(alternate_ctx, alternate_item) apply_item(alternate_ctx or ctx, alternate_item or resolved_item) end
+        function(alternate_ctx, alternate_item)
+          apply_item(alternate_ctx or ctx, alternate_item or resolved_item, is_accept)
+        end
       )
     end)
     :map(function()
-      require('blink.cmp.completion.trigger').show_if_on_trigger_character({ is_accept = true })
+      require('blink.cmp.completion.trigger').show_if_on_trigger_character({ is_accept = is_accept })
       require('blink.cmp.signature.trigger').show_if_on_trigger_character()
       callback()
     end)
