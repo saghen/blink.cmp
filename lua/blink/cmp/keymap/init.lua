@@ -1,29 +1,74 @@
-local keymap = {}
+local config = require('blink.cmp.config')
+local apply = require('blink.cmp.keymap.apply')
+local presets = require('blink.cmp.keymap.presets')
+local utils = require('blink.cmp.keymap.utils')
 
---- Lowercases all keys in the mappings table
---- @param existing_mappings table<string, blink.cmp.KeymapCommand[] | false>
---- @param new_mappings table<string, blink.cmp.KeymapCommand[] | false>
---- @return table<string, blink.cmp.KeymapCommand[] | false>
-function keymap.merge_mappings(existing_mappings, new_mappings)
-  local merged_mappings = vim.deepcopy(existing_mappings)
-  for new_key, new_mapping in pairs(new_mappings) do
-    -- normalize the keys and replace, since naively merging would not handle <C-a> == <c-a>
-    for existing_key, _ in pairs(existing_mappings) do
-      if
-        vim.api.nvim_replace_termcodes(existing_key, true, true, true)
-        == vim.api.nvim_replace_termcodes(new_key, true, true, true)
-      then
-        merged_mappings[existing_key] = new_mapping
-        goto continue
-      end
-    end
+---@class blink.cmp.KeymapContext
+---@field vim_mode string Vim's current mode (e.g. 'i', 'c', 't')
+---@field blink_mode blink.cmp.Mode The corresponding blink mode
+---@field bufnr number Buffer number (0 for global cmdline)
+---@field bufkey string Unique identifier for buffer keymaps
 
-    -- key wasn't found, add it as per usual
-    merged_mappings[new_key] = new_mapping
+local keymap = {
+  bufkey_prefix = 'blink_cmp_keymap_',
+  ---@type table<blink.cmp.Mode, table<string, blink.cmp.KeymapCommand[]>>
+  mappings = { default = {}, cmdline = {}, term = {} },
+  ---@type table<string, string>
+  mode_map = { i = 'default', s = 'default', c = 'cmdline', t = 'term' },
+}
 
-    ::continue::
+---@return blink.cmp.KeymapContext?
+local function get_keymap_context()
+  if not config.enabled() then return end
+
+  local vim_mode = vim.api.nvim_get_mode().mode
+  local blink_mode = keymap.mode_map[vim_mode]
+  if not blink_mode then return end
+
+  local has_noice = package.loaded.noice and vim.g.ui_cmdline_pos
+  local bufnr = (blink_mode == 'cmdline' and not has_noice) and 0 or vim.api.nvim_get_current_buf()
+  local bufkey = keymap.bufkey_prefix .. blink_mode
+
+  return { vim_mode = vim_mode, blink_mode = blink_mode, bufnr = bufnr, bufkey = bufkey }
+end
+
+-- Collect buffer keymaps and reapply any missing blink.cmp keymaps
+---@param ctx blink.cmp.KeymapContext
+---@param expected_mappings table<string, blink.cmp.KeymapCommand[]>
+local function repair_mappings(ctx, expected_mappings)
+  local expected_hash = vim.b[ctx.bufnr][ctx.bufkey .. '_hash']
+  local current_hash = utils.hash_keymaps(ctx.bufnr, ctx.vim_mode)
+  if expected_hash == current_hash then return end
+
+  local existing_mappings = {}
+  for _, map in ipairs(vim.api.nvim_buf_get_keymap(ctx.bufnr, ctx.vim_mode)) do
+    if utils.is_blink_keymap(map) then existing_mappings[utils.normalize_lhs(map.lhs)] = true end
   end
-  return merged_mappings
+
+  local missing_mappings = {}
+  for lhs, commands in pairs(expected_mappings) do
+    if not existing_mappings[utils.normalize_lhs(lhs)] then missing_mappings[lhs] = commands end
+  end
+
+  if next(missing_mappings) then apply.keymaps(ctx.blink_mode, missing_mappings) end
+end
+
+-- Ensure keymaps are applied once per buffer (except built-in cmdline which is global)
+function keymap.ensure_mappings()
+  local ctx = get_keymap_context()
+  if not ctx then return end
+
+  ---@type table<string, blink.cmp.KeymapCommand[]>
+  local expected_mappings = vim.b[ctx.bufnr][ctx.bufkey]
+  -- If already defined, check and reapply any missing keymaps.
+  if expected_mappings then return repair_mappings(ctx, expected_mappings) end
+
+  local mappings = keymap.mappings[ctx.blink_mode]
+  if mappings then
+    apply.keymaps(ctx.blink_mode, mappings)
+    vim.b[ctx.bufnr][ctx.bufkey] = mappings
+    vim.b[ctx.bufnr][ctx.bufkey .. '_hash'] = utils.hash_keymaps(ctx.bufnr, ctx.vim_mode)
+  end
 end
 
 --- @param keymap_config blink.cmp.KeymapConfig
@@ -32,15 +77,16 @@ end
 function keymap.get_mappings(keymap_config, mode)
   local mappings = vim.deepcopy(keymap_config)
 
+  -- Inherit preset from default, if needed
+  if mappings.preset == 'inherit' and mode ~= 'default' then
+    mappings = vim.tbl_deep_extend('force', config.keymap, mappings)
+    mappings.preset = config.keymap.preset
+  end
+
   -- Remove unused keys, but keep keys set to false or empty tables (to disable them)
   if mode ~= 'default' then
     for key, commands in pairs(mappings) do
-      if
-        key ~= 'preset'
-        and commands ~= false
-        and #commands ~= 0
-        and not require('blink.cmp.keymap.apply').has_insert_command(commands)
-      then
+      if key ~= 'preset' and commands ~= false and #commands ~= 0 and not apply.has_insert_command(commands) then
         mappings[key] = nil
       end
     end
@@ -48,63 +94,38 @@ function keymap.get_mappings(keymap_config, mode)
 
   -- Handle preset
   if mappings.preset then
-    local preset_keymap = require('blink.cmp.keymap.presets').get(mappings.preset)
-
+    local preset_keymap = presets.get(mappings.preset)
     -- Remove 'preset' key from opts to prevent it from being treated as a keymap
     mappings.preset = nil
-
-    -- Merge the preset keymap with the user-defined keymaps
-    -- User-defined keymaps overwrite the preset keymaps
-    mappings = keymap.merge_mappings(preset_keymap, mappings)
+    mappings = utils.merge_mappings(preset_keymap, mappings)
   end
-  --- @cast mappings table<string, blink.cmp.KeymapCommand[] | false>
 
   -- Remove keys explicitly disabled by user (set to false or no commands)
   for key, commands in pairs(mappings) do
     if commands == false or #commands == 0 then mappings[key] = nil end
   end
-  --- @cast mappings table<string, blink.cmp.KeymapCommand[]>
 
-  return mappings
+  return mappings --[[@as table<string, blink.cmp.KeymapCommand[]>]]
 end
 
 function keymap.setup()
-  local config = require('blink.cmp.config')
-  local apply = require('blink.cmp.keymap.apply')
+  -- Load keymaps per mode
+  keymap.mappings = {
+    default = keymap.get_mappings(config.keymap, 'default'),
+    cmdline = keymap.get_mappings(config.cmdline.keymap, 'cmdline'),
+    term = keymap.get_mappings(config.term.keymap, 'term'),
+  }
 
-  local mappings = keymap.get_mappings(config.keymap, 'default')
-
-  -- We set on the buffer directly to avoid buffer-local keymaps (such as from autopairs)
-  -- from overriding our mappings. We also use InsertEnter to avoid conflicts with keymaps
-  -- applied on other autocmds, such as LspAttach used by nvim-lspconfig and most configs
-  vim.api.nvim_create_autocmd('InsertEnter', {
-    callback = function()
-      if not require('blink.cmp.config').enabled() then return end
-      apply.keymap_to_current_buffer(mappings)
-    end,
+  -- Ensure blink.cmp keymaps are (still) applied
+  vim.api.nvim_create_autocmd('ModeChanged', {
+    group = vim.api.nvim_create_augroup('BlinkCmpKeymap', { clear = true }),
+    pattern = { 'n:i', 'n:c', 'n:t', 'no:i', 'v:s' },
+    callback = vim.schedule_wrap(keymap.ensure_mappings),
   })
 
   -- This is not called when the plugin loads since it first checks if the binary is
-  -- installed. As a result, when lazy-loaded on InsertEnter, the event may be missed
-  if vim.api.nvim_get_mode().mode == 'i' and require('blink.cmp.config').enabled() then
-    apply.keymap_to_current_buffer(mappings)
-  end
-
-  -- Apply cmdline and term keymaps
-  for _, mode in ipairs({ 'cmdline', 'term' }) do
-    local mode_config = config[mode]
-    if mode_config.enabled then
-      local mode_keymap = vim.deepcopy(mode_config.keymap)
-
-      if mode_config.keymap.preset == 'inherit' then
-        mode_keymap = vim.tbl_deep_extend('force', config.keymap, mode_config.keymap)
-        mode_keymap.preset = config.keymap.preset
-      end
-
-      local mode_mappings = keymap.get_mappings(mode_keymap, mode)
-      apply[mode .. '_keymaps'](mode_mappings)
-    end
-  end
+  -- installed. As a result, when lazy-loaded, the events may be missed
+  vim.schedule(keymap.ensure_mappings)
 end
 
 return keymap
