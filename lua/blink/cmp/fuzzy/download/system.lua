@@ -17,6 +17,7 @@ system.triples = {
   },
   freebsd = {
     x64 = 'x86_64-unknown-freebsd',
+    arm = 'aarch64-unknown-freebsd',
   },
 }
 

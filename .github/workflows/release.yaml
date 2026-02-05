@@ -37,6 +37,10 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-freebsd
             artifact_name: target/x86_64-unknown-freebsd/release/libblink_cmp_fuzzy.so
+          - os: ubuntu-latest
+            target: aarch64-unknown-freebsd
+            artifact_name: target/aarch64-unknown-freebsd/release/libblink_cmp_fuzzy.so
+            build_std: true
 
           ## macOS builds
           - os: macos-latest
@@ -57,16 +61,19 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust
+        shell: bash
         run: |
           rustup toolchain install nightly
           rustup default nightly
-          rustup target add ${{ matrix.target }}
+          if [ -z "${{ matrix.build_std }}" ] || [ "${{ matrix.build_std }}" = "false" ]; then
+            rustup target add ${{ matrix.target }}
+          fi
 
       - name: Build for Linux
         if: contains(matrix.os, 'ubuntu')
         run: |
           cargo install cross --git https://github.com/cross-rs/cross
-          cross build --release --target ${{ matrix.target }}
+          cross build --release --target ${{ matrix.target }} ${{ matrix.build_std && '-Z build-std' || '' }}
           mv "${{ matrix.artifact_name }}" "${{ matrix.target }}.so"
 
       - name: Build for macOS
