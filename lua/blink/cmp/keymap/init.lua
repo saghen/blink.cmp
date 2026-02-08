@@ -119,7 +119,7 @@ function keymap.setup()
   -- Ensure blink.cmp keymaps are (still) applied
   vim.api.nvim_create_autocmd('ModeChanged', {
     group = vim.api.nvim_create_augroup('BlinkCmpKeymap', { clear = true }),
-    pattern = { 'n:i', 'n:c', 'n:t', 'no:i', 'v:s' },
+    pattern = { 'n:i', 'n:c', 'n:t', 'no:i', 'v:s', 'nt:c' },
     callback = vim.schedule_wrap(keymap.ensure_mappings),
   })
 
