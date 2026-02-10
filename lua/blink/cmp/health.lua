@@ -18,8 +18,13 @@ function health.report_system()
   if system_triple then
     vim.health.ok('Your system is supported by pre-built binaries (' .. system_triple .. ')')
   else
+    local os, arch = download_system.get_info()
     vim.health.warn(
-      'Your system is not supported by pre-built binaries. You must run cargo build --release via your package manager with rust nightly. See the README for more info.'
+      'Your system ('
+        .. os
+        .. '/'
+        .. arch
+        .. ') is not supported by pre-built binaries. You must run cargo build --release via your package manager with rust nightly. See the README for more info.'
     )
   end
 
