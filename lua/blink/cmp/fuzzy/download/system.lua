@@ -97,7 +97,7 @@ function system.get_triple()
 
     local os, arch = system.get_info()
     local triples = system.triples[os]
-    if triples == nil then return end
+    if triples == nil then return resolve() end
 
     if os == 'linux' then
       if vim.fn.has('android') == 1 then return resolve(triples.android) end

@@ -45,6 +45,8 @@ function files.get_checksum_for_file(path)
       args = { 'shasum', '-a', '256', path }
     elseif os == 'windows' then
       args = { 'certutil', '-hashfile', path, 'SHA256' }
+    else
+      return reject('Unable to calculate checksum for file (unsupported system)')
     end
 
     vim.system(args, {}, function(out)
