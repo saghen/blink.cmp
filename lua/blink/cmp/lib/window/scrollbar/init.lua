@@ -11,6 +11,7 @@
 --- @field new fun(opts: blink.cmp.ScrollbarConfig): blink.cmp.Scrollbar
 --- @field is_visible fun(self: blink.cmp.Scrollbar): boolean
 --- @field update fun(self: blink.cmp.Scrollbar, target_win: number | nil)
+--- @field hide fun(self: blink.cmp.Scrollbar)
 
 --- @type blink.cmp.Scrollbar
 --- @diagnostic disable-next-line: missing-fields
@@ -32,6 +33,15 @@ function scrollbar:update(target_win)
 
   self.win:show_thumb(geometry.thumb)
   self.win:show_gutter(geometry.gutter)
+
+  self.win:redraw_if_needed()
+end
+
+function scrollbar:hide()
+  if self.win:is_visible() then
+    self.win:hide()
+    self.win:redraw_if_needed()
+  end
 end
 
 return scrollbar

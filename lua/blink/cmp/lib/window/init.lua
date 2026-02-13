@@ -153,7 +153,7 @@ function win:close()
     vim.api.nvim_win_close(self.id, true)
     self.id = nil
   end
-  if self.scrollbar then self.scrollbar:update() end
+  if self.scrollbar then self.scrollbar:hide() end
   self:redraw_if_needed()
 end
 
