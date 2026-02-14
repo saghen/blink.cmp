@@ -1,4 +1,5 @@
 --- Manages creating/updating scrollbar gutter and thumb windows
+local utils = require('blink.cmp.lib.window.utils')
 
 --- @class blink.cmp.ScrollbarWin
 --- @field enable_gutter boolean
@@ -83,20 +84,9 @@ function scrollbar_win:_make_win(geometry, hl_group)
   return win
 end
 
-local redraw_queued = false
 function scrollbar_win:redraw_if_needed()
-  if redraw_queued then return end
-
-  redraw_queued = true
-  vim.schedule(function()
-    redraw_queued = false
-    if self.gutter_win ~= nil and vim.api.nvim_win_is_valid(self.gutter_win) then
-      vim.api.nvim__redraw({ win = self.gutter_win, flush = true })
-    end
-    if self.thumb_win ~= nil and vim.api.nvim_win_is_valid(self.thumb_win) then
-      vim.api.nvim__redraw({ win = self.thumb_win, flush = true })
-    end
-  end)
+  utils.redraw_if_needed(self.gutter_win)
+  utils.redraw_if_needed(self.thumb_win)
 end
 
 return scrollbar_win

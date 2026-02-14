@@ -33,7 +33,6 @@ function scrollbar:update(target_win)
 
   self.win:show_thumb(geometry.thumb)
   self.win:show_gutter(geometry.gutter)
-
   self.win:redraw_if_needed()
 end
 
