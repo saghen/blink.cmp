@@ -50,8 +50,8 @@ function utils.split_script_rhs(rhs)
   local i = 1
 
   while i <= #rhs do
-    local chunk = rhs:match('^<SNR>%d+_[^>]+', i)
-      or rhs:match('^<SID>[^>]+', i)
+    local chunk = rhs:match('^<SNR>%d+_[^<]+', i)
+      or rhs:match('^<SID>[^<]+', i)
       or rhs:match('^<Plug>%b()', i)
       or rhs:match('^<[^>]+>', i)
       or rhs:match('^<[^>]*$', i)
