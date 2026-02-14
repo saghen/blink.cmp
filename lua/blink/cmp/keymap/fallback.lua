@@ -65,7 +65,7 @@ function fallback.run_non_blink_keymap(mapping, default_key)
   -- Expr mappings (<expr>)
   if mapping.expr == 1 then
     local ok, expr_key = pcall(vim.fn.eval, mapping.rhs)
-    if ok and type(expr_key) == 'string' then return single_key(expr_key, mapping.noremap == 1 and 'n' or 'm') end
+    if ok and type(expr_key) == 'string' then return single_key(expr_key, mapping.noremap ~= 0 and 'n' or 'm') end
     return single_key(default_key)
   end
 
