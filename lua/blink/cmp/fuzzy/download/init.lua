@@ -185,6 +185,14 @@ function download.ensure_downloaded(callback)
 end
 
 function download.download(version)
+  -- Don't check checksum for files on unsupported OS
+  if not system.get_triple_sync() then
+    return files
+      .set_version('v0.0.0')
+      :map(function() return download.from_github(version) end)
+      :map(function() return files.set_version(version) end)
+  end
+
   -- NOTE: we set the version to 'v0.0.0' to avoid a failure causing the pre-built binary being marked as locally built
   return files
     .set_version('v0.0.0')
