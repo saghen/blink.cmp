@@ -13,6 +13,7 @@
 
 local config = require('blink.cmp.config').completion.documentation
 local win_config = config.window
+local utils = require('blink.cmp.lib.window.utils')
 
 local sources = require('blink.cmp.sources.lib')
 local menu = require('blink.cmp.completion.windows.menu')
@@ -134,6 +135,7 @@ end
 function docs.update_position()
   if not docs.win:is_open() or not menu.win:is_open() then return end
 
+  utils.redraw_locked = true
   docs.win:update_size()
 
   local menu_winnr = menu.win:get_win()
@@ -166,6 +168,7 @@ function docs.update_position()
 
   -- couldn't find anywhere to place the window
   if not pos then
+    utils.redraw_locked = false
     docs.win:close()
     return
   end
@@ -208,6 +211,8 @@ function docs.update_position()
   if position then
     docs.win:set_win_config({ relative = 'win', win = menu_winnr, row = position.row, col = position.col })
   end
+
+  utils.redraw_locked = false
 end
 
 function docs.close()

@@ -1,4 +1,6 @@
-local utils = {}
+local utils = {
+  redraw_locked = false,
+}
 
 --- @param border blink.cmp.WindowBorder
 --- @param default blink.cmp.WindowBorder
@@ -27,6 +29,7 @@ function utils.redraw_if_needed(winnr)
 
   pending_redraw_windows[winnr] = true
 
+  if utils.redraw_locked then return end
   if redraw_timer then redraw_timer:stop() end
 
   redraw_timer = vim.defer_fn(function()

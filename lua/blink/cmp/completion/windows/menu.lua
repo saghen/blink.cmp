@@ -23,6 +23,7 @@
 
 local config = require('blink.cmp.config').completion.menu
 local event_emitter = require('blink.cmp.lib.event_emitter')
+local utils = require('blink.cmp.lib.window.utils')
 
 --- @type blink.cmp.CompletionMenu
 --- @diagnostic disable-next-line: missing-fields
@@ -193,6 +194,7 @@ function menu.update_position()
   local win = menu.win
   if not win:is_open() then return end
 
+  utils.redraw_locked = true
   win:update_size()
 
   local border_size = win:get_border_size()
@@ -200,6 +202,7 @@ function menu.update_position()
 
   -- couldn't find anywhere to place the window
   if not pos then
+    utils.redraw_locked = false
     win:close()
     return
   end
@@ -236,6 +239,7 @@ function menu.update_position()
 
   win:set_height(pos.height)
 
+  utils.redraw_locked = false
   menu.position_update_emitter:emit()
 end
 
