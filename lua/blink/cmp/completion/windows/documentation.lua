@@ -1,6 +1,7 @@
 --- @class blink.cmp.CompletionDocumentationWindow
 --- @field win blink.cmp.Window
 --- @field last_context_id? number
+--- @field content_pending boolean
 --- @field auto_show_timer uv.uv_timer_t?
 --- @field shown_item? blink.cmp.CompletionItem
 ---
@@ -36,10 +37,10 @@ local docs = {
     scrolloff = 0,
   }),
   last_context_id = nil,
+  content_pending = false,
   auto_show_timer = vim.uv.new_timer(),
 }
 
-menu.position_update_emitter:on(function() docs.update_position() end)
 menu.close_emitter:on(function() docs.close() end)
 
 function docs.auto_show_item(context, item)
@@ -58,6 +59,8 @@ end
 function docs.show_item(context, item)
   docs.auto_show_timer:stop()
   if item == nil or not menu.win:is_open() then return docs.win:close() end
+
+  docs.content_pending = true
 
   -- TODO: cancellation
   -- TODO: only resolve if documentation does not exist
@@ -99,6 +102,7 @@ function docs.show_item(context, item)
         vim.api.nvim_set_option_value('modifiable', false, { buf = docs_buf })
       end
       docs.shown_item = item
+      docs.content_pending = false
 
       if menu.win:get_win() then
         docs.win:open()
@@ -134,6 +138,7 @@ end
 
 function docs.update_position()
   if not docs.win:is_open() or not menu.win:is_open() then return end
+  if docs.content_pending then return end
 
   utils.redraw_locked = true
   docs.win:update_size()
