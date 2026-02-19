@@ -110,6 +110,11 @@ end
 function menu.open()
   if menu.win:is_open() then return end
 
+  -- Slow sources may resolve after the mode has changed,
+  -- so guard against opening the menu at the wrong time.
+  local mode = vim.api.nvim_get_mode().mode
+  if mode ~= 'c' and mode ~= 'i' then return end
+
   menu.win:open()
   menu.win:set_option_value('cursorline', menu.selected_item_idx ~= nil)
   if menu.selected_item_idx ~= nil then
