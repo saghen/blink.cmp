@@ -1,4 +1,4 @@
-*blink-cmp.txt*          For NVIM v0.10.0         Last change: 2026 January 16
+*blink-cmp.txt*         For NVIM v0.10.0         Last change: 2026 February 20
 
 ==============================================================================
 Table of Contents                                *blink-cmp-table-of-contents*
@@ -121,7 +121,7 @@ REQUIREMENTS                             *blink-cmp-installation-requirements*
     - curl
     - git
 - Building from source:
-    - Rust nightly or rustup <https://rustup.rs/>
+    - Rust toolchain <https://rustup.rs/>
 
 Note: By default, Blink will attempt to use the rust implementation of the
 fuzzy matcher. However, the lua implementation does not require any of these
@@ -139,9 +139,9 @@ LAZY.NVIM                                   *blink-cmp-installation-lazy.nvim*
     
       -- use a release tag to download pre-built binaries
       version = '1.*',
-      -- AND/OR build from source, requires nightly: https://rust-lang.github.io/rustup/concepts/channels.html#working-with-nightly-rust
+      -- AND/OR build from source
       -- build = 'cargo build --release',
-      -- If you use nix, you can build from source using latest nightly rust with:
+      -- If you use nix, you can build from source with:
       -- build = 'nix run .#build-plugin',
     
       ---@module 'blink.cmp'
@@ -281,7 +281,7 @@ configuration options and setting up `nvim-lspconfig`.
       checkout = "some.version", -- check releases for latest tag
     })
     
-    -- OR build from source, requires nightly: https://rust-lang.github.io/rustup/concepts/channels.html#working-with-nightly-rust
+    -- OR build from source
     local function build_blink(params)
       vim.notify('Building blink.cmp', vim.log.levels.INFO)
       local obj = vim.system({ 'cargo', 'build', '--release' }, { cwd = params.path }):wait()
@@ -1593,9 +1593,7 @@ linux, you very likely want `-gnu`.
 BUILD FROM SOURCE (RECOMMENDED FOR MAIN)
 
 When on `main`, it’s highly recommended to build from source via `cargo build
---release` (via `build = '...'` on `lazy.nvim` for example). This requires a
-nightly rust toolchain, which will be automatically downloaded when using
-`rustup`.
+--release` (via `build = '...'` on `lazy.nvim` for example).
 
 You may also build with nix via `nix run .#build-plugin`.
 
@@ -2289,6 +2287,7 @@ sources
 - blink-cmp-dat-word <https://github.com/xieyonn/blink-cmp-dat-word>: Word completion
 - blink-cmp-dap <https://github.com/mayromr/blink-cmp-dap>: Completions for DAP repl
 - blink-cmp-luasnip-choice <https://github.com/becknik/blink-cmp-luasnip-choice>: (LuaSnip)[https://github.com/L3MON4D3/LuaSnip] choice node completion
+- blink-cmp-copilot-chat <https://github.com/pxwg/blink-cmp-copilot-chat>: Completion for CopilotChat.nvim <https://github.com/CopilotC-Nvim/CopilotChat.nvim>.
 
 
 REFERENCE                                         *blink-cmp-config-reference*

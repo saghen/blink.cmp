@@ -1,5 +1,5 @@
 if vim.fn.has('nvim-0.11') == 1 and vim.lsp.config then
-  local user_caps = vim.lsp.config['*'].capabilities
+  local user_caps = vim.lsp.config['*'] and vim.lsp.config['*'].capabilities
 
   vim.lsp.config('*', {
     capabilities = require('blink.cmp').get_lsp_capabilities(user_caps),

@@ -2,7 +2,7 @@
 
 ::: warning
 Blink uses a prebuilt binary for the fuzzy matcher which will be downloaded automatically when on a tag.
-You may build from source with rust nightly or use the lua implementation. See the [fuzzy documentation](./configuration/fuzzy.md) for more information.
+You may build from source with a [rust toolchain](https://rustup.rs) or use the lua implementation. See the [fuzzy documentation](./configuration/fuzzy.md) for more information.
 :::
 
 ## Requirements
@@ -12,7 +12,7 @@ You may build from source with rust nightly or use the lua implementation. See t
   - curl
   - git
 - Building from source:
-  - Rust nightly or [rustup](https://rustup.rs/)
+  - [Rust toolchain](https://rustup.rs/)
 
 Note: By default, Blink will attempt to use the rust implementation of the fuzzy matcher. However, the lua implementation does not require any of these dependencies. See the [fuzzy documentation](./configuration/fuzzy.md) for more information.
 
@@ -26,9 +26,9 @@ Note: By default, Blink will attempt to use the rust implementation of the fuzzy
 
   -- use a release tag to download pre-built binaries
   version = '1.*',
-  -- AND/OR build from source, requires nightly: https://rust-lang.github.io/rustup/concepts/channels.html#working-with-nightly-rust
+  -- AND/OR build from source
   -- build = 'cargo build --release',
-  -- If you use nix, you can build from source using latest nightly rust with:
+  -- If you use nix, you can build from source with:
   -- build = 'nix run .#build-plugin',
 
   ---@module 'blink.cmp'
@@ -161,7 +161,7 @@ MiniDeps.add({
   checkout = "some.version", -- check releases for latest tag
 })
 
--- OR build from source, requires nightly: https://rust-lang.github.io/rustup/concepts/channels.html#working-with-nightly-rust
+-- OR build from source
 local function build_blink(params)
   vim.notify('Building blink.cmp', vim.log.levels.INFO)
   local obj = vim.system({ 'cargo', 'build', '--release' }, { cwd = params.path }):wait()

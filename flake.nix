@@ -33,7 +33,6 @@
             (fs.fileFilter (file: file.hasExt "rs") ./.)
             # additional files
             ./.cargo
-            ./rust-toolchain.toml
           ];
           # nvim source files
           # all that are not nix, nor rust, nor other ignored files
@@ -104,7 +103,7 @@
             self'.packages.blink-cmp
             self'.apps.build-plugin
           ];
-          packages = with pkgs; [ rust-analyzer-nightly ];
+          packages = with pkgs; [ rust-analyzer ];
         };
 
         formatter = pkgs.nixfmt-classic;

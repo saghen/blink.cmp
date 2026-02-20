@@ -1,5 +1,3 @@
-local config = require('blink.cmp.config')
-
 --- By default, the CursorLine highlight will be drawn below all other highlights.
 --- Unless it contains a foreground color, in which case it will be drawn above
 --- all other highlights.

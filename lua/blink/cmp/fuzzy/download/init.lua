@@ -61,7 +61,7 @@ function download.ensure_downloaded(callback)
             { "Couldn't update fuzzy matching library due to github downloads being disabled." },
             { ' Try setting ' },
             { " build = 'cargo build --release' ", 'DiagnosticVirtualTextInfo' },
-            { ' in your lazy.nvim spec and re-installing (requires Rust nightly), or enable ' },
+            { ' in your lazy.nvim spec and re-installing, or enable ' },
             { 'fuzzy.prebuilt_binaries.', 'DiagnosticInfo' },
             { 'ignore_version_mismatch', 'DiagnosticWarn' },
             { ' or set ' },
@@ -79,7 +79,7 @@ function download.ensure_downloaded(callback)
             { 'git tag', 'DiagnosticInfo' },
             { '. Try building from source via ' },
             { " build = 'cargo build --release' ", 'DiagnosticVirtualTextInfo' },
-            { ' in your lazy.nvim spec and re-installing (requires Rust nightly), or switch to a ' },
+            { ' in your lazy.nvim spec and re-installing, or switch to a ' },
             { 'git tag', 'DiagnosticInfo' },
             { ' via ' },
             { " version = '1.*' ", 'DiagnosticVirtualTextInfo' },
@@ -100,7 +100,7 @@ function download.ensure_downloaded(callback)
           { 'No fuzzy matching library found!' },
           { ' Try setting ' },
           { " build = 'cargo build --release' ", 'DiagnosticVirtualTextInfo' },
-          { ' in your lazy.nvim spec and re-installing (requires Rust nightly), or enable ' },
+          { ' in your lazy.nvim spec and re-installing, or enable ' },
           { 'fuzzy.prebuilt_binaries.', 'DiagnosticInfo' },
           { 'download', 'DiagnosticWarn' },
         })
@@ -113,7 +113,7 @@ function download.ensure_downloaded(callback)
           { 'No fuzzy matching library found!' },
           { ' Try building from source via ' },
           { " build = 'cargo build --release' ", 'DiagnosticVirtualTextInfo' },
-          { ' in your lazy.nvim spec and re-installing (requires Rust nightly), or switch to a ' },
+          { ' in your lazy.nvim spec and re-installing, or switch to a ' },
           { 'git tag', 'DiagnosticInfo' },
           { ' via ' },
           { " version = '1.*' ", 'DiagnosticVirtualTextInfo' },
@@ -203,7 +203,7 @@ function download.from_github(tag)
         { ' pre-built binaries ', 'DiagnosticVirtualTextInfo' },
         { '. Try building from source via ' },
         { " build = 'cargo build --release' ", 'DiagnosticVirtualTextInfo' },
-        { ' in your lazy.nvim spec and re-installing (requires Rust nightly)' },
+        { ' in your lazy.nvim spec and re-installing' },
       })
       return
     end

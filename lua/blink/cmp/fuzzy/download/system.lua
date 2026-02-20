@@ -27,7 +27,16 @@ function system.get_info()
   local os = jit.os:lower()
   if os == 'osx' then os = 'mac' end
 
-  if os == 'bsd' and vim.loop.os_uname().sysname:lower() == 'freebsd' then os = 'freebsd' end
+  if os == 'bsd' then
+    local sysname = vim.loop.os_uname().sysname:lower()
+    if sysname == 'freebsd' then
+      os = 'freebsd'
+    elseif sysname == 'openbsd' then
+      os = 'openbsd'
+    elseif sysname == 'netbsd' then
+      os = 'netbsd'
+    end
+  end
 
   local arch = jit.arch:lower():match('arm') and 'arm' or jit.arch:lower():match('x64') and 'x64' or nil
   return os, arch
@@ -89,7 +98,7 @@ function system.get_triple()
 
     local os, arch = system.get_info()
     local triples = system.triples[os]
-    if triples == nil then return end
+    if triples == nil then return resolve() end
 
     if os == 'linux' then
       if vim.fn.has('android') == 1 then return resolve(triples.android) end

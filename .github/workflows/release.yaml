@@ -63,8 +63,8 @@ jobs:
       - name: Install Rust
         shell: bash
         run: |
-          rustup toolchain install nightly
-          rustup default nightly
+          rustup toolchain install stable
+          rustup default stable
           if [ -z "${{ matrix.build_std }}" ] || [ "${{ matrix.build_std }}" = "false" ]; then
             rustup target add ${{ matrix.target }}
           fi

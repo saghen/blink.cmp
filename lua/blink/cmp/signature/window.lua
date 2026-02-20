@@ -159,7 +159,7 @@ function signature.update_position()
   end
 
   -- set height
-  vim.api.nvim_win_set_height(winnr, pos.height)
+  win:set_height(pos.height)
   local height = win:get_height()
 
   -- default to the user's preference but attempt to use the other options

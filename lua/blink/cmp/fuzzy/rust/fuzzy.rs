@@ -174,18 +174,18 @@ pub fn fuzzy_matched_indices(
     };
     let mut matches = group_by_needle(line, cursor_col, haystack, match_suffix)
         .into_iter()
-        .flat_map(|(needle, haystack)| {
-            let needle = needle.as_str();
-            haystack
+        .flat_map(|(needle, haystack_with_indices)| {
+            let haystack_strs: Vec<&str> = haystack_with_indices
+                .iter()
+                .map(|(_, h)| h.as_str())
+                .collect();
+
+            let match_indices = frizbee::match_list_indices(&needle, &haystack_strs, &config);
+
+            haystack_with_indices
                 .into_iter()
-                .map(|(idx, haystack)| {
-                    (
-                        idx,
-                        frizbee::match_indices(needle, haystack, &config)
-                            .map(|m| m.indices)
-                            .unwrap_or_default(),
-                    )
-                })
+                .zip(match_indices)
+                .map(|((idx, _), m)| (idx, m.indices))
                 .collect::<Vec<_>>()
         })
         .collect::<Vec<_>>();

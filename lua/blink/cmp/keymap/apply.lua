@@ -1,6 +1,13 @@
 local apply = {}
 
-local snippet_commands = { 'snippet_forward', 'snippet_backward', 'show_signature', 'hide_signature' }
+local snippet_commands = {
+  'snippet_forward',
+  'snippet_backward',
+  'show_signature',
+  'hide_signature',
+  'scroll_signature_up',
+  'scroll_signature_down',
+}
 
 local DESC_PREFIX = 'blink.cmp: '
 apply.DESC_PREFIX = DESC_PREFIX

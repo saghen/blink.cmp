@@ -47,6 +47,11 @@ function source.new(id, config)
 end
 
 function source:enabled()
+  -- Skip during fast events, many implementations use Vim APIs
+  -- (nvim_get_current_buf, win_gettype, etc.) which are forbidden and crash with E5560.
+  -- This is re-evaluated safely in the scheduled completion phase.
+  if vim.in_fast_event() then return false end
+
   -- user defined
   local user_enabled = self.config.enabled
   if user_enabled ~= nil then
