@@ -35,43 +35,6 @@ local async_system = function(cmd, opts)
   end)
 end
 
---- Detects if cargo supports +nightly
---- @return blink.cmp.Task<boolean>
-local function supports_rustup()
-  return async_system({ 'cargo', '+nightly', '--version' })
-    :map(function() return true end)
-    :catch(function() return false end)
-end
-
---- Detect if cargo supports nightly
---- (defaulted to nightly in rustup or globally installed without rustup)
---- @return blink.cmp.Task<boolean>
-local function supports_nightly()
-  return async_system({ 'cargo', '--version' })
-    :map(function(out) return out.stdout:match('nightly') end)
-    :catch(function() return false end)
-end
-
-local function get_cargo_cmd()
-  return async.task.all({ supports_rustup(), supports_nightly() }):map(function(results)
-    local rustup = results[1]
-    local nightly = results[2]
-
-    if rustup then return { 'cargo', '+nightly', 'build', '--release' } end
-    if nightly then return { 'cargo', 'build', '--release' } end
-
-    utils.notify({
-      { 'Rust ' },
-      { 'nightly', 'DiagnosticInfo' },
-      { ' not available via ' },
-      { 'cargo --version', 'DiagnosticInfo' },
-      { ' and rustup not detected via ' },
-      { 'cargo +nightly --version', 'DiagnosticInfo' },
-      { '. Cannot build fuzzy matching library' },
-    }, vim.log.levels.ERROR)
-  end)
-end
-
 --- Builds the rust binary from source
 --- @return blink.cmp.Task
 function build.build()
@@ -80,17 +43,14 @@ function build.build()
   local log = log_file.create()
   log.write('Working Directory: ' .. get_project_root())
 
-  return get_cargo_cmd()
-    --- @param cmd string[]
-    :map(function(cmd)
-      log.write('Command: ' .. table.concat(cmd, ' ') .. '\n')
-      log.write('\n\n---\n\n')
+  local cmd = { 'cargo', 'build', '--release' }
+  log.write('Command: ' .. table.concat(cmd, ' ') .. '\n')
+  log.write('\n\n---\n\n')
 
-      return async_system(cmd, {
-        stdout = function(_, data) log.write(data or '') end,
-        stderr = function(_, data) log.write(data or '') end,
-      })
-    end)
+  return async_system(cmd, {
+      stdout = function(_, data) log.write(data or '') end,
+      stderr = function(_, data) log.write(data or '') end,
+    })
     :map(
       function()
         utils.notify({

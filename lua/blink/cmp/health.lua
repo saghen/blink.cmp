@@ -24,7 +24,7 @@ function health.report_system()
         .. os
         .. '/'
         .. arch
-        .. ') is not supported by pre-built binaries. You must run cargo build --release via your package manager with rust nightly. See the README for more info.'
+        .. ') is not supported by pre-built binaries. You must run cargo build --release via your package manager. See the README for more info.'
     )
   end
 

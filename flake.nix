@@ -103,7 +103,7 @@
             self'.packages.blink-cmp
             self'.apps.build-plugin
           ];
-          packages = with pkgs; [ rust-analyzer-nightly ];
+          packages = with pkgs; [ rust-analyzer ];
         };
 
         formatter = pkgs.nixfmt-classic;

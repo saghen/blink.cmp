@@ -50,7 +50,7 @@ You may instead install the prebuilt binaries manually by downloading the approp
 
 ### Build from source (recommended for `main`)
 
-When on `main`, it's highly recommended to build from source via `cargo build --release` (via `build = '...'` on `lazy.nvim` for example). This requires a nightly rust toolchain, which will be automatically downloaded when using `rustup`.
+When on `main`, it's highly recommended to build from source via `cargo build --release` (via `build = '...'` on `lazy.nvim` for example).
 
 You may also build with nix via `nix run .#build-plugin`.
 
