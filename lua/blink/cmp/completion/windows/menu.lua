@@ -23,6 +23,7 @@
 
 local config = require('blink.cmp.config').completion.menu
 local event_emitter = require('blink.cmp.lib.event_emitter')
+local utils = require('blink.cmp.lib.window.utils')
 
 --- @type blink.cmp.CompletionMenu
 --- @diagnostic disable-next-line: missing-fields
@@ -109,6 +110,11 @@ end
 function menu.open()
   if menu.win:is_open() then return end
 
+  -- Slow sources may resolve after the mode has changed,
+  -- so guard against opening the menu at the wrong time.
+  local mode = vim.api.nvim_get_mode().mode
+  if mode ~= 'c' and mode ~= 'i' then return end
+
   menu.win:open()
   menu.win:set_option_value('cursorline', menu.selected_item_idx ~= nil)
   if menu.selected_item_idx ~= nil then
@@ -193,6 +199,7 @@ function menu.update_position()
   local win = menu.win
   if not win:is_open() then return end
 
+  utils.redraw_locked = true
   win:update_size()
 
   local border_size = win:get_border_size()
@@ -200,6 +207,7 @@ function menu.update_position()
 
   -- couldn't find anywhere to place the window
   if not pos then
+    utils.redraw_locked = false
     win:close()
     return
   end
@@ -236,6 +244,7 @@ function menu.update_position()
 
   win:set_height(pos.height)
 
+  utils.redraw_locked = false
   menu.position_update_emitter:emit()
 end
 

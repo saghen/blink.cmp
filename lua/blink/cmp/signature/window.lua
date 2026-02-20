@@ -11,6 +11,7 @@
 local config = require('blink.cmp.config').signature.window
 local sources = require('blink.cmp.sources.lib')
 local menu = require('blink.cmp.completion.windows.menu')
+local utils = require('blink.cmp.lib.window.utils')
 
 local signature = {
   win = require('blink.cmp.lib.window').new('signature', {
@@ -130,6 +131,7 @@ function signature.update_position()
   if not win:is_open() then return end
   local winnr = win:get_win()
 
+  utils.redraw_locked = true
   win:update_size()
 
   local direction_priority = config.direction_priority
@@ -154,6 +156,7 @@ function signature.update_position()
 
   -- couldn't find anywhere to place the window
   if not pos then
+    utils.redraw_locked = false
     win:close()
     return
   end
@@ -176,6 +179,8 @@ function signature.update_position()
   else
     vim.api.nvim_win_set_config(winnr, { relative = 'cursor', row = pos.direction == 's' and 1 or -height, col = 0 })
   end
+
+  utils.redraw_locked = false
 end
 
 return signature

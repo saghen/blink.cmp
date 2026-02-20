@@ -25,7 +25,6 @@ local utils = require('blink.cmp.lib.window.utils')
 --- @field config blink.cmp.WindowOptions
 --- @field scrollbar? blink.cmp.Scrollbar
 --- @field cursor_line blink.cmp.CursorLine
---- @field redraw_queued boolean
 ---
 --- @field new fun(name: string, config: blink.cmp.WindowOptions): blink.cmp.Window
 --- @field get_buf fun(self: blink.cmp.Window): number
@@ -48,7 +47,6 @@ local utils = require('blink.cmp.lib.window.utils')
 --- @field set_win_config fun(self: blink.cmp.Window, config: table)
 --- @field get_vertical_direction_and_height fun(self: blink.cmp.Window, direction_priority: blink.cmp.WindowDirectionPriority, max_height: number): { height: number, direction: 'n' | 's' }?
 --- @field get_direction_with_window_constraints fun(self: blink.cmp.Window, anchor_win: blink.cmp.Window, direction_priority: ("n" | "s" | "e" | "w")[], desired_min_size?: { width: number, height: number }): { width: number, height: number, direction: 'n' | 's' | 'e' | 'w' }?
---- @field redraw_if_needed fun(self: blink.cmp.Window)
 
 --- @alias blink.cmp.WindowDirectionPriority ("n"|"s")[] | fun(): ("n"|"s")[]
 
@@ -140,7 +138,7 @@ function win:open()
 
   self.cursor_line:update(self.id)
   if self.scrollbar then self.scrollbar:update(self.id) end
-  self:redraw_if_needed()
+  utils.redraw_if_needed(self.id)
 end
 
 function win:set_option_value(option, value)
@@ -153,8 +151,8 @@ function win:close()
     vim.api.nvim_win_close(self.id, true)
     self.id = nil
   end
-  if self.scrollbar then self.scrollbar:update() end
-  self:redraw_if_needed()
+  if self.scrollbar then self.scrollbar:hide() end
+  utils.redraw_if_needed(self.id)
 end
 
 --- Updates the size of the window to match the max width and height of the content/config
@@ -297,7 +295,7 @@ function win:set_cursor(cursor)
   vim.api.nvim_win_set_cursor(winnr, cursor)
 
   if self.scrollbar then self.scrollbar:update(winnr) end
-  self:redraw_if_needed()
+  utils.redraw_if_needed(winnr)
 end
 
 function win:set_height(height)
@@ -307,7 +305,7 @@ function win:set_height(height)
   vim.api.nvim_win_set_height(winnr, height)
 
   if self.scrollbar then self.scrollbar:update(winnr) end
-  self:redraw_if_needed()
+  utils.redraw_if_needed(winnr)
 end
 
 function win:set_width(width)
@@ -317,7 +315,7 @@ function win:set_width(width)
   vim.api.nvim_win_set_width(winnr, width)
 
   if self.scrollbar then self.scrollbar:update(winnr) end
-  self:redraw_if_needed()
+  utils.redraw_if_needed(winnr)
 end
 
 function win:set_win_config(config)
@@ -327,7 +325,7 @@ function win:set_win_config(config)
   vim.api.nvim_win_set_config(winnr, config)
 
   if self.scrollbar then self.scrollbar:update(winnr) end
-  self:redraw_if_needed()
+  utils.redraw_if_needed(winnr)
 end
 
 --- Gets the direction with the most space available, prioritizing the directions in the order of the
@@ -452,19 +450,6 @@ function win:get_direction_with_window_constraints(anchor_win, direction_priorit
     height = height - border_size.vertical,
     direction = direction,
   }
-end
-
---- In cmdline mode, the window won't be redrawn automatically so we redraw ourselves on schedule
-function win:redraw_if_needed()
-  if self.redraw_queued or vim.api.nvim_get_mode().mode ~= 'c' or self:get_win() == nil then return end
-
-  -- We redraw on schedule to avoid the cmdline disappearing during redraw
-  -- and to batch multiple redraws together
-  self.redraw_queued = true
-  vim.schedule(function()
-    self.redraw_queued = false
-    vim.api.nvim__redraw({ win = self:get_win(), flush = true })
-  end)
 end
 
 return win
