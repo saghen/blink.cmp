@@ -1,4 +1,5 @@
 --- @class (exact) blink.cmp.CompletionTriggerConfig
+--- @field debounce_ms number When > 0, debounces the show_emitter emission by this many milliseconds. The timer resets on each trigger, so the pipeline only runs after the user pauses. Default: 0
 --- @field prefetch_on_insert boolean When true, will prefetch the completion items when entering insert mode. WARN: buggy, not recommended unless you'd like to help develop prefetching
 --- @field show_in_snippet boolean When false, will not show the completion window when in a snippet
 --- @field show_on_keyword boolean When true, will show the completion window after typing any of alphanumerics, `-` or `_`
@@ -17,6 +18,7 @@ local validate = require('blink.cmp.config.utils').validate
 local trigger = {
   --- @type blink.cmp.CompletionTriggerConfig
   default = {
+    debounce_ms = 0,
     prefetch_on_insert = false,
     show_in_snippet = true,
     show_on_keyword = true,
@@ -35,6 +37,7 @@ local trigger = {
 
 function trigger.validate(config)
   validate('completion.trigger', {
+    debounce_ms = { config.debounce_ms, 'number' },
     prefetch_on_insert = { config.prefetch_on_insert, 'boolean' },
     show_in_snippet = { config.show_in_snippet, 'boolean' },
     show_on_backspace = { config.show_on_backspace, 'boolean' },
