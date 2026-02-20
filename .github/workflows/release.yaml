@@ -58,8 +58,8 @@ jobs:
 
       - name: Install Rust
         run: |
-          rustup toolchain install nightly
-          rustup default nightly
+          rustup toolchain install stable
+          rustup default stable
           rustup target add ${{ matrix.target }}
 
       - name: Build for Linux
