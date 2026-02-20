@@ -15,7 +15,7 @@ function download.ensure_downloaded(callback)
   if fuzzy_config.implementation == 'lua' then return callback(nil, 'lua') end
 
   async.task
-    .all({ git.get_version(), files.get_version() })
+    .all({ git.get_version(download_config.force_version), files.get_version() })
     :map(function(results)
       return {
         git = results[1],
@@ -26,7 +26,7 @@ function download.ensure_downloaded(callback)
       -- no version file found, and found the shared rust library, user manually placed the .so file
       if version.current.missing and pcall(require, 'blink.cmp.fuzzy.rust') then return end
 
-      local target_git_tag = download_config.force_version or version.git.tag
+      local target_git_tag = version.git.tag
 
       -- built locally
       if version.current.sha ~= nil then
