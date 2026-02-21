@@ -1,3 +1,4 @@
+local lsp_snippet_grammar = require('vim.lsp._snippet_grammar')
 local utils = {
   parse_cache = {},
 }
@@ -31,20 +32,21 @@ end
 function utils.safe_parse(input)
   if utils.parse_cache[input] then return utils.parse_cache[input] end
 
-  local safe, parsed = pcall(vim.lsp._snippet_grammar.parse, input)
+  local safe, parsed = pcall(lsp_snippet_grammar.parse, input)
   if not safe then return nil end
 
   utils.parse_cache[input] = parsed
   return parsed
 end
 
----@type fun(snippet: blink.cmp.Snippet, fallback: string): table
-function utils.read_snippet(snippet, fallback)
-  local snippets = {}
+---@type fun(snippet: blink.cmp.Snippet, fallback: string, filetype: string, is_user_snippet: boolean): table
+function utils.read_snippet(snippet, fallback, filetype, is_user_snippet)
   local prefix = snippet.prefix or fallback
-  local description = snippet.description or fallback
-  local body = snippet.body
+  local body = utils.validate_body(snippet.body, prefix, filetype, is_user_snippet)
+  if body == nil then return {} end
 
+  local snippets = {}
+  local description = snippet.description or fallback
   if type(description) == 'table' then description = vim.fn.join(description, '') end
 
   if type(prefix) == 'table' then
@@ -90,25 +92,47 @@ function utils.add_current_line_indentation(text)
   return table.concat(lines, '\n')
 end
 
-function utils.get_tab_stops(snippet)
-  local expanded_snippet = require('blink.cmp.sources.snippets.utils').safe_parse(snippet)
-  if not expanded_snippet then return end
+---@param body string|string[]
+---@param prefix string
+---@param filetype string
+---@param is_user_snippet boolean
+---@return string|string[]|nil
+function utils.validate_body(body, prefix, filetype, is_user_snippet)
+  if type(body) == 'table' then body = table.concat(body, '\n') end
 
-  local tabstops = {}
-  local grammar = require('vim.lsp._snippet_grammar')
-  local line = 1
-  local character = 1
-  for _, child in ipairs(expanded_snippet.data.children) do
-    local lines = tostring(child) == '' and {} or vim.split(tostring(child), '\n')
-    line = line + math.max(#lines - 1, 0)
-    character = #lines == 0 and character or #lines > 1 and #lines[#lines] or (character + #lines[#lines])
-    if child.type == grammar.NodeType.Placeholder or child.type == grammar.NodeType.Tabstop then
-      table.insert(tabstops, { index = child.data.tabstop, line = line, character = character })
+  -- Fix snippet from friendly snippets source, whenever possible
+  -- stylua: ignore
+  if not is_user_snippet then
+    body = body
+      :gsub(':\\${', ':${')                 -- unescape :${
+      :gsub(':${(%w)\\}', ':${%1}')         -- unescape :${..\\}
+      :gsub('\\}}', '}}')                   -- unescape }}
+      :gsub('\\([%(%))])', '%1')            -- unescape parentheses
+      :gsub(' \\([%(%))])\\', ' %1\\')      -- unescape parens before backslash
+      :gsub('([%s{%(%[])%$%${', '%1\\$${')  -- escape $$ after whitespace/brackets
+      :gsub('$: ', '\\$: ')                 -- escape $ before colon-space
+      :gsub('(".*%w)%$(")', '%1\\$%2')      -- escape dollar sign, e.g. "foo$" -> "foo\$"
+      :gsub('$\\{', '\\${')                 -- wrong backslash position
+      :gsub('(\\?)%$%W*(%$[%w{]+)%W*%$', function(e, a) return (e == '\\' and e or '\\') .. '$' .. a end)
+      :gsub('(%${%d+|)([^}]+)(|})', function(s, o, e) return s .. o:gsub('\\', '\\\\') .. e end)          -- Escape \ in options, e.g. \Huge -> \\Huge
+
+    if filetype == 'terraform' then
+      body = body
+        :gsub('= "\\${', '= "${')
+        :gsub('= %["\\${', '= ["${')
+        :gsub('(%${[^}]+})', function(e) return e:gsub('[%.%[%]-]', '_') end) -- replace all dots/brackets/dash in placeholders (not allowed)
     end
   end
 
-  table.sort(tabstops, function(a, b) return a.index < b.index end)
-  return tabstops
+  if not utils.safe_parse(body) then
+    if is_user_snippet then
+      prefix = type(prefix) == 'table' and table.concat(prefix, ',') or prefix
+      vim.print(('[blink.cmp] Discard user snippet `%s` (%s), parsing failed!'):format(prefix, filetype))
+    end
+    return nil
+  end
+
+  return body:find('\n') and vim.split(body, '\n', { plain = true }) or body
 end
 
 return utils
