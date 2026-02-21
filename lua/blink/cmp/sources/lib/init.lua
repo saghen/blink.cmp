@@ -107,13 +107,6 @@ function sources.get_enabled_providers(mode)
 end
 
 function sources.get_provider_by_id(provider_id)
-  -- TODO: remove in v1.0
-  if not sources.providers[provider_id] and provider_id == 'luasnip' then
-    error(
-      "Luasnip has been moved to the `snippets` source, alongside a new preset system (`snippets.preset = 'luasnip'`). See the documentation for more information."
-    )
-  end
-
   assert(
     sources.providers[provider_id] ~= nil or config.sources.providers[provider_id] ~= nil,
     'Requested provider "'
