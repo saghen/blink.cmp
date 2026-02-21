@@ -72,9 +72,6 @@ local function apply_item(ctx, item)
     text_edits_lib.move_cursor_in_dot_repeat(offset)
   end
 
-  -- Notify the rust module that the item was accessed
-  require('blink.cmp.fuzzy').access(item)
-
   -- Check semantic tokens for brackets, if needed, asynchronously
   if brackets_status == 'check_semantic_token' then
     brackets_lib.add_brackets_via_semantic_token(ctx, vim.bo.filetype, item):map(function(added_brackets)
@@ -111,12 +108,17 @@ local function accept(ctx, item, callback)
       return sources.execute(
         ctx,
         resolved_item,
-        function(alternate_ctx, alternate_item) apply_item(alternate_ctx or ctx, alternate_item or resolved_item) end
+        function(alternate_ctx, alternate_item) return apply_item(alternate_ctx or ctx, alternate_item or resolved_item) end
       )
     end)
     :map(function()
+      -- Notify the rust module that the item was accessed
+      require('blink.cmp.fuzzy').access(item)
+
+      -- Notify signature/completion
       require('blink.cmp.completion.trigger').show_if_on_trigger_character({ is_accept = true })
       require('blink.cmp.signature.trigger').show_if_on_trigger_character()
+
       callback()
     end)
     :catch(function(err) vim.notify(err, vim.log.levels.ERROR, { title = 'blink.cmp' }) end)

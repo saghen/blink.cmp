@@ -234,9 +234,7 @@ function sources.execute(context, item, default_implementation)
       break
     end
   end
-  if item_source == nil then
-    return async.task.new(function(resolve) resolve() end)
-  end
+  if item_source == nil then return async.task.empty() end
 
   return item_source
     :execute(context, item, default_implementation)
