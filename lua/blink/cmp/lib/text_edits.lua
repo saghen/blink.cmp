@@ -134,12 +134,14 @@ end
 --- Gets the text edit from an item, handling insert/replace ranges and converts
 --- offset encodings (utf-16 | utf-32) to utf-8
 --- @param item blink.cmp.CompletionItem
+--- @param cursor? [number, number]
 --- @return lsp.TextEdit
-function text_edits.get_from_item(item)
+function text_edits.get_from_item(item, cursor)
+  cursor = cursor or context.get_cursor()
   local text_edit = vim.deepcopy(item.textEdit)
 
   -- Guess the text edit if the item doesn't define it
-  if text_edit == nil then return text_edits.guess(item) end
+  if text_edit == nil then return text_edits.guess(item, cursor) end
 
   -- FIXME: temporarily convert insertReplaceEdit to regular textEdit
   if text_edit.range == nil then
@@ -154,7 +156,7 @@ function text_edits.get_from_item(item)
   --- @cast text_edit lsp.TextEdit
 
   local offset_encoding = text_edits.offset_encoding_from_item(item)
-  text_edit = text_edits.compensate_for_cursor_movement(text_edit, item.cursor_column, context.get_cursor()[2])
+  text_edit = text_edits.compensate_for_cursor_movement(text_edit, item.cursor_column, cursor[2])
 
   -- convert the offset encoding to utf-8
   -- TODO: we have to do this last because it applies a max on the position based on the length of the line
@@ -198,17 +200,14 @@ end
 
 --- Uses the keyword_regex to guess the text edit ranges
 --- @param item blink.cmp.CompletionItem
+--- @param cursor [number, number]
 --- TODO: doesnt work when the item contains characters not included in the context regex
-function text_edits.guess(item)
+function text_edits.guess(item, cursor)
   local word = item.insertText or item.label
 
-  local start_col, end_col = require('blink.cmp.fuzzy').guess_edit_range(
-    item,
-    context.get_line(),
-    context.get_cursor()[2],
-    config.completion.keyword.range
-  )
-  local current_line = context.get_cursor()[1]
+  local start_col, end_col =
+    require('blink.cmp.fuzzy').guess_edit_range(item, context.get_line(), cursor[2], config.completion.keyword.range)
+  local current_line = cursor[1]
 
   -- convert to 0-index
   return {
@@ -351,6 +350,8 @@ end
 --- https://github.com/neovim/neovim/issues/19806#issuecomment-2365146298
 --- @param text_edit lsp.TextEdit
 function text_edits.write_to_dot_repeat(text_edit)
+  if not vim.api.nvim_get_mode().mode:match('i') then return end
+
   local chars_to_delete = #table.concat(
     vim.api.nvim_buf_get_text(
       0,
