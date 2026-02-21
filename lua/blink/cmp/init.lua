@@ -109,7 +109,7 @@ function cmp.show_and_insert_or_accept_single(opts)
 
   -- If the candidate list has been filtered down to exactly one item, accept it.
   if #list.items == 1 then
-    vim.schedule(function() list.accept({ index = 1, callback = opts.callback }) end)
+    vim.schedule(function() list.accept({ index = 1, is_accept = false, callback = opts.callback }) end)
     return true
   end
 
