@@ -56,7 +56,7 @@ jobs:
             artifact_name: target/x86_64-pc-windows-msvc/release/blink_cmp_fuzzy.dll
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -90,7 +90,7 @@ jobs:
           mv "${{ matrix.artifact_name }}" "${{ matrix.target }}.dll"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.target }}
           path: ${{ matrix.target }}.*
@@ -103,7 +103,7 @@ jobs:
       contents: write
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
 
       - name: Generate checksums
         run: |
@@ -128,12 +128,12 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
           fetch-depth: 0
           fetch-tags: true
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
 
       - name: Build
         run: npm ci && npm run build:release
