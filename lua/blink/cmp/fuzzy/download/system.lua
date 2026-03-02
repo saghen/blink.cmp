@@ -8,6 +8,7 @@ system.triples = {
     x64 = 'x86_64-apple-darwin',
   },
   windows = {
+    arm = 'aarch64-pc-windows-msvc',
     x64 = 'x86_64-pc-windows-msvc',
   },
   linux = {
