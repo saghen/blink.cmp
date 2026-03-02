@@ -1,4 +1,5 @@
 --- Manages creating/updating scrollbar gutter and thumb windows
+local utils = require('blink.cmp.lib.window.utils')
 
 --- @class blink.cmp.ScrollbarWin
 --- @field enable_gutter boolean
@@ -34,8 +35,6 @@ function scrollbar_win:show_thumb(geometry)
     local thumb_config = vim.tbl_deep_extend('force', thumb_existing_config, geometry)
     vim.api.nvim_win_set_config(self.thumb_win, thumb_config)
   end
-
-  self:redraw_if_needed()
 end
 
 function scrollbar_win:show_gutter(geometry)
@@ -50,15 +49,12 @@ function scrollbar_win:show_gutter(geometry)
     local gutter_config = vim.tbl_deep_extend('force', gutter_existing_config, geometry)
     vim.api.nvim_win_set_config(self.gutter_win, gutter_config)
   end
-
-  self:redraw_if_needed()
 end
 
 function scrollbar_win:hide_thumb()
   if self.thumb_win and vim.api.nvim_win_is_valid(self.thumb_win) then
     vim.api.nvim_win_close(self.thumb_win, true)
     self.thumb_win = nil
-    self:redraw_if_needed()
   end
 end
 
@@ -66,7 +62,6 @@ function scrollbar_win:hide_gutter()
   if self.gutter_win and vim.api.nvim_win_is_valid(self.gutter_win) then
     vim.api.nvim_win_close(self.gutter_win, true)
     self.gutter_win = nil
-    self:redraw_if_needed()
   end
 end
 
@@ -89,20 +84,9 @@ function scrollbar_win:_make_win(geometry, hl_group)
   return win
 end
 
-local redraw_queued = false
 function scrollbar_win:redraw_if_needed()
-  if redraw_queued or vim.api.nvim_get_mode().mode ~= 'c' then return end
-
-  redraw_queued = true
-  vim.schedule(function()
-    redraw_queued = false
-    if self.gutter_win ~= nil and vim.api.nvim_win_is_valid(self.gutter_win) then
-      vim.api.nvim__redraw({ win = self.gutter_win, flush = true })
-    end
-    if self.thumb_win ~= nil and vim.api.nvim_win_is_valid(self.thumb_win) then
-      vim.api.nvim__redraw({ win = self.thumb_win, flush = true })
-    end
-  end)
+  utils.redraw_if_needed(self.gutter_win)
+  utils.redraw_if_needed(self.thumb_win)
 end
 
 return scrollbar_win
