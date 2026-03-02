@@ -135,3 +135,4 @@ Here is a non-exhaustive list of third-party plugins providing additional comple
 - [lazydev](https://github.com/folke/lazydev.nvim) by `folke`: [LuaLS](https://luals.github.io)
 - [minuet-ai.nvim](https://github.com/milanglacier/minuet-ai.nvim) by `milanglacier`: AI
 - [vim-dadbod-completion](https://github.com/kristijanhusak/vim-dadbod-completion) by `kristijanhusak`: [vim-dadbod](https://github.com/tpope/vim-dadbod)
+- [hex-cmp](https://github.com/dbernheisel/hex-cmp) by `dbernheisel`: [Hex.pm](https://hex.pm) package completion for Elixir `mix.exs` files.
