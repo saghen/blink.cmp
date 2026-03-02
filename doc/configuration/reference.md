@@ -453,6 +453,9 @@ fuzzy = {
     -- When downloading a prebuilt binary, force the downloader to resolve this version. If this is unset
     -- then the downloader will attempt to infer the version from the checked out git tag (if any).
     --
+    -- You may set this to any pattern that `git describe --tags --match <pattern>` supports. For example,
+    -- to track the latest release, you may set this to `v*`.
+    --
     -- Beware that if the fuzzy matcher changes while tracking main then this may result in blink breaking.
     force_version = nil,
 
