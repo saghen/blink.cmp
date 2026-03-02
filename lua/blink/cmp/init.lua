@@ -66,30 +66,28 @@ function cmp.show(opts)
   -- with that list of providers
   if require('blink.cmp.completion.windows.menu').win:is_open() and not (opts and opts.providers) then return end
 
-  vim.schedule(function()
-    require('blink.cmp.completion.windows.menu').force_auto_show()
+  require('blink.cmp.completion.windows.menu').force_auto_show()
 
-    -- HACK: because blink is event based, we don't have an easy way to know when the "show"
-    -- event completes. So we wait for the list to trigger the show event and check if we're
-    -- still in the same context
-    local context
-    if opts.callback then
-      vim.api.nvim_create_autocmd('User', {
-        pattern = 'BlinkCmpShow',
-        callback = function(event)
-          if context ~= nil and event.data.context.id == context.id then opts.callback() end
-        end,
-        once = true,
-      })
-    end
-
-    context = require('blink.cmp.completion.trigger').show({
-      force = true,
-      providers = opts and opts.providers,
-      trigger_kind = 'manual',
-      initial_selected_item_idx = opts.initial_selected_item_idx,
+  -- HACK: because blink is event based, we don't have an easy way to know when the "show"
+  -- event completes. So we wait for the list to trigger the show event and check if we're
+  -- still in the same context
+  local context
+  if opts.callback then
+    vim.api.nvim_create_autocmd('User', {
+      pattern = 'BlinkCmpShow',
+      callback = function(event)
+        if context ~= nil and event.data.context.id == context.id then opts.callback() end
+      end,
+      once = true,
     })
-  end)
+  end
+
+  context = require('blink.cmp.completion.trigger').show({
+    force = true,
+    providers = opts and opts.providers,
+    trigger_kind = 'manual',
+    initial_selected_item_idx = opts.initial_selected_item_idx,
+  })
   return true
 end
 
@@ -109,7 +107,7 @@ function cmp.show_and_insert_or_accept_single(opts)
 
   -- If the candidate list has been filtered down to exactly one item, accept it.
   if #list.items == 1 then
-    vim.schedule(function() list.accept({ index = 1, callback = opts.callback }) end)
+    list.accept({ index = 1, callback = opts.callback })
     return true
   end
 
@@ -130,10 +128,8 @@ end
 function cmp.hide(opts)
   if not cmp.is_visible() then return end
 
-  vim.schedule(function()
-    require('blink.cmp.completion.trigger').hide()
-    if opts and opts.callback then opts.callback() end
-  end)
+  require('blink.cmp.completion.trigger').hide()
+  if opts and opts.callback then opts.callback() end
   return true
 end
 
@@ -141,11 +137,9 @@ end
 --- @param opts? { callback?: fun() }
 function cmp.cancel(opts)
   if not cmp.is_visible() then return end
-  vim.schedule(function()
-    require('blink.cmp.completion.list').undo_preview()
-    require('blink.cmp.completion.trigger').hide()
-    if opts and opts.callback then opts.callback() end
-  end)
+  require('blink.cmp.completion.list').undo_preview()
+  require('blink.cmp.completion.trigger').hide()
+  if opts and opts.callback then opts.callback() end
   return true
 end
 
@@ -159,7 +153,7 @@ function cmp.accept(opts)
   local item = opts.index ~= nil and completion_list.items[opts.index] or completion_list.get_selected_item()
   if item == nil then return end
 
-  vim.schedule(function() completion_list.accept(opts) end)
+  completion_list.accept(opts)
   return true
 end
 
@@ -170,14 +164,10 @@ function cmp.select_and_accept(opts)
   if not cmp.is_visible() and not opts.force then return end
 
   local completion_list = require('blink.cmp.completion.list')
-  vim.schedule(
-    function()
-      completion_list.accept({
-        index = completion_list.selected_item_idx or 1,
-        callback = opts.callback,
-      })
-    end
-  )
+  completion_list.accept({
+    index = completion_list.selected_item_idx or 1,
+    callback = opts.callback,
+  })
   return true
 end
 
@@ -206,16 +196,18 @@ end
 --- Select the previous completion item
 --- @param opts? blink.cmp.CompletionListSelectOpts
 function cmp.select_prev(opts)
+  -- TODO: drop can_select and return bool from `select_prev/next`
   if not require('blink.cmp.completion.list').can_select(opts) then return end
-  vim.schedule(function() require('blink.cmp.completion.list').select_prev(opts) end)
+  require('blink.cmp.completion.list').select_prev(opts)
   return true
 end
 
 --- Select the next completion item
 --- @param opts? blink.cmp.CompletionListSelectOpts
 function cmp.select_next(opts)
+  -- TODO: drop can_select and return bool from `select_prev/next`
   if not require('blink.cmp.completion.list').can_select(opts) then return end
-  vim.schedule(function() require('blink.cmp.completion.list').select_next(opts) end)
+  require('blink.cmp.completion.list').select_next(opts)
   return true
 end
 
@@ -223,9 +215,10 @@ end
 --- This will trigger completions if none are available, unlike `select_next` which would fallback to the next keymap in this case.
 function cmp.insert_next()
   if not cmp.is_active() then return cmp.show_and_insert() end
+  -- TODO: drop can_select and return bool from `select_prev/next`
   if not require('blink.cmp.completion.list').can_select({ auto_insert = true }) then return end
 
-  vim.schedule(function() require('blink.cmp.completion.list').select_next({ auto_insert = true }) end)
+  require('blink.cmp.completion.list').select_next({ auto_insert = true })
   return true
 end
 
@@ -233,9 +226,10 @@ end
 --- This will trigger completions if none are available, unlike `select_prev` which would fallback to the next keymap in this case.
 function cmp.insert_prev()
   if not cmp.is_active() then return cmp.show_and_insert() end
+  -- TODO: drop can_select and return bool from `select_prev/next`
   if not require('blink.cmp.completion.list').can_select({ auto_insert = true }) then return end
 
-  vim.schedule(function() require('blink.cmp.completion.list').select_prev({ auto_insert = true }) end)
+  require('blink.cmp.completion.list').select_prev({ auto_insert = true })
   return true
 end
 
@@ -265,7 +259,7 @@ function cmp.show_documentation()
   local item = require('blink.cmp.completion.list').get_selected_item()
   if not item or not context then return end
 
-  vim.schedule(function() documentation.show_item(context, item) end)
+  documentation.show_item(context, item)
   return true
 end
 
@@ -274,7 +268,7 @@ function cmp.hide_documentation()
   local documentation = require('blink.cmp.completion.windows.documentation')
   if not documentation.win:is_open() then return end
 
-  vim.schedule(function() documentation.close() end)
+  documentation.close()
   return true
 end
 
@@ -284,7 +278,7 @@ function cmp.scroll_documentation_up(count)
   local documentation = require('blink.cmp.completion.windows.documentation')
   if not documentation.win:is_open() then return end
 
-  vim.schedule(function() documentation.scroll_up(count or 4) end)
+  documentation.scroll_up(count or 4)
   return true
 end
 
@@ -294,7 +288,7 @@ function cmp.scroll_documentation_down(count)
   local documentation = require('blink.cmp.completion.windows.documentation')
   if not documentation.win:is_open() then return end
 
-  vim.schedule(function() documentation.scroll_down(count or 4) end)
+  documentation.scroll_down(count or 4)
   return true
 end
 
@@ -306,7 +300,7 @@ function cmp.is_signature_visible() return require('blink.cmp.signature.window')
 function cmp.show_signature()
   local config = require('blink.cmp.config').signature
   if not config.enabled or cmp.is_signature_visible() then return end
-  vim.schedule(function() require('blink.cmp.signature.trigger').show({ force = true }) end)
+  require('blink.cmp.signature.trigger').show({ force = true })
   return true
 end
 
@@ -314,7 +308,7 @@ end
 function cmp.hide_signature()
   local config = require('blink.cmp.config').signature
   if not config.enabled or not cmp.is_signature_visible() then return end
-  vim.schedule(function() require('blink.cmp.signature.trigger').hide() end)
+  require('blink.cmp.signature.trigger').hide()
   return true
 end
 
@@ -324,7 +318,7 @@ function cmp.scroll_signature_up(count)
   local sig = require('blink.cmp.signature.window')
   if not sig.win:is_open() then return end
 
-  vim.schedule(function() sig.scroll_up(count or 4) end)
+  sig.scroll_up(count or 4)
   return true
 end
 
@@ -334,7 +328,7 @@ function cmp.scroll_signature_down(count)
   local sig = require('blink.cmp.signature.window')
   if not sig.win:is_open() then return end
 
-  vim.schedule(function() sig.scroll_down(count or 4) end)
+  sig.scroll_down(count or 4)
   return true
 end
 
@@ -346,7 +340,7 @@ function cmp.snippet_active(filter) return require('blink.cmp.config').snippets.
 function cmp.snippet_forward()
   local snippets = require('blink.cmp.config').snippets
   if not snippets.active({ direction = 1 }) then return end
-  vim.schedule(function() snippets.jump(1) end)
+  snippets.jump(1)
   return true
 end
 
@@ -354,7 +348,7 @@ end
 function cmp.snippet_backward()
   local snippets = require('blink.cmp.config').snippets
   if not snippets.active({ direction = -1 }) then return end
-  vim.schedule(function() snippets.jump(-1) end)
+  snippets.jump(-1)
   return true
 end
 
