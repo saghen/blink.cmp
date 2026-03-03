@@ -98,9 +98,56 @@ jobs:
           name: ${{ matrix.target }}
           path: ${{ matrix.target }}.*
 
+  build-openbsd:
+    name: Build x86_64-unknown-openbsd
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Build on OpenBSD/x86_64
+        id: build-openbsd-x86_64
+        uses: cross-platform-actions/action@v0.32.0
+        with:
+          operating_system: openbsd
+          architecture: x86-64
+          version: '7.8'
+          memory: 4G
+          shell: sh
+          sync_files: true # Sync files between runner/VM in both directions
+          run: |
+            sudo pkg_add git rust
+            echo "### OS infos"
+            uname -a
+            git config --global --add safe.directory .
+            echo "### Rust infos"
+            rustc -vV
+            cargo -vV
+            echo "### Build fuzzy matcher with rustc"
+            cargo build --release
+            printf "\n### ls -l target/release/\n"
+            ls -l target/release/
+
+      - name: Infos on runner after build
+        run: |
+          echo "### target/release/ files on runner"
+          ls -l target/release/
+          file target/release/libblink_cmp_fuzzy.so
+          echo "### Copy file for artifact"
+          cp -v target/release/libblink_cmp_fuzzy.so x86_64-unknown-openbsd.so
+
+      - name: Upload artifacts for OpenBSD/x86_64
+        uses: actions/upload-artifact@v7
+        with:
+          name: x86_64-unknown-openbsd
+          path: x86_64-unknown-openbsd.so
+          if-no-files-found: error
+
   release:
     name: Release
-    needs: build
+    needs: [build, build-openbsd]
     runs-on: ubuntu-latest
     permissions:
       contents: write
