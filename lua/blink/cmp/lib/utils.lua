@@ -146,6 +146,62 @@ function utils.with_no_autocmds(cb)
   return result_or_err
 end
 
+--- Disables auto text wrapping by removing formatoptions 't' and 'c'.
+--- Records which options were active in buffer variables so they can be
+--- restored later by restore_auto_wrap(). Should be paired with restore_auto_wrap().
+function utils.disable_auto_wrap()
+  local formatoptions = vim.opt.formatoptions:get()
+  if formatoptions.t then
+    vim.b.blink_cmp_restore_formatoptions_t = true
+    vim.opt.formatoptions:remove('t')
+  end
+  if formatoptions.c then
+    vim.b.blink_cmp_restore_formatoptions_c = true
+    vim.opt.formatoptions:remove('c')
+  end
+end
+
+--- Restores auto text wrapping (formatoptions 't' and 'c') previously disabled
+--- by disable_auto_wrap(). Uses pcall to ensure formatoptions are restored even
+--- if an error occurs. If text exceeded textwidth while wrapping was disabled,
+--- schedules a reformat of the current line.
+function utils.restore_auto_wrap()
+  local restore_t = vim.b.blink_cmp_restore_formatoptions_t
+  local restore_c = vim.b.blink_cmp_restore_formatoptions_c
+
+  local success, err = pcall(function()
+    if restore_t then
+      vim.opt.formatoptions:append('t')
+      vim.b.blink_cmp_restore_formatoptions_t = nil
+    end
+    if restore_c then
+      vim.opt.formatoptions:append('c')
+      vim.b.blink_cmp_restore_formatoptions_c = nil
+    end
+  end)
+
+  if not success then error(err) end
+
+  -- Schedule a check to reformat the line if needed.
+  -- Since 't' or 'c' was disabled during completion, text may have exceeded
+  -- textwidth without triggering auto-wrap. We check after the current
+  -- event loop iteration to ensure any pending input has been processed.
+  if restore_t or restore_c then
+    vim.schedule(function()
+      local textwidth = vim.bo.textwidth
+      if textwidth > 0 and vim.api.nvim_get_mode().mode == 'i' then
+        local current_line = vim.api.nvim_get_current_line()
+        if #current_line > textwidth then
+          -- Trigger reformat of current line using internal formatting
+          vim.cmd('normal! gww')
+          -- Return to insert mode at the end of the line content
+          vim.cmd('startinsert!')
+        end
+      end
+    end)
+  end
+end
+
 --- Disable redraw in neovide for the duration of the callback
 --- Useful for preventing the cursor from jumping to the top left during `vim.fn.complete`
 --- @generic T
