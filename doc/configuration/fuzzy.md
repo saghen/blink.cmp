@@ -15,6 +15,14 @@ Prebuilt binaries are included in the releases and automatically downloaded when
 fuzzy = { implementation = "prefer_rust_with_warning" }
 ```
 
+Prebuilt binaries are available for the following systems:
+- Linux (glibc): x86_64 and aarch64
+- Linux (musl): x86_64 and aarch64
+- Linux (android / Termux): aarch64
+- macOS: x86_64 and aarch64
+- Windows: x86_64
+- FreeBSD: x86_64 and aarch64
+
 ### Advantages of Rust implementation
 
 If possible, it's highly recommended to use the Rust implementation of the fuzzy matcher!
