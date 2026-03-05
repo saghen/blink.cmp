@@ -44,6 +44,8 @@ local trigger = {
   hide_emitter = require('blink.cmp.lib.event_emitter').new('hide'),
 }
 
+local debounce_timer
+
 local function on_char_added(char, is_ignored)
   -- we were told to ignore the text changed event, so we update the context
   -- but don't send an on_show event upstream
@@ -289,11 +291,27 @@ function trigger.show(opts)
     initial_selected_item_idx = opts.initial_selected_item_idx,
   })
 
-  if opts.send_upstream ~= false then trigger.show_emitter:emit({ context = trigger.context }) end
+  if opts.send_upstream ~= false then
+    if debounce_timer then debounce_timer:stop() end
+
+    if config.debounce_ms > 0 then
+      debounce_timer = debounce_timer or assert(vim.uv.new_timer()) -- assert to avoid nilcheck requirement
+      debounce_timer:start(
+        config.debounce_ms,
+        0,
+        vim.schedule_wrap(function()
+          if trigger.context ~= nil then trigger.show_emitter:emit({ context = trigger.context }) end
+        end)
+      )
+    else
+      trigger.show_emitter:emit({ context = trigger.context })
+    end
+  end
   return trigger.context
 end
 
 function trigger.hide()
+  if debounce_timer then debounce_timer:stop() end
   if not trigger.context then return end
 
   trigger.context = nil
