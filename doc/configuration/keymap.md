@@ -24,7 +24,7 @@ keymap = {
   ['<C-e>'] = false, -- or {}
   
   -- show with a list of providers
-  ['<C-space>'] = { function(cmp) cmp.show({ providers = { 'snippets' } }) end },
+  ['<C-space>'] = { function(cmp) return cmp.show({ providers = { 'snippets' } }) end },
 
   -- control whether the next command will be run when using a function
   ['<C-n>'] = { 
