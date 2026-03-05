@@ -155,12 +155,21 @@ function source:resolve(context, item)
     self.resolve_cache[item] = async.task.new(function(resolve)
       if self.module.resolve == nil then return resolve(item) end
 
-      return self.module:resolve(item, function(resolved_item)
+      local callback_called = false
+      local ok, ret = pcall(self.module.resolve, self.module, item, function(resolved_item)
+        callback_called = true
         -- HACK: it's out of spec to update keys not in resolveSupport.properties but some LSPs do it anyway
         local merged_item = vim.tbl_deep_extend('force', item, resolved_item or {})
         local transformed_item = self:transform_items(context, { merged_item })[1] or merged_item
         vim.schedule(function() resolve(transformed_item) end)
       end)
+
+      if not ok then
+        vim.notify('blink.cmp: source ' .. self.id .. ' resolve() error: ' .. tostring(ret), vim.log.levels.WARN)
+        return resolve(item)
+      end
+
+      if not callback_called and ret == nil then resolve(item) end
     end)
   end
   return self.resolve_cache[item]
