@@ -51,6 +51,7 @@
 
 --- @class blink.cmp.CompletionListAcceptOpts : blink.cmp.CompletionListSelectAndAcceptOpts
 --- @field index? number The index of the item to accept, if not provided, the currently selected item will be accepted
+--- @field is_accept? boolean Whether this is an explicit user acceptance (default: true)
 
 --- @class blink.cmp.CompletionListShowEvent
 --- @field items blink.cmp.CompletionItem[]
@@ -348,14 +349,17 @@ end
 
 function list.accept(opts)
   opts = opts or {}
+
   local item = list.items[opts.index or list.selected_item_idx]
   if item == nil then return false end
 
   list.undo_preview()
+
   require('blink.cmp.completion.accept')(list.context, item, function()
     list.accept_emitter:emit({ item = item, context = list.context })
     if opts.callback then opts.callback() end
-  end)
+  end, opts)
+
   return true
 end
 
