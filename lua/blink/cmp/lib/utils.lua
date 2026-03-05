@@ -195,7 +195,7 @@ function utils.restore_auto_wrap()
           -- Trigger reformat of current line using internal formatting
           vim.cmd('normal! gww')
           -- Return to insert mode at the end of the line content
-          vim.cmd('startinsert!')
+          vim.cmd('startinsert')
         end
       end
     end)
