@@ -19,6 +19,9 @@ system.triples = {
     x64 = 'x86_64-unknown-freebsd',
     arm = 'aarch64-unknown-freebsd',
   },
+  openbsd = {
+    x64 = 'x86_64-unknown-openbsd',
+  },
 }
 
 --- Gets the operating system and architecture of the current system
