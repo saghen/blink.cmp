@@ -31,7 +31,7 @@ function utils.normalize_lhs(lhs)
   return lhs
 end
 
--- Normalize the key representation of "leader" as "space" when it make sense.
+--- Normalize the key representation of "leader" as "space" when it make sense.
 --- @param lhs string
 function utils.normalize_leader(lhs)
   lhs = lhs:lower()

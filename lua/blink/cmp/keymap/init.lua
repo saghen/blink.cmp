@@ -3,11 +3,11 @@ local apply = require('blink.cmp.keymap.apply')
 local presets = require('blink.cmp.keymap.presets')
 local utils = require('blink.cmp.keymap.utils')
 
----@class blink.cmp.KeymapContext
----@field vim_mode string Vim's current mode (e.g. 'i', 'c', 't')
----@field blink_mode blink.cmp.Mode The corresponding blink mode
----@field bufnr number Buffer number (0 for global cmdline)
----@field bufkey string Unique identifier for buffer keymaps
+--- @class blink.cmp.KeymapContext
+--- @field vim_mode string Vim's current mode (e.g. 'i', 'c', 't')
+--- @field blink_mode blink.cmp.Mode The corresponding blink mode
+--- @field bufnr number Buffer number (0 for global cmdline)
+--- @field bufkey string Unique identifier for buffer keymaps
 
 local keymap = {
   bufkey_prefix = 'blink_cmp_keymap_',
@@ -17,7 +17,7 @@ local keymap = {
   mode_map = { i = 'default', s = 'default', c = 'cmdline', t = 'term' },
 }
 
----@return blink.cmp.KeymapContext?
+--- @return blink.cmp.KeymapContext?
 local function get_keymap_context()
   if not config.enabled() then return end
 
@@ -32,9 +32,9 @@ local function get_keymap_context()
   return { vim_mode = vim_mode, blink_mode = blink_mode, bufnr = bufnr, bufkey = bufkey }
 end
 
--- Collect buffer keymaps and reapply any missing blink.cmp keymaps
----@param ctx blink.cmp.KeymapContext
----@param expected_mappings table<string, blink.cmp.KeymapCommand[]>
+--- Collect buffer keymaps and reapply any missing blink.cmp keymaps
+--- @param ctx blink.cmp.KeymapContext
+--- @param expected_mappings table<string, blink.cmp.KeymapCommand[]>
 local function repair_mappings(ctx, expected_mappings)
   local expected_hash = vim.b[ctx.bufnr][ctx.bufkey .. '_hash']
   local current_hash = utils.hash_keymaps(ctx.bufnr, ctx.vim_mode)
@@ -53,7 +53,7 @@ local function repair_mappings(ctx, expected_mappings)
   if next(missing_mappings) then apply.keymaps(ctx.blink_mode, missing_mappings) end
 end
 
--- Ensure keymaps are applied once per buffer (except built-in cmdline which is global)
+--- Ensure keymaps are applied once per buffer (except built-in cmdline which is global)
 function keymap.ensure_mappings()
   local ctx = get_keymap_context()
   if not ctx then return end

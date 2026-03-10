@@ -7,7 +7,7 @@ local utils = require('blink.cmp.keymap.utils')
 --- @param mode? string
 local function single_key(key, mode) return { { key = key, mode = mode or 'n' } } end
 
--- Build a lhs/mapping index (case-insensitive, normalized)
+--- Build a lhs/mapping index (case-insensitive, normalized)
 --- @param mappings vim.api.keyset.get_keymap[]
 ---@return table<string, vim.api.keyset.get_keymap>
 local function get_non_blink_keymaps(mappings)

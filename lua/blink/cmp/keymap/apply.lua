@@ -14,10 +14,10 @@ local snippet_commands = {
   'scroll_signature_down',
 }
 
----@param mode string
----@param key string
----@param commands blink.cmp.KeymapCommand[]
----@param callback? fun(command: blink.cmp.KeymapCommand): boolean
+--- @param mode string
+--- @param key string
+--- @param commands blink.cmp.KeymapCommand[]
+--- @param callback? fun(command: blink.cmp.KeymapCommand): boolean
 local function apply_callback(mode, key, commands, callback)
   local do_fallback = fallback.wrap(mode, key)
 
