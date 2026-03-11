@@ -25,6 +25,7 @@
 local source = {}
 
 local async = require('blink.cmp.lib.async')
+local utils = require('blink.cmp.lib.utils')
 
 function source.new(id, config)
   assert(type(config.module) == 'string', 'Each source in config.sources.providers must have a "module" of type string')
@@ -155,21 +156,39 @@ function source:resolve(context, item)
     self.resolve_cache[item] = async.task.new(function(resolve)
       if self.module.resolve == nil then return resolve(item) end
 
-      local callback_called = false
-      local ok, ret = pcall(self.module.resolve, self.module, item, function(resolved_item)
-        callback_called = true
+      local finished = false
+      local ok, err = pcall(self.module.resolve, self.module, item, function(resolved_item)
+        if finished then return end
+        finished = true
+
         -- HACK: it's out of spec to update keys not in resolveSupport.properties but some LSPs do it anyway
         local merged_item = vim.tbl_deep_extend('force', item, resolved_item or {})
         local transformed_item = self:transform_items(context, { merged_item })[1] or merged_item
         vim.schedule(function() resolve(transformed_item) end)
       end)
 
+      local function notify(msg)
+        utils.notify(
+          { { 'resolve() callback for source ' }, { self.id, 'DiagnosticInfo' }, { msg } },
+          vim.log.levels.WARN
+        )
+      end
+
       if not ok then
-        vim.notify('blink.cmp: source ' .. self.id .. ' resolve() error: ' .. tostring(ret), vim.log.levels.WARN)
+        finished = true
+        notify(' threw an error: ' .. tostring(err))
         return resolve(item)
       end
 
-      if not callback_called and ret == nil then resolve(item) end
+      -- Detect sources that never call the callback (in the timing specified)
+      local timeout_ms = 3000
+      vim.defer_fn(function()
+        if not finished then
+          finished = true
+          notify(' timed out after ' .. timeout_ms .. 'ms. Falling back to unresolved item.')
+          resolve(item)
+        end
+      end, timeout_ms)
     end)
   end
   return self.resolve_cache[item]
