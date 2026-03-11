@@ -41,6 +41,8 @@ function files.get_checksum_for_file(path)
     local args
     if os == 'linux' or os == 'freebsd' then
       args = { 'sha256sum', path }
+    elseif os == 'openbsd' then
+      args = { 'sha256', path }
     elseif os == 'mac' or os == 'osx' then
       args = { 'shasum', '-a', '256', path }
     elseif os == 'windows' then
@@ -54,6 +56,8 @@ function files.get_checksum_for_file(path)
 
       local stdout = out.stdout or ''
       if os == 'windows' then stdout = vim.split(stdout, '\r\n')[2] end
+      -- Specific format 'SHA256 (<file>) = <SHA256 hash>'
+      if os == 'openbsd' then stdout = stdout:match('= (%x+)') end
       -- We get an output like 'sha256sum filename' on most systems, so we grab just the checksum
       return resolve(vim.split(stdout, ' ')[1])
     end)
