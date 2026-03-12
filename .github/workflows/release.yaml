@@ -102,24 +102,31 @@ jobs:
           path: ${{ matrix.target }}.*
 
   build-openbsd:
-    name: Build x86_64-unknown-openbsd
+    name: Build ${{ matrix.target }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-openbsd
+            arch: x86_64
+          - target: aarch64-unknown-openbsd
+            arch: arm64
+
     steps:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
 
-      - name: Build on OpenBSD/x86_64
-        id: build-openbsd-x86_64
+      - name: Build on OpenBSD/${{ matrix.arch }}
         uses: cross-platform-actions/action@v0.32.0
         with:
           operating_system: openbsd
-          architecture: x86-64
+          architecture: ${{ matrix.arch }}
           version: '7.8'
           memory: 4G
           shell: sh
-          sync_files: true # Sync files between runner/VM in both directions
+          sync_files: true  # Sync files between runner/VM in both directions
           run: |
             sudo pkg_add git rust
             echo "### OS infos"
@@ -139,13 +146,13 @@ jobs:
           ls -l target/release/
           file target/release/libblink_cmp_fuzzy.so
           echo "### Copy file for artifact"
-          cp -v target/release/libblink_cmp_fuzzy.so x86_64-unknown-openbsd.so
+          cp -v target/release/libblink_cmp_fuzzy.so "${{ matrix.target }}.so"
 
-      - name: Upload artifacts for OpenBSD/x86_64
+      - name: Upload artifacts for OpenBSD/${{ matrix.arch }}
         uses: actions/upload-artifact@v7
         with:
-          name: x86_64-unknown-openbsd
-          path: x86_64-unknown-openbsd.so
+          name: ${{ matrix.target }}
+          path: "${{ matrix.target}}.so"
           if-no-files-found: error
 
   release:
