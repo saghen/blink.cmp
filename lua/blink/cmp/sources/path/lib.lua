@@ -21,7 +21,7 @@ function lib.dirname(opts, context)
     return vim.fn.resolve(buf_dirname .. '/' .. dirname)
   end
   if prefix:match('~/$') then return vim.fn.resolve(vim.fn.expand('~') .. '/' .. dirname) end
-  local env_var_name = prefix:match('%${([%a_]+)}/$') or prefix:match('%$([%a_]+)/$')
+  local env_var_name = prefix:match('%${([%w_]+)}/$') or prefix:match('%$([%w_]+)/$')
   if env_var_name then
     local env_var_value = vim.fn.getenv(env_var_name)
     if env_var_value ~= vim.NIL then return vim.fn.resolve(env_var_value .. '/' .. dirname) end
