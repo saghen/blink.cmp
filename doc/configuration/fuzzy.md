@@ -22,7 +22,7 @@ Prebuilt binaries are available for the following systems:
 - macOS: x86_64 and aarch64
 - Windows: x86_64
 - FreeBSD: x86_64 and aarch64
-- OpenBSD: x86_64
+- OpenBSD: x86_64 and aarch64
 
 ### Advantages of Rust implementation
 
