@@ -22,6 +22,7 @@ system.triples = {
   },
   openbsd = {
     x64 = 'x86_64-unknown-openbsd',
+    arm = 'aarch64-unknown-openbsd',
   },
 }
 
