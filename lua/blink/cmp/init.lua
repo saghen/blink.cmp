@@ -319,17 +319,17 @@ function cmp.snippet_active(filter) return require('blink.cmp.config').snippets.
 --- Move the cursor forward to the next snippet placeholder
 function cmp.snippet_forward()
   local snippets = require('blink.cmp.config').snippets
-  if not snippets.active({ direction = 1 }) then return end
-  snippets.jump(1)
-  return true
+  if not snippets.active({ direction = 1 }) then return false end
+
+  return snippets.jump(1)
 end
 
 --- Move the cursor backward to the previous snippet placeholder
 function cmp.snippet_backward()
   local snippets = require('blink.cmp.config').snippets
-  if not snippets.active({ direction = -1 }) then return end
-  snippets.jump(-1)
-  return true
+  if not snippets.active({ direction = -1 }) then return false end
+
+  return snippets.jump(-1)
 end
 
 --- Ensures that blink.cmp will be notified last when a user adds a character
