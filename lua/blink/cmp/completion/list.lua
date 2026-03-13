@@ -199,6 +199,7 @@ end
 
 function list.select_next(opts)
   if #list.items == 0 or list.context == nil then return false end
+  if not list.can_select(opts) then return false end
 
   -- haven't selected anything yet, select the first item, if cycling enabled
   if list.selected_item_idx == nil then return list.select(1, opts) end
@@ -225,6 +226,7 @@ end
 
 function list.select_prev(opts)
   if #list.items == 0 or list.context == nil then return false end
+  if not list.can_select(opts) then return false end
 
   -- haven't selected anything yet, select the last item, if cycling enabled
   if list.selected_item_idx == nil then
@@ -254,8 +256,6 @@ function list.select_prev(opts)
 end
 
 --- Check if we're able to perform a selection.
---- We need this because `select_next` and `select_prev` are scheduled, but we need to know whether
---- to fallback beforehand.
 --- @param opts blink.cmp.CompletionListSelectOpts
 --- @return boolean
 function list.can_select(opts)
