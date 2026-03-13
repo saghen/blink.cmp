@@ -278,8 +278,7 @@ function cmp.scroll_documentation_up(count)
   local documentation = require('blink.cmp.completion.windows.documentation')
   if not documentation.win:is_open() then return end
 
-  documentation.scroll_up(count or 4)
-  return true
+  return documentation.scroll_up(count or 4)
 end
 
 --- Scroll the documentation window down
@@ -288,8 +287,7 @@ function cmp.scroll_documentation_down(count)
   local documentation = require('blink.cmp.completion.windows.documentation')
   if not documentation.win:is_open() then return end
 
-  documentation.scroll_down(count or 4)
-  return true
+  return documentation.scroll_down(count or 4)
 end
 
 --- Check if the signature help window is visible
@@ -318,8 +316,7 @@ function cmp.scroll_signature_up(count)
   local sig = require('blink.cmp.signature.window')
   if not sig.win:is_open() then return end
 
-  sig.scroll_up(count or 4)
-  return true
+  return sig.scroll_up(count or 4)
 end
 
 --- Scroll the signature window down
@@ -328,8 +325,7 @@ function cmp.scroll_signature_down(count)
   local sig = require('blink.cmp.signature.window')
   if not sig.win:is_open() then return end
 
-  sig.scroll_down(count or 4)
-  return true
+  return sig.scroll_down(count or 4)
 end
 
 --- Check if a snippet is active, optionally filtering by direction

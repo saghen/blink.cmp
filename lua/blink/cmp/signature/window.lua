@@ -4,8 +4,8 @@
 ---
 --- @field open_with_signature_help fun(context: blink.cmp.SignatureHelpContext, signature_help?: lsp.SignatureHelp)
 --- @field close fun()
---- @field scroll_up fun(amount: number)
---- @field scroll_down fun(amount: number)
+--- @field scroll_up fun(amount: number): boolean
+--- @field scroll_down fun(amount: number): boolean
 --- @field update_position fun()
 
 local config = require('blink.cmp.config').signature.window
@@ -108,21 +108,31 @@ function signature.close()
   signature.win:close()
 end
 
+--- @param amount number
+--- @return boolean
 function signature.scroll_up(amount)
   local winnr = signature.win:get_win()
+  if winnr == nil then return false end
+
   local top_line = math.max(1, vim.fn.line('w0', winnr) - 1)
   local desired_line = math.max(1, top_line - amount)
 
   signature.win:set_cursor({ desired_line, 0 })
+  return vim.fn.line('w0', winnr) < top_line
 end
 
+--- @param amount number
+--- @return boolean
 function signature.scroll_down(amount)
   local winnr = signature.win:get_win()
+  if winnr == nil then return false end
+
   local line_count = vim.api.nvim_buf_line_count(signature.win:get_buf())
   local bottom_line = math.max(1, vim.fn.line('w$', winnr) + 1)
   local desired_line = math.min(line_count, bottom_line + amount)
 
   signature.win:set_cursor({ desired_line, 0 })
+  return vim.fn.line('w$', winnr) > bottom_line
 end
 
 function signature.update_position()

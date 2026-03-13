@@ -7,8 +7,8 @@
 --- @field auto_show_item fun(context: blink.cmp.Context, item: blink.cmp.CompletionItem)
 --- @field show_item fun(context: blink.cmp.Context, item: blink.cmp.CompletionItem)
 --- @field update_position fun()
---- @field scroll_up fun(amount: number)
---- @field scroll_down fun(amount: number)
+--- @field scroll_up fun(amount: number): boolean
+--- @field scroll_down fun(amount: number): boolean
 --- @field close fun()
 
 local config = require('blink.cmp.config').completion.documentation
@@ -109,26 +109,32 @@ function docs.show_item(context, item)
 end
 
 -- TODO: compensate for wrapped lines
+--- @param amount number
+--- @return boolean
 function docs.scroll_up(amount)
   local winnr = docs.win:get_win()
-  if winnr == nil then return end
+  if winnr == nil then return false end
 
   local top_line = math.max(1, vim.fn.line('w0', winnr))
   local desired_line = math.max(1, top_line - amount)
 
   docs.win:set_cursor({ desired_line, 0 })
+  return vim.fn.line('w0', winnr) < top_line
 end
 
 -- TODO: compensate for wrapped lines
+--- @param amount number
+--- @return boolean
 function docs.scroll_down(amount)
   local winnr = docs.win:get_win()
-  if winnr == nil then return end
+  if winnr == nil then return false end
 
   local line_count = vim.api.nvim_buf_line_count(docs.win:get_buf())
   local bottom_line = math.max(1, vim.fn.line('w$', winnr))
   local desired_line = math.min(line_count, bottom_line + amount)
 
   docs.win:set_cursor({ desired_line, 0 })
+  return vim.fn.line('w$', winnr) > bottom_line
 end
 
 function docs.update_position()
