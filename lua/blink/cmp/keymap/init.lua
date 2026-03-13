@@ -13,7 +13,7 @@ local keymap = {
   bufkey_prefix = 'blink_cmp_keymap_',
   ---@type table<blink.cmp.Mode, table<string, blink.cmp.KeymapCommand[]>>
   mappings = { default = {}, cmdline = {}, term = {} },
-  ---@type table<string, string>
+  ---@type table<string, blink.cmp.Mode>
   mode_map = { i = 'default', s = 'default', c = 'cmdline', t = 'term' },
 }
 
