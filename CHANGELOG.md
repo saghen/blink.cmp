@@ -1,3 +1,9 @@
+## [1.10.1](https://github.com/Saghen/blink/compare/v1.10.0...v1.10.1) (2026-03-14)
+
+### Bug Fixes
+
+* os should be system_info ([#2445](https://github.com/saghen/blink.cmp/issues/2445)) ([19c25fa](https://github.com/saghen/blink.cmp/commit/19c25fa5e95f1387f53b461a425ad2129ed1d681))
+
 ## [1.10.0](https://github.com/Saghen/blink/compare/v1.9.1...v1.10.0) (2026-03-14)
 
 ### Highlights
