@@ -20,7 +20,7 @@ Prebuilt binaries are available for the following systems:
 - Linux (musl): x86_64 and aarch64
 - Linux (android / Termux): aarch64
 - macOS: x86_64 and aarch64
-- Windows: x86_64
+- Windows: x86_64 and aarch64
 - FreeBSD: x86_64 and aarch64
 - OpenBSD: x86_64 and aarch64
 
