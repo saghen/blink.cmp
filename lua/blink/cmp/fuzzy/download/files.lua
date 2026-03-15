@@ -58,6 +58,7 @@ function files.get_checksum_for_file(cmd)
       if out.code ~= 0 then return reject('Failed to calculate checksum of pre-built binary: ' .. out.stderr) end
 
       local stdout = out.stdout or ''
+      local os = system.get_info()
       if os == 'windows' then stdout = vim.split(stdout, '\r\n')[2] end
       -- Specific format 'SHA256 (<file>) = <SHA256 hash>'
       if os == 'openbsd' then stdout = stdout:match('= (%x+)') end
