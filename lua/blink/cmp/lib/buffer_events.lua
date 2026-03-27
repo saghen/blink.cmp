@@ -9,6 +9,7 @@
 --- @field ignore_next_cursor_moved boolean
 --- @field last_char string
 --- @field textchangedi_id number
+--- @field backspace_keycodes table<string, boolean>
 ---
 --- @field new fun(opts: blink.cmp.BufferEventsOptions): blink.cmp.BufferEvents
 --- @field listen fun(self: blink.cmp.BufferEvents, opts: blink.cmp.BufferEventsListener)
@@ -30,6 +31,11 @@
 local buffer_events = {}
 
 function buffer_events.new(opts)
+  local backspace_keycodes = {}
+  for _, lhs in ipairs({ '<BS>', '<C-h>' }) do
+    backspace_keycodes[vim.keycode(lhs)] = true
+  end
+
   return setmetatable({
     has_context = opts.has_context,
     show_in_snippet = opts.show_in_snippet,
@@ -37,6 +43,7 @@ function buffer_events.new(opts)
     ignore_next_cursor_moved = false,
     last_char = '',
     textchangedi_id = -1,
+    backspace_keycodes = backspace_keycodes,
   }, { __index = buffer_events })
 end
 
@@ -63,7 +70,7 @@ local function make_cursor_moved(self, snippet, on_cursor_moved)
 
   -- track whether the event was triggered by backspacing
   local did_backspace = false
-  vim.on_key(function(key) did_backspace = key == vim.api.nvim_replace_termcodes('<BS>', true, true, true) end)
+  vim.on_key(function(key) did_backspace = self.backspace_keycodes[key] end)
 
   -- track whether the event was triggered by accepting
   local did_accept = false
