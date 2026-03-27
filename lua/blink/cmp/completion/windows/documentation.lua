@@ -44,9 +44,7 @@ menu.close_emitter:on(function() docs.close() end)
 --- Normalize userdata as nil
 --- @param val any
 --- @return any
-local function normalize(val)
-  return type(val) ~= 'userdata' and val or nil
-end
+local function normalize(val)return type(val) ~= 'userdata' and val or nilend
 
 function docs.auto_show_item(context, item)
   docs.auto_show_timer:stop()
