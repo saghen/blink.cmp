@@ -41,11 +41,6 @@ local docs = {
 menu.position_update_emitter:on(function() docs.update_position() end)
 menu.close_emitter:on(function() docs.close() end)
 
---- Normalize userdata as nil
---- @param val any
---- @return any
-local function normalize(val) return type(val) ~= 'userdata' and val or nil end
-
 function docs.auto_show_item(context, item)
   docs.auto_show_timer:stop()
   if docs.win:is_open() then
@@ -69,10 +64,10 @@ function docs.show_item(context, item)
     .resolve(context, item)
     ---@param item blink.cmp.CompletionItem
     :map(function(item)
-      item.documentation = normalize(item.documentation)
-      item.detail = normalize(item.detail)
+      local valid_documentation = type(item.documentation) == 'table' or type(item.documentation) == 'string'
+      local valid_detail = type(item.detail) == 'string'
 
-      if item.documentation == nil and item.detail == nil then
+      if not valid_documentation and not valid_detail then
         docs.close()
         return
       end
