@@ -120,6 +120,7 @@ Here is a non-exhaustive list of third-party plugins providing additional comple
 - [blink-cmp-supermaven](https://github.com/Huijiro/blink-cmp-supermaven) by `Huijiro`: [supermaven-nvim](https://github.com/supermaven-inc/supermaven-nvim)
 - [blink-cmp-tmux](https://github.com/barrettruth/blink-cmp-tmux) by `barrettruth`: [Tmux](https://github.com/tmux/tmux)
 - [blink-cmp-tmux](https://github.com/mgalliou/blink-cmp-tmux) by `mgalliou`: [Tmux](https://github.com/tmux/tmux)
+- [blink-cmp-zellij](https://github.com/dynamotn/blink-cmp-zellij) by `dynamotn`: [Zellij](https://github.com/zellij-org/zellij)
 - [blink-cmp-vsnip](https://codeberg.org/FelipeLema/blink-cmp-vsnip) by `FelipeLema`: [vim-vsnip](https://github.com/hrsh7th/vim-vsnip)
 - [blink-cmp-wezterm](https://github.com/junkblocker/blink-cmp-wezterm) by `junkblocker`: [WezTerm](https://wezterm.org) terminal
 - [blink-cmp-words](https://github.com/archie-judd/blink-cmp-words) by `archie-judd`: Words and synonyms
