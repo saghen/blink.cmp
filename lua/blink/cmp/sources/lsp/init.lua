@@ -1,4 +1,5 @@
 local async = require('blink.cmp.lib.async')
+local utils = require('blink.cmp.sources.lib.utils')
 
 --- Wraps client to support both 0.11 and 0.10 without deprecation warnings
 --- @param client vim.lsp.Client
@@ -103,6 +104,8 @@ function lsp:resolve(item, callback)
       callback(item)
       return
     end
+
+    resolved_item = utils.normalize_nil(resolved_item)
 
     -- Snippet with no detail, fill in the detail with the snippet
     if resolved_item.detail == nil and resolved_item.insertTextFormat == vim.lsp.protocol.InsertTextFormat.Snippet then

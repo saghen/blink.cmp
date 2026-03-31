@@ -1,5 +1,6 @@
 local async = require('blink.cmp.lib.async')
 local cache = require('blink.cmp.sources.lsp.cache')
+local utils = require('blink.cmp.sources.lib.utils')
 
 local CompletionTriggerKind = vim.lsp.protocol.CompletionTriggerKind
 --- @param context blink.cmp.Context
@@ -37,6 +38,8 @@ local known_defaults = {
 --- @return blink.cmp.CompletionResponse
 local function process_response(context, client, res)
   local items = res.items or res
+  items = utils.normalize_nil(items)
+
   local default_edit_range = res.itemDefaults and res.itemDefaults.editRange
   for _, item in ipairs(items) do
     item.client_id = client.id

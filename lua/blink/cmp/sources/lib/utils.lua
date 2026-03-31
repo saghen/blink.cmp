@@ -1,6 +1,24 @@
 local utils = {}
 local cmdline_constants = require('blink.cmp.sources.cmdline.constants')
 
+--- Normalize `vim.NIL` to `nil` recursively.
+--- Neovim decodes JSON `null` as `vim.NIL` since 40aef0d but this could break assumptions in downstream code expecting plain `nil`.
+--- @param value lsp.CompletionItem[]|lsp.CompletionItem
+--- @return lsp.CompletionItem[]|lsp.CompletionItem
+function utils.normalize_nil(value)
+  if type(value) ~= 'table' then return value end
+
+  for k, v in pairs(value) do
+    if v == vim.NIL then
+      value[k] = nil
+    elseif type(v) == 'table' then
+      utils.normalize_nil(v)
+    end
+  end
+
+  return value
+end
+
 --- Safely parses a command-line string.
 --- Skips parsing for known incomplete expressions that cause nvim_parse_cmd() to emit errors even inside pcall(). Not exhaustive.
 --- @param line string
