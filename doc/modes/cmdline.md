@@ -25,28 +25,7 @@ See the [reference configuration](../configuration/reference.md#cmdline) for the
 
 ## Keymap preset
 
-Set via `cmdline.keymap.preset = 'cmdline'`, which is the default. Set to `'none'` to disable the preset or `'inherit'` to inherit the mappings from the top level `keymap`. See the [keymap documentation](../configuration/keymap.md) for more information on defining your own.
-
-```lua
-{
-  -- optionally, inherit the mappings from the top level `keymap`
-  -- instead of using the neovim defaults
-  -- preset = 'inherit',
-
-  ['<Tab>'] = { 'show_and_insert_or_accept_single', 'select_next' },
-  ['<S-Tab>'] = { 'show_and_insert_or_accept_single', 'select_prev' },
-
-  ['<C-space>'] = { 'show', 'fallback' },
-
-  ['<C-n>'] = { 'select_next', 'fallback' },
-  ['<C-p>'] = { 'select_prev', 'fallback' },
-  ['<Right>'] = { 'select_next', 'fallback' },
-  ['<Left>'] = { 'select_prev', 'fallback' },
-
-  ['<C-y>'] = { 'select_and_accept', 'fallback' },
-  ['<C-e>'] = { 'cancel', 'fallback' },
-}
-```
+See the list of predefined commands in the [keymap documentation](../configuration/keymap.md#cmdline).
 
 ## Ghost text
 
