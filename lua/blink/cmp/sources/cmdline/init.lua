@@ -29,7 +29,7 @@ function cmdline:enabled()
 end
 
 ---@return table
-function cmdline:get_trigger_characters() return { ' ', '.', '#', '-', '=', '/', ':', '!', '%', '~' } end
+function cmdline:get_trigger_characters() return { ' ', '.', '#', '&', '-', '=', '/', ':', '!', '%', '~' } end
 
 ---@param context blink.cmp.Context
 ---@param callback fun(result?: blink.cmp.CompletionResponse)
