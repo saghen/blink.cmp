@@ -57,13 +57,12 @@ function draw_context.new(draw, item_idx, item, matched_indices)
   local label = item.label:gsub('\n', newline_char) .. (kind == 'Snippet' and draw.snippet_indicator or '')
   if label:find('…') then label = label:gsub('…', '… ') end
 
-  local label_detail = (type(item.labelDetails) == 'table' and item.labelDetails.detail or ''):gsub('\n', newline_char)
+  local d = type(item.labelDetails) == 'table' and item.labelDetails or {}
+
+  local label_detail = (d.detail ~= vim.NIL and d.detail or ''):gsub('\n', newline_char)
   if label_detail:find('…') then label_detail = label_detail:gsub('…', '… ') end
 
-  local label_description = (type(item.labelDetails) == 'table' and item.labelDetails.description or ''):gsub(
-    '\n',
-    newline_char
-  )
+  local label_description = (d.description ~= vim.NIL and d.description or ''):gsub('\n', newline_char)
   if label_description:find('…') then label_description = label_description:gsub('…', '… ') end
 
   local source_id = item.source_id
