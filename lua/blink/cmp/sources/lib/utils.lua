@@ -9,8 +9,11 @@ local function safe_parse_cmd(line)
   if not line or line == '' then return nil end
 
   -- FIXME: Guard against the most common incomplete expressions that cause errors
-  -- See https://github.com/neovim/neovim/issues/24220
+  -- This are very cheap heuristics to work around neovim/neovim/issues/24220. Remove when fixed.
   if line:match('[/?&]%s*$') then return nil end
+  local _, quotes = line:gsub('[\'"]', '')
+  if quotes % 2 == 1 then return nil end
+  if line:match('%([^)]*$') or line:match('{[^}]*$') then return nil end
 
   local ok, parsed = pcall(vim.api.nvim_parse_cmd, line, {})
   if ok then return parsed end
