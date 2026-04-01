@@ -64,7 +64,10 @@ function docs.show_item(context, item)
     .resolve(context, item)
     ---@param item blink.cmp.CompletionItem
     :map(function(item)
-      if item.documentation == nil and item.detail == nil then
+      local valid_documentation = type(item.documentation) == 'table' or type(item.documentation) == 'string'
+      local valid_detail = type(item.detail) == 'string'
+
+      if not valid_documentation and not valid_detail then
         docs.close()
         return
       end
