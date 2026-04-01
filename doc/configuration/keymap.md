@@ -38,7 +38,7 @@ keymap = {
 },
 ```
 
-`inherit`: Reuse mappings from the top-level keymap (**command-line & terminal only**)
+- `inherit`: Reuse mappings from the top-level keymap (**command-line & terminal only**)
 
 ```lua
 keymap = {
