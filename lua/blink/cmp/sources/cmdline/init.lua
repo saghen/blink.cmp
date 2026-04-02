@@ -5,7 +5,6 @@
 local async = require('blink.cmp.lib.async')
 local constants = require('blink.cmp.sources.cmdline.constants')
 local cmdline_utils = require('blink.cmp.sources.cmdline.utils')
-local utils = require('blink.cmp.sources.lib.utils')
 local path_lib = require('blink.cmp.sources.path.lib')
 
 --- @class blink.cmp.Source
@@ -25,7 +24,8 @@ end
 
 ---@return boolean
 function cmdline:enabled()
-  return vim.bo.ft == 'vim' or (utils.is_command_line({ ':', '@' }) and not utils.in_ex_search_commands())
+  return vim.bo.ft == 'vim'
+    or (cmdline_utils.is_command_line({ ':', '@' }) and not cmdline_utils.in_ex_search_commands())
 end
 
 ---@return table
@@ -35,7 +35,7 @@ function cmdline:get_trigger_characters() return { ' ', '.', '#', '&', '-', '=',
 ---@param callback fun(result?: blink.cmp.CompletionResponse)
 ---@return fun()
 function cmdline:get_completions(context, callback)
-  local completion_type = utils.get_completion_type(context.mode)
+  local completion_type = cmdline_utils.get_completion_type(context.mode)
 
   local is_path_completion = cmdline_utils.is_path_completion(completion_type, context.line)
   local is_buffer_completion = vim.tbl_contains(constants.completion_types.buffer, completion_type)
@@ -74,7 +74,7 @@ function cmdline:get_completions(context, callback)
       local completions = {}
 
       -- Input mode (vim.fn.input())
-      if utils.is_command_line({ '@' }) then
+      if cmdline_utils.is_command_line({ '@' }) then
         local completion_args = vim.split(completion_type, ',', { plain = true })
         local custom_type = completion_args[1]
         local completion_func = completion_args[2]

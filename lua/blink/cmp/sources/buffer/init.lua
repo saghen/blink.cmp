@@ -5,7 +5,7 @@
 local async = require('blink.cmp.lib.async')
 local parser = require('blink.cmp.sources.buffer.parser')
 local buf_utils = require('blink.cmp.sources.buffer.utils')
-local utils = require('blink.cmp.sources.lib.utils')
+local cmdline_utils = require('blink.cmp.sources.cmdline.utils')
 local dedup = require('blink.cmp.lib.utils').deduplicate
 
 --- @class blink.cmp.BufferOpts
@@ -104,7 +104,7 @@ function buffer.new(opts)
   -- This sacrifice live substitution previews, but restores correct redraw.
   if opts.enable_in_ex_commands then
     vim.on_key(function()
-      if utils.is_command_line({ ':' }) and vim.o.inccommand ~= '' then vim.o.inccommand = '' end
+      if cmdline_utils.is_command_line({ ':' }) and vim.o.inccommand ~= '' then vim.o.inccommand = '' end
     end)
   end
 
@@ -118,9 +118,9 @@ end
 --- @return boolean
 function buffer:is_search_context()
   -- In search mode
-  if utils.is_command_line({ '/', '?' }) then return true end
+  if cmdline_utils.is_command_line({ '/', '?' }) then return true end
   -- In specific ex commands, if user opts in
-  if self.opts.enable_in_ex_commands and utils.in_ex_search_commands() then return true end
+  if self.opts.enable_in_ex_commands and cmdline_utils.in_ex_search_commands() then return true end
 
   return false
 end
@@ -156,7 +156,7 @@ function buffer:get_buf_items(bufnr, exclude_word_under_cursor)
 end
 
 --- @return boolean
-function buffer:enabled() return not utils.is_command_line() or self:is_search_context() end
+function buffer:enabled() return not cmdline_utils.is_command_line() or self:is_search_context() end
 
 function buffer:get_completions(_, callback)
   local is_search = self:is_search_context()
