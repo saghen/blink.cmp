@@ -2,6 +2,7 @@ local utils = {}
 
 local constants = require('blink.cmp.sources.cmdline.constants')
 local path_lib = require('blink.cmp.sources.path.lib')
+local reg_modifier = vim.regex([[\v(\s+|'|")((\%|#\d*|\<\w+\>)(:(h|p|t|r|e|s|S|gs|\~|\.)?)*)\<?(\s+|'|"|$)]])
 
 --- Safely parses a command-line string.
 --- Skips parsing for known incomplete expressions that cause nvim_parse_cmd() to emit errors even inside pcall(). Not exhaustive.
@@ -12,14 +13,13 @@ local function safe_parse_cmd(line)
 
   -- FIXME: Guard against the most common incomplete expressions that cause errors
   -- This are very cheap heuristics to work around neovim/neovim/issues/24220. Remove when fixed.
-  if line:match('[/?&]%s*$') then return nil end
   local _, quotes = line:gsub('[\'"]', '')
   if quotes % 2 == 1 then return nil end
+  if line:match('[/?&]%s*$') then return nil end
   if line:match('%([^)]*$') or line:match('{[^}]*$') then return nil end
 
   local ok, parsed = pcall(vim.api.nvim_parse_cmd, line, {})
-  if ok then return parsed end
-  return nil
+  return ok and parsed or nil
 end
 
 --- Check if we are in cmdline or cmdwin, optionally for specific types.
@@ -47,72 +47,70 @@ function utils.in_ex_search_commands()
   if not parsed then return false end
 
   local cmd = parsed.cmd or ''
-  local has_args = parsed.args and #parsed.args > 0 or false
+  if not constants.ex_search_commands[cmd] then return false end
 
-  return constants.ex_search_commands[cmd] and has_args
+  return parsed.args ~= nil and #parsed.args > 0
 end
 
 --- Get the current completion type.
 --- @param mode blink.cmp.Mode
 --- @return string completion_type The detected completion type, or an empty string if unknown.
 function utils.get_completion_type(mode)
-  if mode == 'cmdline' then
-    return vim.fn.getcmdcompltype()
-  elseif mode == 'cmdwin' then
-    local line = vim.api.nvim_get_current_line()
+  if mode == 'cmdline' then return vim.fn.getcmdcompltype() end
+  if mode ~= 'cmdwin' then return '' end
 
-    -- TODO: Remove the fallback below once 0.12 is the minimum supported version
-    if vim.fn.exists('*getcompletiontype') == 1 then return vim.fn.getcompletiontype(line) end
+  local line = vim.api.nvim_get_current_line()
+  if vim.fn.exists('*getcompletiontype') == 1 then return vim.fn.getcompletiontype(line) end
 
-    -- As fallback, parse the command-line and map it to a known completion type,
-    -- either by guessing from the last argument or from the command name.
-    local parsed = safe_parse_cmd(line)
-    if not parsed then return '' end
+  -- As fallback, parse the command-line and map it to a known completion type,
+  -- either by guessing from the last argument or from the command name.
+  -- TODO: Remove the fallback below once 0.12 is the minimum supported version
+  local parsed = safe_parse_cmd(line)
+  if not parsed then return '' end
 
-    local function guess_type_by_prefix(arg)
-      for prefix, completion_type in pairs(constants.arg_prefix_type) do
-        if vim.startswith(arg, prefix) then return completion_type end
-      end
-      return nil
+  local function guess_type_by_prefix(arg)
+    for prefix, t in pairs(constants.arg_prefix_type) do
+      if vim.startswith(arg, prefix) then return t end
     end
 
-    -- Guess by last argument
-    local args = parsed.args or {}
-    if #args > 0 then
-      local last_arg = args[#args]
-      local completion_type = guess_type_by_prefix(last_arg)
-      if completion_type then return completion_type end
-    end
-
-    -- Guess by command name
-    local completion_type = constants.commands_type[parsed.cmd] or ''
-    if #args > 0 then
-      -- Adjust some completion type when args exists (to match cmdline)
-      if completion_type == 'shellcmd' then completion_type = 'file' end
-      if completion_type == 'command' then completion_type = '' end
-    end
-
-    return completion_type
+    return nil
   end
 
-  return ''
+  -- Guess by last argument
+  local args = parsed.args or {}
+  if #args > 0 then
+    local ct = guess_type_by_prefix(args[#args])
+    if ct then return ct end
+  end
+
+  -- Guess by command name
+  local completion_type = constants.commands_type[parsed.cmd] or ''
+  if #args > 0 then
+    -- Adjust some completion type when args exists (to match cmdline)
+    if completion_type == 'shellcmd' then completion_type = 'file' end
+    if completion_type == 'command' then completion_type = '' end
+  end
+
+  return completion_type
 end
 
----@param path string
----@return string
+--- @param path string
+--- @return string
 local function fnameescape(path)
   path = vim.fn.fnameescape(path)
+
   -- Unescape $FOO and ${FOO}
   path = path:gsub('\\(%$[%w_]+)', '%1')
   path = path:gsub('\\(%${[%w_]+})', '%1')
   -- Unescape %:
   path = path:gsub('\\(%%:)', '%1')
+
   return path
 end
 
----@param completion_type string
----@param line string
----@return boolean
+--- @param completion_type string
+--- @param line string
+--- @return boolean
 function utils.is_path_completion(completion_type, line)
   if vim.tbl_contains(constants.completion_types.path, completion_type) then return true end
 
@@ -125,44 +123,40 @@ function utils.is_path_completion(completion_type, line)
   return false
 end
 
--- Try to match the content inside the first pair of quotes (excluding)
--- If unclosed, match everything after the first quote (excluding)
----@param s string
----@return string?
+--- Try to match the content inside the first pair of quotes (excluding)
+--- If unclosed, match everything after the first quote (excluding)
+--- @param s string
+--- @return string?
 function utils.extract_quoted_part(s)
-  -- pair
-  local content = s:match([['([^']-)']]) or s:match([["([^"]-)"]])
-  if content then return content end
-  -- unclosed
-  local unclosed = s:match([['(.*)]]) or s:match([["(.*)]])
-  return unclosed
+  return s:match([['([^']-)']]) or s:match([["([^"]-)"]]) or s:match([['(.*)]]) or s:match([["(.*)]])
 end
 
--- Detects whether the provided line contains current (%) or alternate (#, #n) filename
--- or vim expression (<cfile>, <abuf>, ...) with optional modifiers: :h, :p:h
----@param line string
----@param completion_type string
----@return boolean
+--- Detects whether the provided line contains current (%) or alternate (#, #n) filename
+--- or vim expression (<cfile>, <abuf>, ...) with optional modifiers: :h, :p:h
+--- @param line string
+--- @param completion_type string
+--- @return boolean
 function utils.contains_filename_modifiers(line, completion_type)
-  local pat = [[\v(\s+|'|")((\%|#\d*|\<\w+\>)(:(h|p|t|r|e|s|S|gs|\~|\.)?)*)\<?(\s+|'|"|$)]]
-  return completion_type ~= 'help' and vim.regex(pat):match_str(line) ~= nil
+  return completion_type ~= 'help' and reg_modifier:match_str(line) ~= nil
 end
 
--- Detects whether the provided line contains wildcard, see :h wildcard
----@param line string
----@return boolean
+--- Detects whether the provided line contains wildcard, see :h wildcard
+--- @param line string
+--- @return boolean
 function utils.contains_wildcard(line) return line:find('[%*%?%[%]]') ~= nil end
 
 --- Split the command line into arguments, handling path escaping and trailing spaces.
 --- For path completions, split by paths and escape unquoted args with spaces.
 --- For other completions, splits by spaces and preserves trailing empty arguments.
----@param line string
----@param is_path_completion boolean
----@return string, table
+--- @param line string
+--- @param is_path_completion boolean
+--- @return string, table
 function utils.smart_split(line, is_path_completion)
+  local trimmed = line:gsub('^%s+', '')
+
   if is_path_completion then
     -- Split the line into tokens, respecting escaped spaces in paths
-    local tokens = path_lib:split_unescaped(line:gsub('^%s+', ''))
+    local tokens = path_lib:split_unescaped(trimmed)
     local cmd = tokens[1]
     local args = {}
 
@@ -170,18 +164,20 @@ function utils.smart_split(line, is_path_completion)
       local arg = tokens[i]
       -- Escape only unquoted args with spaces
       if arg and not arg:match('^[\'"]') and not arg:find('\\ ') and arg:find(' ') then arg = fnameescape(arg) end
-      table.insert(args, arg)
+
+      args[#args + 1] = arg
     end
+
     return line, { cmd, unpack(args) }
   end
 
-  return line, vim.split(line:gsub('^%s+', ''), ' ', { plain = true })
+  return line, vim.split(trimmed, ' ', { plain = true })
 end
 
--- Find the longest match for a given set of patterns
----@param str string
----@param patterns string[]
----@return string
+--- Find the longest match for a given set of patterns
+--- @param str string
+--- @param patterns string[]
+--- @return string
 function utils.longest_match(str, patterns)
   local best = ''
   for _, pat in ipairs(patterns) do
@@ -224,12 +220,12 @@ function utils.get_completions(pattern, type, completion_type)
   return vim.fn.getcompletion(pattern, type, true)
 end
 
----@param func_str string v:lua expression (e.g. "v:lua.foo.bar" or "v:lua.require'bar'.foo")
----@param prefix string
----@param line string
----@param col number
----@return boolean success
----@return table|string|nil result
+--- @param func_str string v:lua expression (e.g. "v:lua.foo.bar" or "v:lua.require'bar'.foo")
+--- @param prefix string
+--- @param line string
+--- @param col number
+--- @return boolean success
+--- @return table|string|nil result
 function utils.call_vlua(func_str, prefix, line, col)
   local expr = func_str:gsub('^v:lua%.', '')
 
@@ -246,8 +242,7 @@ function utils.call_vlua(func_str, prefix, line, col)
       if not tbl then break end
     end
 
-    ---@type function|nil
-    local fn
+    local fn = tbl and tbl[parts[#parts]]
 
     -- For multi-part expressions, if not found in _G try requiring the module.
     if type(fn) ~= 'function' and #parts > 1 then
