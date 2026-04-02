@@ -117,6 +117,9 @@ function list.show(context, items_by_source)
     list.show_emitter:emit({ items = list.items, context = context })
   end
 
+  -- context may have changed during emitters, so skip selection logic for stale context
+  if list.context ~= context then return end
+
   -- maintain the selection if the user selected an item
   local previous_item_idx = list.get_item_idx_in_list(previous_selected_item)
   if list.is_explicitly_selected and previous_item_idx ~= nil and previous_item_idx <= 10 then
