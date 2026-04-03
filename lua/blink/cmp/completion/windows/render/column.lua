@@ -53,14 +53,11 @@ function column:render(context, ctxs)
   column_width = math.max(column_width - self.gap, 0)
 
   --- find the component that will fill the empty space
-  local fill_idx = -1
+  local fill_idxs = {}
   for component_idx, component in ipairs(self.components) do
-    if component.width and component.width.fill then
-      fill_idx = component_idx
-      break
-    end
+    if component.width and component.width.fill then table.insert(fill_idxs, component_idx) end
   end
-  if fill_idx == -1 then fill_idx = #self.components end
+  if #fill_idxs == 0 then fill_idxs = { #self.components } end
 
   --- and add extra spaces until we reach the column width
   for _, line in ipairs(lines) do
@@ -70,7 +67,10 @@ function column:render(context, ctxs)
     end
     line_width = line_width - self.gap
     local remaining_width = column_width - line_width
-    line[fill_idx] = text_lib.pad(line[fill_idx], vim.api.nvim_strwidth(line[fill_idx]) + remaining_width)
+    local fill_spaces = text_lib.distr_spaces(remaining_width, #fill_idxs)
+    for i, idx in ipairs(fill_idxs) do
+      line[idx] = line[idx] .. string.rep(' ', fill_spaces[i])
+    end
   end
 
   -- store results for later
