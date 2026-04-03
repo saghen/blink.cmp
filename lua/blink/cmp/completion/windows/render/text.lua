@@ -49,6 +49,20 @@ function text_lib.truncate(text, target_width, ellipsis)
   return text
 end
 
+--- Distributes a total amount of  spaces over a given number of fields
+--- @param total number
+--- @param count number
+function text_lib.distr_spaces(total, count)
+  if count == 0 then return {} end
+  local base = math.floor(total / count)
+  local remainder = total % count
+  local spaces = {}
+  for i = 1, count do
+    spaces[i] = base + (i <= remainder and 1 or 0)
+  end
+  return spaces
+end
+
 --- Pads the text to the given width
 --- @param text string
 --- @param target_width number
