@@ -59,6 +59,19 @@ function cmdline:get_completions(context, callback)
   local keyword = context.get_bounds(keyword_config.range)
   local current_arg_prefix = current_arg:sub(1, keyword.start_col - #text_before_argument - 1)
 
+  local line_pos = context.cursor[1] - 1
+  local start_pos = #text_before_argument + #leading_spaces
+  -- Skip leading command range when computing start_pos
+  if arg_number == 1 and completion_type == 'command' then
+    local prefix = cmdline_utils.longest_match(current_arg, {
+      "^%s*'<%s*,%s*'>%s*", -- Visual range, e.g. '<,>'
+      '^%s*%d+%s*,%s*%d+%s*', -- Numeric range, e.g. 3,5
+      '^%s*[%p]+%s*', -- One or more punctuation characters
+    })
+    start_pos = start_pos + #prefix
+  end
+  local replace_end_pos = math.min(start_pos + #current_arg, context.bounds.start_col + context.bounds.length - 1)
+
   local unique_suffixes = {}
   local unique_suffixes_limit = 2000
   local special_char, vim_expr
@@ -265,19 +278,6 @@ function cmdline:get_completions(context, callback)
           end
         end
 
-        local start_pos = #text_before_argument + #leading_spaces
-        local line = context.cursor[1] - 1
-
-        -- exclude range for commands on the first argument
-        if arg_number == 1 and completion_type == 'command' then
-          local prefix = cmdline_utils.longest_match(current_arg, {
-            "^%s*'<%s*,%s*'>%s*", -- Visual range, e.g. '<,>'
-            '^%s*%d+%s*,%s*%d+%s*', -- Numeric range, e.g. 3,5
-            '^%s*[%p]+%s*', -- One or more punctuation characters
-          })
-          start_pos = start_pos + #prefix
-        end
-
         ---@type blink.cmp.CompletionItem
         local item = {
           label = label or filter_text,
@@ -288,15 +288,12 @@ function cmdline:get_completions(context, callback)
           textEdit = {
             newText = new_text,
             insert = {
-              start = { line = line, character = start_pos },
-              ['end'] = { line = line, character = context.cursor[2] },
+              start = { line = line_pos, character = start_pos },
+              ['end'] = { line = line_pos, character = context.cursor[2] },
             },
             replace = {
-              start = { line = line, character = start_pos },
-              ['end'] = {
-                line = line,
-                character = math.min(start_pos + #current_arg, context.bounds.start_col + context.bounds.length - 1),
-              },
+              start = { line = line_pos, character = start_pos },
+              ['end'] = { line = line_pos, character = replace_end_pos },
             },
           },
           kind = require('blink.cmp.types').CompletionItemKind.Property,
