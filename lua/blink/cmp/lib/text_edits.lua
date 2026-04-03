@@ -203,7 +203,9 @@ end
 --- @param item blink.cmp.CompletionItem
 --- TODO: doesnt work when the item contains characters not included in the context regex
 function text_edits.guess(item)
-  local word = item.insertText or item.label
+  local word = (utils.is_not_nil(item.insertText) and item.insertText)
+    or (utils.is_not_nil(item.label) and item.label)
+    or nil
 
   local start_col, end_col = require('blink.cmp.fuzzy').guess_edit_range(
     item,

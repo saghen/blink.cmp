@@ -1,5 +1,8 @@
 local utils = {}
 
+function utils.is_not_nil(v) return v ~= nil and v ~= vim.NIL end
+function utils.to_string_or_empty(v) return (utils.is_not_nil(v) and type(v) == 'string') and v or '' end
+
 --- Shallow copy table
 --- @generic T
 --- @param t T

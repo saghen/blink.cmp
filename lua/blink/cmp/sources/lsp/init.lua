@@ -1,4 +1,5 @@
 local async = require('blink.cmp.lib.async')
+local utils = require('blink.cmp.lib.utils')
 
 --- Wraps client to support both 0.11 and 0.10 without deprecation warnings
 --- @param client vim.lsp.Client
@@ -105,10 +106,7 @@ function lsp:resolve(item, callback)
     end
 
     -- Snippet with no detail, fill in the detail with the snippet
-    if
-      type(resolved_item.detail) ~= 'string'
-      and resolved_item.insertTextFormat == vim.lsp.protocol.InsertTextFormat.Snippet
-    then
+    if resolved_item.detail == nil and resolved_item.insertTextFormat == vim.lsp.protocol.InsertTextFormat.Snippet then
       local parsed_snippet = require('blink.cmp.sources.snippets.utils').safe_parse(item.insertText)
       local snippet = parsed_snippet and tostring(parsed_snippet) or item.insertText
       resolved_item.detail = snippet
@@ -116,11 +114,7 @@ function lsp:resolve(item, callback)
 
     -- Lua LSP returns the detail like `table` while the documentation contains the signature
     -- We extract this into the detail instead
-    if
-      client.name == 'lua_ls'
-      and type(resolved_item.documentation) == 'table'
-      and type(resolved_item.detail) == 'string'
-    then
+    if client.name == 'lua_ls' and resolved_item.documentation ~= nil and resolved_item.detail ~= nil then
       local docs = require('blink.cmp.sources.lsp.hacks.docs')
       resolved_item.detail, resolved_item.documentation.value =
         docs.extract_detail_from_doc(resolved_item.detail, resolved_item.documentation.value)
@@ -199,7 +193,7 @@ function lsp:execute(ctx, item, callback, default_implementation)
   default_implementation()
 
   local client = vim.lsp.get_client_by_id(item.client_id)
-  if client and item.command then
+  if client and utils.is_not_nil(item.command) then
     if vim.fn.has('nvim-0.11') == 1 then
       client:exec_cmd(item.command, { bufnr = ctx.bufnr }, function() callback() end)
     else

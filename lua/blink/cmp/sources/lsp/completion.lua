@@ -1,4 +1,5 @@
 local async = require('blink.cmp.lib.async')
+local utils = require('blink.cmp.lib.utils')
 local cache = require('blink.cmp.sources.lsp.cache')
 
 local CompletionTriggerKind = vim.lsp.protocol.CompletionTriggerKind
@@ -47,7 +48,12 @@ local function process_response(context, client, res)
 
     -- score offset for deprecated items
     -- todo: make configurable
-    if item.deprecated or (item.tags and vim.tbl_contains(item.tags, 1)) then item.score_offset = -2 end
+    if
+      (utils.is_not_nil(item.deprecated) and item.deprecated)
+      or (utils.is_not_nil(item.tags) and vim.tbl_contains(item.tags, 1))
+    then
+      item.score_offset = -2
+    end
 
     -- set defaults
     for key, value in pairs(res.itemDefaults or {}) do

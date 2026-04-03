@@ -1,4 +1,5 @@
 local highlight_ns = require('blink.cmp.config').appearance.highlight_ns
+local utils = require('blink.cmp.lib.utils')
 
 local docs = {}
 
@@ -19,7 +20,8 @@ local docs = {}
 --- @param opts blink.cmp.RenderDetailAndDocumentationOpts
 function docs.render_detail_and_documentation(opts)
   local detail_lines = {}
-  local details = type(opts.detail) == 'string' and { opts.detail } or opts.detail or {}
+  local details = utils.is_not_nil(opts.detail) and (type(opts.detail) == 'string' and { opts.detail } or opts.detail)
+    or {}
   --- @cast details string[]
   details = require('blink.cmp.lib.utils').deduplicate(details)
   for _, v in ipairs(details) do

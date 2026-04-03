@@ -1,4 +1,5 @@
 local config = require('blink.cmp.config')
+local utils = require('blink.cmp.lib.utils')
 
 --- @class blink.cmp.Fuzzy
 local fuzzy = {
@@ -37,13 +38,13 @@ function fuzzy.access(item)
 
   -- send only the properties we need for LspItem
   local trimmed_item = {
-    label = item.label,
-    filterText = item.filterText,
-    sortText = item.sortText,
-    insertText = item.insertText,
-    kind = item.kind,
-    score_offset = item.score_offset,
-    source_id = item.source_id,
+    label = utils.is_not_nil(item.label) and item.label or nil,
+    filterText = utils.is_not_nil(item.filterText) and item.filterText or nil,
+    sortText = utils.is_not_nil(item.sortText) and item.sortText or nil,
+    insertText = utils.is_not_nil(item.insertText) and item.insertText or nil,
+    kind = utils.is_not_nil(item.kind) and item.kind or nil,
+    score_offset = utils.is_not_nil(item.score_offset) and item.score_offset or nil,
+    source_id = utils.is_not_nil(item.source_id) and item.source_id or nil,
   }
 
   -- writing to the db takes ~10ms, so schedule writes in another thread
