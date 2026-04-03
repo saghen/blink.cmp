@@ -76,6 +76,7 @@ function renderer:get_columns(context, draw)
       component_names = column,
       components = components,
       gap = column.gap or 0,
+      overlap_components = column.overlap_components or false,
     }
   end, columns)
 
@@ -84,7 +85,8 @@ function renderer:get_columns(context, draw)
       return require('blink.cmp.completion.windows.render.column').new(
         column_definition.component_names,
         column_definition.components,
-        column_definition.gap
+        column_definition.gap,
+        column_definition.overlap_components
       )
     end,
     columns_definitions

@@ -2,11 +2,12 @@
 --- @field component_names string[]
 --- @field components blink.cmp.DrawComponent[]
 --- @field gap number
+--- @field overlap_components boolean
 --- @field lines string[][]
 --- @field width number
 --- @field ctxs blink.cmp.DrawItemContext[]
 ---
---- @field new fun(component_names: string[], components: blink.cmp.DrawComponent[], gap: number): blink.cmp.DrawColumn
+--- @field new fun(component_names: string[], components: blink.cmp.DrawComponent[], gap: number, overlap_components: boolean): blink.cmp.DrawColumn
 --- @field render fun(self: blink.cmp.DrawColumn,context: blink.cmp.Context, ctxs: blink.cmp.DrawItemContext[])
 --- @field get_line_text fun(self: blink.cmp.DrawColumn, line_idx: number): string
 --- @field get_line_highlights fun(self: blink.cmp.DrawColumn, line_idx: number): blink.cmp.DrawHighlight[]
@@ -17,7 +18,7 @@ local text_lib = require('blink.cmp.completion.windows.render.text')
 --- @diagnostic disable-next-line: missing-fields
 local column = {}
 
-function column.new(component_names, components, gap)
+function column.new(component_names, components, gap, overlap_components)
   local self = setmetatable({}, { __index = column })
   self.component_names = component_names
   self.components = components
@@ -25,6 +26,7 @@ function column.new(component_names, components, gap)
   self.lines = {}
   self.width = 0
   self.ctxs = {}
+  self.overlap_components = overlap_components
   return self
 end
 
@@ -33,6 +35,7 @@ function column:render(context, ctxs)
   --- @type string[][]
   local lines = {}
   local max_component_widths = {}
+  local column_width = 0
   for _, ctx in ipairs(ctxs) do
     --- @type string[]
     local line = {}
@@ -42,15 +45,18 @@ function column:render(context, ctxs)
       max_component_widths[component_idx] =
         math.max(max_component_widths[component_idx] or 0, vim.api.nvim_strwidth(text))
     end
+    column_width = math.max(column_width, vim.api.nvim_strwidth(table.concat(line, string.rep(' ', self.gap))))
     table.insert(lines, line)
   end
 
-  --- get the total width of the column
-  local column_width = 0
-  for _, max_component_width in ipairs(max_component_widths) do
-    if max_component_width > 0 then column_width = column_width + max_component_width + self.gap end
+  if not self.overlap_components then
+    --- get the total width of the column
+    column_width = 0
+    for _, max_component_width in ipairs(max_component_widths) do
+      if max_component_width > 0 then column_width = column_width + max_component_width + self.gap end
+    end
+    column_width = math.max(column_width - self.gap, 0)
   end
-  column_width = math.max(column_width - self.gap, 0)
 
   --- find the component that will fill the empty space
   local fill_idxs = {}
