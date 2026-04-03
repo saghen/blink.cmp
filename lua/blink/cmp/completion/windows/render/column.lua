@@ -53,7 +53,7 @@ function column:render(context, ctxs)
     --- get the total width of the column
     column_width = 0
     for _, max_component_width in ipairs(max_component_widths) do
-      if max_component_width > 0 then column_width = column_width + max_component_width + self.gap end
+      column_width = column_width + max_component_width + self.gap
     end
     column_width = math.max(column_width - self.gap, 0)
   end
