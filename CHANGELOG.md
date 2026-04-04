@@ -1,10 +1,38 @@
-## [1.10.1](https://github.com/Saghen/blink/compare/v1.10.0...v1.10.1) (2026-03-14)
+## [1.10.2](https://github.com/saghen/blink.cmp/compare/v1.10.2...v1.10.1) (2026-04-04)
+
+### Features
+
+* add option to make components in column non-operlapping ([3c0bbe2](https://github.com/saghen/blink.cmp/commit/3c0bbe20d5071ca54403447da6aae6ea7a7658de))
+* added alignment option to columns ([ace77e2](https://github.com/saghen/blink.cmp/commit/ace77e2a3f153f286a73da7f4f313c8f50a9561d))
+* **cmdline:** add & as trigger character for option access ([e8043b8](https://github.com/saghen/blink.cmp/commit/e8043b8f8d696655e8c7cb11a9c17ca90212aa6c))
+* use `codegen-units = 1` for release builds ([00987e5](https://github.com/saghen/blink.cmp/commit/00987e5f4e69fbf0ded4759d4c5cc2cb25f83742))
+* use lto for release builds ([710c885](https://github.com/saghen/blink.cmp/commit/710c88565a1fa78caa61d5f1b67bb0536a1d3ac7))
+
+### Bug Fixes
+
+* also add gap to width for empty columns ([c9bec7e](https://github.com/saghen/blink.cmp/commit/c9bec7eede788789981ac31d07678401d2d26f03))
+* avoid selection race condition with stale context ([#2465](https://github.com/saghen/blink.cmp/issues/2465)) ([130503e](https://github.com/saghen/blink.cmp/commit/130503efc85bd51dcc44dc956c10e5e72c6c9297)), closes [#2464](https://github.com/saghen/blink.cmp/issues/2464)
+* **cmdline:** improve guard for nvim_parse_cmd on incomplete input ([2054994](https://github.com/saghen/blink.cmp/commit/20549942e0cfb1c503b2d5d7883c9687858eba9f)), closes [#2462](https://github.com/saghen/blink.cmp/issues/2462)
+* documentation/detail checks on vim.NIL ([83fe39a](https://github.com/saghen/blink.cmp/commit/83fe39a3eac1cd09334e3e4eb503e3ea319493ce))
+* handle vim.NIL in lsp labelDetails fields ([1e3ca2b](https://github.com/saghen/blink.cmp/commit/1e3ca2b385b33a5ec09c1cea31b0a9af0b69aa28)), closes [#2456](https://github.com/saghen/blink.cmp/issues/2456)
+* include dapui buffers on enable exceptions ([#2463](https://github.com/saghen/blink.cmp/issues/2463)) ([da1195d](https://github.com/saghen/blink.cmp/commit/da1195d28372d89d98231686098bc7996c96a2ee))
+* **lsp:** handle remaining vim.NIL in LSP responses for nvim 0.12 ([aeb93ca](https://github.com/saghen/blink.cmp/commit/aeb93ca60fa41e0b2ee5041249cafd57fc4a49ab)), closes [#2466](https://github.com/saghen/blink.cmp/issues/2466)
+* more instances of vim.NIL on lsp items ([d3f64d2](https://github.com/saghen/blink.cmp/commit/d3f64d27d3dfe02d838e44f24a125446a97ffbbd))
+* skip restoring buflisted for problematic filetypes ([ea6ca20](https://github.com/saghen/blink.cmp/commit/ea6ca20f4e1b9720939f658d43429879a927cd82)), closes [neovim/neovim#37832](https://github.com/neovim/neovim/issues/37832)
+* skip selection logic for gone context instead of stale ([c676bd7](https://github.com/saghen/blink.cmp/commit/c676bd7acde417a30b875a8a9344784aa2a45e52))
+* treat `<C-h>` as backspace in buffer events ([01d7ae8](https://github.com/saghen/blink.cmp/commit/01d7ae8a5639c94bf79295eedc84420f68df39d3)), closes [#2452](https://github.com/saghen/blink.cmp/issues/2452)
+
+### Performance Improvements
+
+* **cmdline:** compute range offset once ([70f9ebc](https://github.com/saghen/blink.cmp/commit/70f9ebc8abfdb6f25bb4ecd28da7fc52eddc61f9))
+
+## [1.10.1](https://github.com/Saghen/blink.cmp/compare/v1.10.0...v1.10.1) (2026-03-14)
 
 ### Bug Fixes
 
 * os should be system_info ([#2445](https://github.com/saghen/blink.cmp/issues/2445)) ([19c25fa](https://github.com/saghen/blink.cmp/commit/19c25fa5e95f1387f53b461a425ad2129ed1d681))
 
-## [1.10.0](https://github.com/Saghen/blink/compare/v1.9.1...v1.10.0) (2026-03-14)
+## [1.10.0](https://github.com/Saghen/blink.cmp/compare/v1.9.1...v1.10.0) (2026-03-14)
 
 ### Highlights
 
@@ -53,7 +81,7 @@ This will be the final 1.x release before 2.0!
 * **buffer:** more performant way to calculate the size of a buffer ([#2396](https://github.com/saghen/blink.cmp/issues/2396)) ([d162ef8](https://github.com/saghen/blink.cmp/commit/d162ef84327a937669b31f7a32dc2971178cc4c2))
 * **cmdline:** optimize ex search command lookups ([7c80e36](https://github.com/saghen/blink.cmp/commit/7c80e36023c5499a97e097cb5f229e9b635725a0))
 
-## [1.9.1](https://github.com/Saghen/blink/compare/v1.9.0...v1.9.1) (2026-02-04)
+## [1.9.1](https://github.com/Saghen/blink.cmp/compare/v1.9.0...v1.9.1) (2026-02-04)
 
 Minor hotfix updating the `flake.lock` to use the latest rust nightly, fixing the frizbee build for nix users.
 
