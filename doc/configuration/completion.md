@@ -259,7 +259,12 @@ Manages the appearance of the completion menu. You may prevent the menu from aut
 
 blink.cmp uses a grid-based layout to render the completion menu. The components, defined in `draw.components[string]`, define `text` and `highlight` functions which are called for each completion item. The `highlight` function will be called only when the item appears on screen, so expensive operations such as Treesitter highlighting may be performed. The components may define their min and max width, where `ellipsis = true` (enabled by default), will draw the `…` character when the text is truncated. Setting `width.fill = true` will fill the remaining space, effectively making subsequent components right aligned, with respect to their column.
 
+If there are multiple components with `width.fill = true` then the space to be filled up is distributed equally between them. This can be used to e.g. center align a component.
+
+
 Columns effectively allow you to vertically align a set of components. Each column, defined as an array in `draw.columns`, will be rendered for all of the completion items, where the longest rendered row will determine the width of the column. You may define `gap = number` in your column to insert a gap between components.
+
+You can also set `overlap_components = true` in the config for your column to allow overlapping the columns of components.
 
 For a setup similar to nvim-cmp, use the following config:
 
