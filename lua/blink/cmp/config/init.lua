@@ -122,11 +122,13 @@ end
 --- Overrides
 
 function M.enabled()
-  -- disable in macros
-  if vim.fn.reg_recording() ~= '' or vim.fn.reg_executing() ~= '' then return false end
+  local mode = vim.api.nvim_get_mode().mode
 
-  if vim.api.nvim_get_mode().mode == 'c' or vim.fn.win_gettype() == 'command' then return config.cmdline.enabled end
-  if vim.api.nvim_get_mode().mode == 't' then return config.term.enabled end
+  if mode == 'c' or vim.fn.win_gettype() == 'command' then return config.cmdline.enabled end
+  if mode == 't' then return config.term.enabled end
+
+  -- Disable in macros
+  if vim.fn.reg_recording() ~= '' or vim.fn.reg_executing() ~= '' then return false end
 
   local user_enabled = config.enabled()
   -- User explicitly ignores default conditions
