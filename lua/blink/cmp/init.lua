@@ -63,9 +63,22 @@ function cmp.is_documentation_visible() return require('blink.cmp.completion.win
 function cmp.show(opts)
   opts = opts or {}
 
-  -- TODO: when passed a list of providers, we should check if we're already showing the menu
-  -- with that list of providers
-  if require('blink.cmp.completion.windows.menu').win:is_open() and not (opts and opts.providers) then return false end
+  if require('blink.cmp.completion.windows.menu').win:is_open() then
+    if not opts.providers then return false end
+
+    -- Skip when passing the same list of providers
+    local ctx = require('blink.cmp.completion.list').context
+    if ctx and #ctx.providers == #opts.providers then
+      local same = true
+      for i, v in ipairs(opts.providers) do
+        if ctx.providers[i] ~= v then
+          same = false
+          break
+        end
+      end
+      if same then return false end
+    end
+  end
 
   require('blink.cmp.completion.windows.menu').force_auto_show()
 
