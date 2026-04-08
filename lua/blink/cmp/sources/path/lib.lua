@@ -51,6 +51,23 @@ function lib.dirname(opts, context)
   return nil
 end
 
+--- Relaxed dirname extraction for relative paths like "lua/plugins/" that the strict regex rejects.
+--- Unlike dirname(), this does not require a leading "/" or "./" prefix.
+--- Returns nil if no relative path is found (does not fall back to cwd).
+--- @param opts blink.cmp.PathOpts
+--- @param context blink.cmp.Context
+function lib.dirname_relaxed(opts, context)
+  local line_before_cursor = context.line:sub(1, context.bounds.start_col - (context.bounds.length == 0 and 1 or 0))
+
+  local rel_path = line_before_cursor:match('([%w%._%-][%w%._%-/]*/)[%w%._%-]*$')
+  if rel_path then
+    local buf_dirname = opts.get_cwd(context)
+    return vim.fn.resolve(buf_dirname .. '/' .. rel_path)
+  end
+
+  return nil
+end
+
 --- @param context blink.cmp.Context
 --- @param dirname string
 --- @param include_hidden boolean
@@ -125,6 +142,11 @@ function lib.get_text_edit_ranges(context)
   local next_letter_is_slash = context.line:sub(context.cursor[2] + 1, context.cursor[2] + 1) == '/'
 
   local last_part_idx = lib.get_last_path_part(line_before_cursor)
+
+  -- Clamp to context.bounds so we never replace text before the current word
+  -- (e.g. when manually triggered without a path prefix)
+  local bounds_start = context.bounds.start_col
+  if last_part_idx < bounds_start then last_part_idx = bounds_start end
 
   -- TODO: return the insert and replace ranges, instead of only the insert range
   return {
