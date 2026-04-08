@@ -1,4 +1,4 @@
-local _ = require('blink.lib._')
+local lib = require('blink.lib._')
 local task = require('blink.lib.task')
 local config = require('blink.cmp.config')
 
@@ -63,7 +63,7 @@ function sources.get_enabled_provider_ids(mode)
     local providers = config[mode].sources
     if type(providers) == 'function' then providers = providers() end
 
-    return _.list.dedup(providers)
+    return lib.list.dedup(providers)
   end
 
   -- Default sources
@@ -91,7 +91,7 @@ function sources.get_enabled_provider_ids(mode)
   end
   if not user_defined_providers then vim.list_extend(providers, default_providers) end
 
-  return deduplicate(providers)
+  return lib.list.dedup(providers)
 end
 
 function sources.get_enabled_providers(mode)

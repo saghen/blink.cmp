@@ -1,5 +1,5 @@
 local highlight_ns = require('blink.cmp.config').appearance.highlight_ns
-local _ = require('blink.lib._')
+local lib = require('blink.lib._')
 
 local docs = {}
 
@@ -20,9 +20,10 @@ local docs = {}
 --- @param opts blink.cmp.RenderDetailAndDocumentationOpts
 function docs.render_detail_and_documentation(opts)
   local detail_lines = {}
-  local details = _.is_not_nil(opts.detail) and (type(opts.detail) == 'string' and { opts.detail } or opts.detail) or {}
+  local details = lib.is_not_nil(opts.detail) and (type(opts.detail) == 'string' and { opts.detail } or opts.detail)
+    or {}
   --- @cast details string[]
-  details = _.list.dedup(details)
+  details = lib.list.dedup(details)
   for _, v in ipairs(details) do
     vim.list_extend(detail_lines, docs.split_lines(v))
   end

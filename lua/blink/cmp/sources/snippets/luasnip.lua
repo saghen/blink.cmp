@@ -8,7 +8,7 @@
 --- @field config blink.cmp.LuasnipSourceOptions
 --- @field items_cache table<string, blink.cmp.CompletionItem[]>
 
-local _ = require('blink.lib._')
+local lib = require('blink.lib._')
 
 --- @type blink.cmp.LuasnipSource
 --- @diagnostic disable-next-line: missing-fields
@@ -75,7 +75,7 @@ function source:get_completions(ctx, callback)
   for _, ft in ipairs(require('luasnip.util.util').get_snippet_filetypes()) do
     if self.items_cache[ft] then
       for _, item in ipairs(self.items_cache[ft]) do
-        table.insert(items, _.tbl.copy(item))
+        table.insert(items, lib.tbl.copy(item))
       end
       goto continue
     end
@@ -89,7 +89,7 @@ function source:get_completions(ctx, callback)
       for _, s in ipairs(autosnippets) do
         add_luasnip_callback(s, 'enter', require('blink.cmp').hide)
       end
-      snippets = _.tbl.copy(snippets)
+      snippets = lib.tbl.copy(snippets)
       vim.list_extend(snippets, autosnippets)
     end
     snippets = vim.tbl_filter(function(snip) return not snip.hidden end, snippets)
@@ -121,7 +121,7 @@ function source:get_completions(ctx, callback)
       -- populate snippet cache for this filetype
       table.insert(self.items_cache[ft], item)
       -- while we're at it, also populate completion items for this request
-      table.insert(items, _.tbl.copy(item))
+      table.insert(items, lib.tbl.copy(item))
     end
 
     ::continue::

@@ -12,7 +12,7 @@
 --- @field get_top_level_nodes fun(self: blink.cmp.SourceTree): blink.cmp.SourceTreeNode[]
 --- @field detect_cycle fun(node: blink.cmp.SourceTreeNode, visited?: table<string, boolean>, path?: table<string, boolean>): boolean
 
-local _ = require('blink.lib._')
+local lib = require('blink.lib._')
 local task = require('blink.lib.task')
 local sources_lib = require('blink.cmp.sources.lib')
 
@@ -39,8 +39,8 @@ function tree.new(context)
   -- build the tree
   for idx, source in ipairs(sources) do
     local node = nodes[idx]
-    for _, fallback_source_id in ipairs(source.config.fallbacks(context, source_ids)) do
-      local fallback_node = nodes[_.list.index_of(source_ids, fallback_source_id)]
+    for __, fallback_source_id in ipairs(source.config.fallbacks(context, source_ids)) do
+      local fallback_node = nodes[lib.list.index_of(source_ids, fallback_source_id)]
       if fallback_node ~= nil then
         table.insert(node.dependents, fallback_node)
         table.insert(fallback_node.dependencies, node)
@@ -66,7 +66,7 @@ function tree:get_completions(context, on_items_by_provider)
   local function get_completions_for_node(node)
     -- check that all the dependencies have been triggered, and are falling back
     for _, dependency in ipairs(node.dependencies) do
-      if not nodes_falling_back[dependency.id] then return task.empty() end
+      if not nodes_falling_back[dependency.id] then return task.resolve() end
     end
 
     return task.new(function(resolve, reject)

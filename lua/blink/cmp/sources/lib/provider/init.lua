@@ -25,7 +25,7 @@
 local source = {}
 
 local task = require('blink.lib.task')
-local _ = require('blink.lib._')
+local lib = require('blink.lib._')
 
 function source.new(id, config)
   assert(type(config.module) == 'string', 'Each source in config.sources.providers must have a "module" of type string')
@@ -87,7 +87,7 @@ function source:get_completions(context, on_items)
     and vim.tbl_contains(self:get_trigger_characters(), context.trigger.character)
 
   -- The TriggerForIncompleteCompletions kind is handled by the source provider itself
-  local source_context = _.tbl.copy(context)
+  local source_context = lib.tbl.copy(context)
   source_context.trigger = trigger_character
       and { kind = vim.lsp.protocol.CompletionTriggerKind.TriggerCharacter, character = context.trigger.character }
     or { kind = vim.lsp.protocol.CompletionTriggerKind.Invoked }
@@ -152,7 +152,7 @@ function source:resolve(context, item)
   end
 
   local cached_task = self.resolve_cache[item]
-  if cached_task == nil or cached_task.status == async.STATUS.CANCELLED then
+  if cached_task == nil or cached_task.status == task.STATUS.CANCELLED then
     self.resolve_cache[item] = task.new(function(resolve)
       if self.module.resolve == nil then return resolve(item) end
 
@@ -172,7 +172,7 @@ end
 function source:execute(context, item, default_implementation)
   if self.module.execute == nil then
     default_implementation()
-    return task.empty()
+    return task.resolve()
   end
 
   return task.new(function(resolve) return self.module:execute(context, item, resolve, default_implementation) end)

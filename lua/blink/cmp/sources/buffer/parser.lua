@@ -37,7 +37,7 @@ end
 
 --- @param text string
 --- @return blink.lib.Task
-function parser.run_sync(text) return task.identity(fuzzy.get_words(text)) end
+function parser.run_sync(text) return task.resolve(fuzzy.get_words(text)) end
 
 --- @param text string
 --- @return blink.lib.Task
@@ -122,7 +122,7 @@ function parser.get_buf_words(bufnr, exclude_word_under_cursor, opts)
     end
   else
     -- Too big, skip
-    return task.identity({})
+    return task.resolve({})
   end
 end
 

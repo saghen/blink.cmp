@@ -1,5 +1,5 @@
 local task = require('blink.lib.task')
-local _ = require('blink.lib._')
+local lib = require('blink.lib._')
 local system = require('blink.cmp.fuzzy.download.system')
 
 local function get_lib_extension()
@@ -10,7 +10,7 @@ end
 
 local current_file_dir = debug.getinfo(1).source:match('@?(.*/)')
 local current_file_dir_parts = vim.split(current_file_dir, '/')
-local root_dir = table.concat(_.list.slice(current_file_dir_parts, 1, #current_file_dir_parts - 6), '/')
+local root_dir = table.concat(lib.list.slice(current_file_dir_parts, 1, #current_file_dir_parts - 6), '/')
 local lib_folder = root_dir .. '/target/release'
 local lib_filename = 'libblink_cmp_fuzzy' .. get_lib_extension()
 local lib_path = lib_folder .. '/' .. lib_filename
@@ -71,7 +71,7 @@ end
 function files.verify_checksum()
   local checksum_cmd = files.get_checksum_command(files.lib_path)
   -- unsupported system, ignore checksum
-  if not checksum_cmd then return task.empty() end
+  if not checksum_cmd then return task.resolve() end
 
   return task.all({ files.get_checksum(), files.get_checksum_for_file(checksum_cmd) }):map(function(checksums)
     assert(#checksums == 2, 'Expected 2 checksums, got ' .. #checksums)

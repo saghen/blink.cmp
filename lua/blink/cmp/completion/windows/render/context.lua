@@ -14,6 +14,8 @@
 --- @field source_id string
 --- @field source_name string
 
+local lib = require('blink.lib._')
+
 local draw_context = {}
 
 --- @param context blink.cmp.Context
@@ -80,8 +82,8 @@ function draw_context.new(draw, item_idx, item, matched_indices)
     kind_icon = kind_icon,
     kind_hl = kind_hl,
     icon_gap = config.nerd_font_variant == 'mono' and '' or ' ',
-    deprecated = (utils.is_not_nil(item.deprecated) and item.deprecated)
-      or (utils.is_not_nil(item.tags) and vim.tbl_contains(item.tags, 1))
+    deprecated = (lib.is_not_nil(item.deprecated) and item.deprecated)
+      or (lib.is_not_nil(item.tags) and vim.tbl_contains(item.tags, 1))
       or false,
     source_id = source_id,
     source_name = source_name,

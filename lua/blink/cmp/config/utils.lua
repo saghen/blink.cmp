@@ -1,4 +1,4 @@
-local _ = require('blink.lib._')
+local lib = require('blink.lib._')
 
 local utils = {}
 
@@ -28,7 +28,7 @@ function utils.validate(path, tbl, source)
   local _, err = pcall(utils._validate, tbl)
   -- remove stack trace from error message
   if err ~= nil and vim.fn.has('nvim-0.11') == 1 then
-    err = table.concat(_.list.slice(vim.split(err, ':'), 3), ':'):gsub('^%s+', '')
+    err = table.concat(lib.list.slice(vim.split(err, ':'), 3), ':'):gsub('^%s+', '')
   end
   if err then error(path .. '.' .. err) end
 

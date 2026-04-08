@@ -3,7 +3,7 @@
 -- License: MIT
 
 local task = require('blink.lib.task')
-local _ = require('blink.lib._')
+local lib = require('blink.lib._')
 local constants = require('blink.cmp.sources.cmdline.constants')
 local cmdline_utils = require('blink.cmp.sources.cmdline.utils')
 local path_lib = require('blink.cmp.sources.path.lib')
@@ -52,7 +52,7 @@ function cmdline:get_completions(context, callback)
   local arg_number = #args_before_cursor
 
   local leading_spaces = context.line:match('^(%s*)') -- leading spaces in the original query
-  local text_before_argument = table.concat(_.list.slice(arguments, 1, arg_number - 1), ' ')
+  local text_before_argument = table.concat(lib.list.slice(arguments, 1, arg_number - 1), ' ')
     .. (arg_number > 1 and ' ' or '')
 
   local current_arg = arguments[arg_number]
@@ -77,8 +77,8 @@ function cmdline:get_completions(context, callback)
   local unique_suffixes_limit = 2000
   local special_char, vim_expr
 
-  local task = task
-    .empty()
+  local t = task
+    .resolve()
     :map(function()
       -- Special case for help where we read all the tags ourselves
       if completion_type == 'help' then
@@ -329,7 +329,7 @@ function cmdline:get_completions(context, callback)
       callback({ is_incomplete_backward = false, is_incomplete_forward = false, items = {} })
     end)
 
-  return function() task:cancel() end
+  return function() t:cancel() end
 end
 
 return cmdline

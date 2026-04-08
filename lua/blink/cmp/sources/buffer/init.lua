@@ -6,7 +6,7 @@ local task = require('blink.lib.task')
 local parser = require('blink.cmp.sources.buffer.parser')
 local buf_utils = require('blink.cmp.sources.buffer.utils')
 local cmdline_utils = require('blink.cmp.sources.cmdline.utils')
-local _ = require('blink.lib._')
+local lib = require('blink.lib._')
 
 --- @class blink.cmp.BufferOpts
 --- @field get_bufnrs fun(): integer[]
@@ -136,7 +136,7 @@ function buffer:get_buf_items(bufnr, exclude_word_under_cursor)
     local cache = self.cache:get(bufnr)
 
     if cache and cache.changedtick == changedtick and cache.exclude_word_under_cursor == exclude_word_under_cursor then
-      return task.identity(cache.words)
+      return task.resolve(cache.words)
     end
   end
 
@@ -161,7 +161,7 @@ function buffer:enabled() return not cmdline_utils.is_command_line() or self:is_
 function buffer:get_completions(_, callback)
   local is_search = self:is_search_context()
   local get_bufnrs = is_search and self.opts.get_search_bufnrs or self.opts.get_bufnrs
-  local bufnrs = _.list.dedup(get_bufnrs())
+  local bufnrs = lib.list.dedup(get_bufnrs())
 
   if #bufnrs == 0 then
     callback({ is_incomplete_forward = false, is_incomplete_backward = false, items = {} })

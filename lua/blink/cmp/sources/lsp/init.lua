@@ -1,4 +1,4 @@
-local _ = require('blink.lib._')
+local lib = require('blink.lib._')
 local task = require('blink.lib.task')
 
 --- Wraps client to support both 0.11 and 0.10 without deprecation warnings
@@ -193,7 +193,7 @@ function lsp:execute(ctx, item, callback, default_implementation)
   default_implementation()
 
   local client = vim.lsp.get_client_by_id(item.client_id)
-  if client and _.is_not_nil(item.command) then
+  if client and lib.is_not_nil(item.command) then
     if vim.fn.has('nvim-0.11') == 1 then
       client:exec_cmd(item.command, { bufnr = ctx.bufnr }, function() callback() end)
     else
