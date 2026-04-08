@@ -1,5 +1,5 @@
-local async = require('blink.cmp.lib.async')
 local _ = require('blink.lib._')
+local task = require('blink.lib.task')
 
 --- Wraps client to support both 0.11 and 0.10 without deprecation warnings
 --- @param client vim.lsp.Client
@@ -66,7 +66,7 @@ function lsp:get_completions(context, callback)
 
   -- TODO: implement a timeout before returning the menu as-is. In the future, it would be neat
   -- to detect slow LSPs and consistently run them async
-  local task = async.task
+  local task = task
     .all(
       vim.tbl_map(
         function(client) return completion_lib.get_completion_for_client(context, client, self.opts) end,

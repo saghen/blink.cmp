@@ -1,10 +1,10 @@
-local async = require('blink.cmp.lib.async')
 local _ = require('blink.lib._')
+local task = require('blink.lib.task')
 local config = require('blink.cmp.config')
 
 --- @class blink.cmp.Sources
 --- @field completions_queue blink.cmp.SourcesQueue | nil
---- @field current_signature_help blink.cmp.Task | nil
+--- @field current_signature_help blink.lib.Task | nil
 --- @field providers table<string, blink.cmp.SourceProvider>
 --- @field per_filetype_provider_ids table<string, string[]>
 --- @field completions_emitter blink.cmp.EventEmitter<blink.cmp.SourceCompletionsEvent>
@@ -21,11 +21,11 @@ local config = require('blink.cmp.config')
 --- @field cancel_completions fun()
 --- @field apply_max_items_for_completions fun(context: blink.cmp.Context, items: blink.cmp.CompletionItem[]): blink.cmp.CompletionItem[]
 --- @field listen_on_completions fun(callback: fun(context: blink.cmp.Context, items: blink.cmp.CompletionItem[]))
---- @field resolve fun(context: blink.cmp.Context, item: blink.cmp.CompletionItem): blink.cmp.Task
---- @field execute fun(context: blink.cmp.Context, item: blink.cmp.CompletionItem, default_implementation: fun(context?: blink.cmp.Context, item?: blink.cmp.CompletionItem)): blink.cmp.Task
+--- @field resolve fun(context: blink.cmp.Context, item: blink.cmp.CompletionItem): blink.lib.Task
+--- @field execute fun(context: blink.cmp.Context, item: blink.cmp.CompletionItem, default_implementation: fun(context?: blink.cmp.Context, item?: blink.cmp.CompletionItem)): blink.lib.Task
 ---
 --- @field get_signature_help_trigger_characters fun(mode: blink.cmp.Mode): { trigger_characters: string[], retrigger_characters: string[] }
---- @field get_signature_help fun(context: blink.cmp.SignatureHelpContext): blink.cmp.Task
+--- @field get_signature_help fun(context: blink.cmp.SignatureHelpContext): blink.lib.Task
 --- @field cancel_signature_help fun()
 ---
 --- @field reload fun(provider?: string)
@@ -216,7 +216,7 @@ function sources.resolve(context, item)
     end
   end
   if item_source == nil then
-    return async.task.new(function(resolve) resolve(item) end)
+    return task.new(function(resolve) resolve(item) end)
   end
 
   return item_source
@@ -235,7 +235,7 @@ function sources.execute(context, item, default_implementation)
     end
   end
   if item_source == nil then
-    return async.task.new(function(resolve) resolve() end)
+    return task.new(function(resolve) resolve() end)
   end
 
   return item_source
@@ -264,7 +264,7 @@ function sources.get_signature_help(context)
     table.insert(tasks, source:get_signature_help(context))
   end
 
-  sources.current_signature_help = async.task.all(tasks):map(function(signature_helps)
+  sources.current_signature_help = task.all(tasks):map(function(signature_helps)
     return vim.tbl_filter(function(signature_help) return signature_help ~= nil end, signature_helps)
   end)
   return sources.current_signature_help

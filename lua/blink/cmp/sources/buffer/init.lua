@@ -2,7 +2,7 @@
 -- but this is *speeeeeed* and simple. should add the better way
 -- but ensure it doesn't add too much complexity
 
-local async = require('blink.cmp.lib.async')
+local task = require('blink.lib.task')
 local parser = require('blink.cmp.sources.buffer.parser')
 local buf_utils = require('blink.cmp.sources.buffer.utils')
 local cmdline_utils = require('blink.cmp.sources.cmdline.utils')
@@ -127,7 +127,7 @@ end
 
 --- @param bufnr integer
 --- @param exclude_word_under_cursor boolean
---- @return blink.cmp.Task
+--- @return blink.lib.Task
 function buffer:get_buf_items(bufnr, exclude_word_under_cursor)
   local changedtick
 
@@ -136,7 +136,7 @@ function buffer:get_buf_items(bufnr, exclude_word_under_cursor)
     local cache = self.cache:get(bufnr)
 
     if cache and cache.changedtick == changedtick and cache.exclude_word_under_cursor == exclude_word_under_cursor then
-      return async.task.identity(cache.words)
+      return task.identity(cache.words)
     end
   end
 
@@ -176,7 +176,7 @@ function buffer:get_completions(_, callback)
   )
 
   local tasks = vim.tbl_map(function(buf) return self:get_buf_items(buf, not is_search) end, selected_bufnrs)
-  async.task.all(tasks):map(function(words_per_buf)
+  task.all(tasks):map(function(words_per_buf)
     --- @cast words_per_buf string[][]
 
     local unique = {}

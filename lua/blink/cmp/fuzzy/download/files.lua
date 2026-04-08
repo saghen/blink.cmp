@@ -1,4 +1,4 @@
-local async = require('blink.cmp.lib.async')
+local task = require('blink.lib.task')
 local _ = require('blink.lib._')
 local system = require('blink.cmp.fuzzy.download.system')
 
@@ -51,9 +51,9 @@ function files.get_checksum_command(path)
 end
 
 --- @param cmd string[]
---- @return blink.cmp.Task
+--- @return blink.lib.Task
 function files.get_checksum_for_file(cmd)
-  return async.task.new(function(resolve, reject)
+  return task.new(function(resolve, reject)
     vim.system(cmd, {}, function(out)
       if out.code ~= 0 then return reject('Failed to calculate checksum of pre-built binary: ' .. out.stderr) end
 
@@ -71,9 +71,9 @@ end
 function files.verify_checksum()
   local checksum_cmd = files.get_checksum_command(files.lib_path)
   -- unsupported system, ignore checksum
-  if not checksum_cmd then return async.task.empty() end
+  if not checksum_cmd then return task.empty() end
 
-  return async.task.all({ files.get_checksum(), files.get_checksum_for_file(checksum_cmd) }):map(function(checksums)
+  return task.all({ files.get_checksum(), files.get_checksum_for_file(checksum_cmd) }):map(function(checksums)
     assert(#checksums == 2, 'Expected 2 checksums, got ' .. #checksums)
     assert(checksums[1] and checksums[2], 'Expected checksums to be non-nil')
     assert(
@@ -99,7 +99,7 @@ function files.get_version()
 end
 
 --- @param version string
---- @return blink.cmp.Task
+--- @return blink.lib.Task
 function files.set_version(version)
   return files
     .create_dir(files.root_dir .. '/target')
@@ -110,9 +110,9 @@ end
 --- Filesystem helpers ---
 
 --- @param path string
---- @return blink.cmp.Task
+--- @return blink.lib.Task
 function files.read_file(path)
-  return async.task.new(function(resolve, reject)
+  return task.new(function(resolve, reject)
     vim.uv.fs_open(path, 'r', 438, function(open_err, fd)
       if open_err or fd == nil then return reject(open_err or 'Unknown error') end
       vim.uv.fs_read(fd, 1024, 0, function(read_err, data)
@@ -126,9 +126,9 @@ end
 
 --- @param path string
 --- @param data string
---- @return blink.cmp.Task
+--- @return blink.lib.Task
 function files.write_file(path, data)
-  return async.task.new(function(resolve, reject)
+  return task.new(function(resolve, reject)
     vim.uv.fs_open(path, 'w', 438, function(open_err, fd)
       if open_err or fd == nil then return reject(open_err or 'Unknown error') end
       vim.uv.fs_write(fd, data, 0, function(write_err)
@@ -141,17 +141,17 @@ function files.write_file(path, data)
 end
 
 --- @param path string
---- @return blink.cmp.Task
+--- @return blink.lib.Task
 function files.exists(path)
-  return async.task.new(function(resolve)
+  return task.new(function(resolve)
     vim.uv.fs_stat(path, function(err) resolve(not err) end)
   end)
 end
 
 --- @param path string
---- @return blink.cmp.Task
+--- @return blink.lib.Task
 function files.stat(path)
-  return async.task.new(function(resolve, reject)
+  return task.new(function(resolve, reject)
     vim.uv.fs_stat(path, function(err, stat)
       if err then return reject(err) end
       resolve(stat)
@@ -160,7 +160,7 @@ function files.stat(path)
 end
 
 --- @param path string
---- @return blink.cmp.Task
+--- @return blink.lib.Task
 function files.create_dir(path)
   return files
     .stat(path)
@@ -169,7 +169,7 @@ function files.create_dir(path)
     :map(function(exists)
       if exists then return end
 
-      return async.task.new(function(resolve, reject)
+      return task.new(function(resolve, reject)
         vim.uv.fs_mkdir(path, 511, function(err)
           if err then return reject(err) end
           resolve()
@@ -182,7 +182,7 @@ end
 --- @param old_path string
 --- @param new_path string
 function files.rename(old_path, new_path)
-  return async.task.new(function(resolve, reject)
+  return task.new(function(resolve, reject)
     vim.uv.fs_rename(old_path, new_path, function(err)
       if err then return reject(err) end
       resolve()

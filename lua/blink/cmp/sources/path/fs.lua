@@ -1,4 +1,4 @@
-local async = require('blink.cmp.lib.async')
+local task = require('blink.lib.task')
 local uv = vim.uv
 local fs = {}
 
@@ -6,11 +6,11 @@ local fs = {}
 --- The task resolves once all entries have been processed.
 --- @param path string
 --- @param callback fun(entries: table[]) Callback function called with an array (chunk) of directory entries
---- @return blink.cmp.Task
+--- @return blink.lib.Task
 function fs.scan_dir_async(path, callback)
   local chunk_size = 200
 
-  return async.task.new(function(resolve, reject)
+  return task.new(function(resolve, reject)
     uv.fs_scandir(path, function(err, req)
       if err or not req then return reject(err) end
       local entries = {}
@@ -34,9 +34,9 @@ end
 
 --- @param path string
 --- @param byte_limit number
---- @return blink.cmp.Task
+--- @return blink.lib.Task
 function fs.read_file(path, byte_limit)
-  return async.task.new(function(resolve, reject)
+  return task.new(function(resolve, reject)
     uv.fs_open(path, 'r', 438, function(open_err, fd)
       if open_err or fd == nil then return reject(open_err) end
       uv.fs_read(fd, byte_limit, 0, function(read_err, data)

@@ -1,13 +1,13 @@
-local async = require('blink.cmp.lib.async')
+local task = require('blink.lib.task')
 local utils = require('blink.cmp.lib.utils')
 local cache = require('blink.cmp.sources.lsp.cache')
 
 local CompletionTriggerKind = vim.lsp.protocol.CompletionTriggerKind
 --- @param context blink.cmp.Context
 --- @param client vim.lsp.Client
---- @return blink.cmp.Task
+--- @return blink.lib.Task
 local function request(context, client)
-  return async.task.new(function(resolve)
+  return task.new(function(resolve)
     local params = vim.lsp.util.make_position_params(0, client.offset_encoding)
     params.context = {
       triggerKind = context.trigger.kind == 'trigger_character' and CompletionTriggerKind.TriggerCharacter
@@ -88,13 +88,13 @@ local completion = {}
 --- @param context blink.cmp.Context
 --- @param client vim.lsp.Client
 --- @param opts blink.cmp.LSPSourceOpts
---- @return blink.cmp.Task
+--- @return blink.lib.Task
 function completion.get_completion_for_client(context, client, opts)
   -- We have multiple clients and some may return isIncomplete = false while others return isIncomplete = true
   -- If any are marked as incomplete, we must tell blink.cmp, but this will cause a fetch on every keystroke
   -- So we cache the responses and only re-request completions from isIncomplete = true clients
   local cache_entry = cache.get(context, client)
-  if cache_entry ~= nil then return async.task.identity(cache_entry) end
+  if cache_entry ~= nil then return task.identity(cache_entry) end
 
   return request(context, client):map(function(res)
     if res.err or res.result == nil then

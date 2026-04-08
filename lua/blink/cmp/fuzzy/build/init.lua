@@ -1,4 +1,4 @@
-local async = require('blink.cmp.lib.async')
+local task = require('blink.lib.task')
 local logger = require('blink.cmp.logger')
 local log_file = require('blink.cmp.fuzzy.build.log')
 
@@ -13,9 +13,9 @@ local function get_project_root()
 end
 
 --- @param cmd string[]
---- @return blink.cmp.Task<vim.SystemCompleted>
+--- @return blink.lib.Task<vim.SystemCompleted>
 local async_system = function(cmd, opts)
-  return async.task.new(function(resolve, reject)
+  return task.new(function(resolve, reject)
     local proc = vim.system(
       cmd,
       vim.tbl_extend('force', {
@@ -36,7 +36,7 @@ local async_system = function(cmd, opts)
 end
 
 --- Builds the rust binary from source
---- @return blink.cmp.Task
+--- @return blink.lib.Task
 function build.build()
   logger.notify({ { 'Building fuzzy matching library from source...' } }, vim.log.levels.INFO)
 

@@ -6,7 +6,7 @@
 --- @field module blink.cmp.Source
 --- @field list blink.cmp.SourceProviderList | nil
 --- @field resolve_cache_context_id number | nil
---- @field resolve_cache table<blink.cmp.CompletionItem, blink.cmp.Task>
+--- @field resolve_cache table<blink.cmp.CompletionItem, blink.lib.Task>
 ---
 --- @field new fun(id: string, config: blink.cmp.SourceProviderConfig): blink.cmp.SourceProvider
 --- @field enabled fun(self: blink.cmp.SourceProvider): boolean
@@ -14,17 +14,17 @@
 --- @field get_completions fun(self: blink.cmp.SourceProvider, context: blink.cmp.Context, on_items: fun(items: blink.cmp.CompletionItem[], is_cached: boolean))
 --- @field should_show_items fun(self: blink.cmp.SourceProvider, context: blink.cmp.Context, items: blink.cmp.CompletionItem[]): boolean
 --- @field transform_items fun(self: blink.cmp.SourceProvider, context: blink.cmp.Context, items: blink.cmp.CompletionItem[]): blink.cmp.CompletionItem[]
---- @field resolve fun(self: blink.cmp.SourceProvider, context: blink.cmp.Context, item: blink.cmp.CompletionItem): blink.cmp.Task
---- @field execute fun(self: blink.cmp.SourceProvider, context: blink.cmp.Context, item: blink.cmp.CompletionItem, default_implementation: fun(context?: blink.cmp.Context, item?: blink.cmp.CompletionItem)): blink.cmp.Task
+--- @field resolve fun(self: blink.cmp.SourceProvider, context: blink.cmp.Context, item: blink.cmp.CompletionItem): blink.lib.Task
+--- @field execute fun(self: blink.cmp.SourceProvider, context: blink.cmp.Context, item: blink.cmp.CompletionItem, default_implementation: fun(context?: blink.cmp.Context, item?: blink.cmp.CompletionItem)): blink.lib.Task
 --- @field get_signature_help_trigger_characters fun(self: blink.cmp.SourceProvider): { trigger_characters: string[], retrigger_characters: string[] }
---- @field get_signature_help fun(self: blink.cmp.SourceProvider, context: blink.cmp.SignatureHelpContext): blink.cmp.Task
+--- @field get_signature_help fun(self: blink.cmp.SourceProvider, context: blink.cmp.SignatureHelpContext): blink.lib.Task
 --- @field reload (fun(self: blink.cmp.SourceProvider): nil) | nil
 
 --- @type blink.cmp.SourceProvider
 --- @diagnostic disable-next-line: missing-fields
 local source = {}
 
-local async = require('blink.cmp.lib.async')
+local task = require('blink.lib.task')
 local _ = require('blink.lib._')
 
 function source.new(id, config)
@@ -153,7 +153,7 @@ function source:resolve(context, item)
 
   local cached_task = self.resolve_cache[item]
   if cached_task == nil or cached_task.status == async.STATUS.CANCELLED then
-    self.resolve_cache[item] = async.task.new(function(resolve)
+    self.resolve_cache[item] = task.new(function(resolve)
       if self.module.resolve == nil then return resolve(item) end
 
       return self.module:resolve(item, function(resolved_item)
@@ -172,12 +172,10 @@ end
 function source:execute(context, item, default_implementation)
   if self.module.execute == nil then
     default_implementation()
-    return async.task.empty()
+    return task.empty()
   end
 
-  return async.task.new(
-    function(resolve) return self.module:execute(context, item, resolve, default_implementation) end
-  )
+  return task.new(function(resolve) return self.module:execute(context, item, resolve, default_implementation) end)
 end
 
 --- Signature help ---

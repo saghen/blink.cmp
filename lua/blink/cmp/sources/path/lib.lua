@@ -1,4 +1,4 @@
-local async = require('blink.cmp.lib.async')
+local task = require('blink.lib.task')
 local regex = require('blink.cmp.sources.path.regex')
 local lib = {}
 
@@ -55,7 +55,7 @@ end
 --- @param dirname string
 --- @param include_hidden boolean
 --- @param opts blink.cmp.PathOpts
---- @return blink.cmp.Task
+--- @return blink.lib.Task
 function lib.candidates(context, dirname, include_hidden, opts)
   local fs = require('blink.cmp.sources.path.fs')
   local ranges = lib.get_text_edit_ranges(context)
@@ -67,7 +67,7 @@ function lib.candidates(context, dirname, include_hidden, opts)
   local threshold_kb = 100 * 1024 -- 100Mb
   if mem_usage_kb > threshold_kb then collectgarbage('collect') end
 
-  return async.task.new(function(resolve, reject)
+  return task.new(function(resolve, reject)
     fs.scan_dir_async(dirname, function(entries_chunk)
       if cancelled then return end
 

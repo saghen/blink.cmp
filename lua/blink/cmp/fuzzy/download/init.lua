@@ -1,6 +1,6 @@
 local fuzzy_config = require('blink.cmp.config').fuzzy
 local download_config = fuzzy_config.prebuilt_binaries
-local async = require('blink.cmp.lib.async')
+local task = require('blink.lib.task')
 local git = require('blink.cmp.fuzzy.download.git')
 local files = require('blink.cmp.fuzzy.download.files')
 local system = require('blink.cmp.fuzzy.download.system')
@@ -14,7 +14,7 @@ function download.ensure_downloaded(callback)
 
   if fuzzy_config.implementation == 'lua' then return callback(nil, 'lua') end
 
-  async.task
+  task
     .all({ git.get_version(download_config.force_version), files.get_version() })
     :map(function(results)
       return {
@@ -194,7 +194,7 @@ function download.download(version)
 end
 
 --- @param tag string
---- @return blink.cmp.Task
+--- @return blink.lib.Task
 function download.from_github(tag)
   return system.get_triple():map(function(system_triple)
     if not system_triple then
@@ -212,8 +212,7 @@ function download.from_github(tag)
     local library_url = base_url .. system_triple .. files.get_lib_extension()
     local checksum_url = base_url .. system_triple .. files.get_lib_extension() .. '.sha256'
 
-    return async
-      .task
+    return task
       .all({
         download.download_file(library_url, files.lib_filename .. '.tmp'),
         download.download_file(checksum_url, files.checksum_filename),
@@ -234,9 +233,9 @@ end
 
 --- @param url string
 --- @param filename string
---- @return blink.cmp.Task<nil>
+--- @return blink.lib.Task<nil>
 function download.download_file(url, filename)
-  return async.task.new(function(resolve, reject)
+  return task.new(function(resolve, reject)
     local args = { 'curl' }
 
     -- Use https proxy if available

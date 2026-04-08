@@ -1,5 +1,5 @@
 local download_config = require('blink.cmp.config').fuzzy.prebuilt_binaries
-local async = require('blink.cmp.lib.async')
+local task = require('blink.lib.task')
 local system = {}
 
 system.triples = {
@@ -49,10 +49,9 @@ end
 
 --- Gets the system target triple from `cc -dumpmachine`
 --- E.g. 'gnu' | 'musl'
---- @return blink.cmp.Task
+--- @return blink.lib.Task
 function system.get_linux_libc()
-  return async
-    .task
+  return task
     -- Check for system libc via `cc -dumpmachine` by default
     -- NOTE: adds 1ms to startup time
     .new(function(resolve) vim.system({ 'cc', '-dumpmachine' }, { text = true }, resolve) end)
@@ -71,7 +70,7 @@ function system.get_linux_libc()
     :map(function(libc)
       if libc ~= nil and vim.tbl_contains({ 'gnu', 'musl' }, libc) then return libc end
 
-      return async.task.new(function(resolve)
+      return task.new(function(resolve)
         vim.uv.fs_stat('/etc/alpine-release', function(err, is_alpine)
           if err then return resolve('gnu') end
           resolve(is_alpine ~= nil and 'musl' or 'gnu')
@@ -96,9 +95,9 @@ end
 
 --- Gets the system triple for the current system
 --- E.g. `x86_64-unknown-linux-gnu` or `aarch64-apple-darwin`
---- @return blink.cmp.Task
+--- @return blink.lib.Task
 function system.get_triple()
-  return async.task.new(function(resolve, reject)
+  return task.new(function(resolve, reject)
     if download_config.force_system_triple then return resolve(download_config.force_system_triple) end
 
     local os, arch = system.get_info()

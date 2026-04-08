@@ -2,7 +2,7 @@
 -- https://github.com/hrsh7th/cmp-cmdline
 -- License: MIT
 
-local async = require('blink.cmp.lib.async')
+local task = require('blink.lib.task')
 local _ = require('blink.lib._')
 local constants = require('blink.cmp.sources.cmdline.constants')
 local cmdline_utils = require('blink.cmp.sources.cmdline.utils')
@@ -77,7 +77,7 @@ function cmdline:get_completions(context, callback)
   local unique_suffixes_limit = 2000
   local special_char, vim_expr
 
-  local task = async.task
+  local task = task
     .empty()
     :map(function()
       -- Special case for help where we read all the tags ourselves

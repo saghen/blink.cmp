@@ -1,12 +1,12 @@
-local async = require('blink.cmp.lib.async')
+local task = require('blink.lib.task')
 local files = require('blink.cmp.fuzzy.download.files')
 local git = {}
 
 --- @generic T
 --- @param force_version? string
---- @return blink.cmp.Task<T[]>
+--- @return blink.lib.Task<T[]>
 function git.get_version(force_version)
-  return async.task.all({ git.get_tag(force_version), git.get_sha() }):map(
+  return task.all({ git.get_tag(force_version), git.get_sha() }):map(
     function(results)
       return {
         tag = results[1],
@@ -18,9 +18,9 @@ end
 
 --- @generic T
 --- @param force_version? string
---- @return blink.cmp.Task<T[]>
+--- @return blink.lib.Task<T[]>
 function git.get_tag(force_version)
-  return async.task.new(function(resolve, reject)
+  return task.new(function(resolve, reject)
     -- If repo_dir is nil, no git repository is found, similar to `out.code == 128`
     local repo_dir = vim.fs.root(files.root_dir, '.git')
     if not repo_dir then resolve() end
@@ -51,9 +51,9 @@ function git.get_tag(force_version)
 end
 
 --- @generic T
---- @return blink.cmp.Task<T[]>
+--- @return blink.lib.Task<T[]>
 function git.get_sha()
-  return async.task.new(function(resolve, reject)
+  return task.new(function(resolve, reject)
     -- If repo_dir is nil, no git repository is found, similar to `out.code == 128`
     local repo_dir = vim.fs.root(files.root_dir, '.git')
     if not repo_dir then resolve() end

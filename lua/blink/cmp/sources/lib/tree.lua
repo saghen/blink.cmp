@@ -7,14 +7,14 @@
 --- @class blink.cmp.SourceTree
 --- @field nodes blink.cmp.SourceTreeNode[]
 --- @field new fun(context: blink.cmp.Context): blink.cmp.SourceTree
---- @field get_completions fun(self: blink.cmp.SourceTree, context: blink.cmp.Context, on_items_by_provider: fun(items_by_provider: table<string, blink.cmp.CompletionItem[]>)): blink.cmp.Task
+--- @field get_completions fun(self: blink.cmp.SourceTree, context: blink.cmp.Context, on_items_by_provider: fun(items_by_provider: table<string, blink.cmp.CompletionItem[]>)): blink.lib.Task
 --- @field emit_completions fun(self: blink.cmp.SourceTree, items_by_provider: table<string, blink.cmp.CompletionItem[]>, on_items_by_provider: fun(items_by_provider: table<string, blink.cmp.CompletionItem[]>)): nil
 --- @field get_top_level_nodes fun(self: blink.cmp.SourceTree): blink.cmp.SourceTreeNode[]
 --- @field detect_cycle fun(node: blink.cmp.SourceTreeNode, visited?: table<string, boolean>, path?: table<string, boolean>): boolean
 
 local _ = require('blink.lib._')
+local task = require('blink.lib.task')
 local sources_lib = require('blink.cmp.sources.lib')
-local async = require('blink.cmp.lib.async')
 
 --- @type blink.cmp.SourceTree
 --- @diagnostic disable-next-line: missing-fields
@@ -66,10 +66,10 @@ function tree:get_completions(context, on_items_by_provider)
   local function get_completions_for_node(node)
     -- check that all the dependencies have been triggered, and are falling back
     for _, dependency in ipairs(node.dependencies) do
-      if not nodes_falling_back[dependency.id] then return async.task.empty() end
+      if not nodes_falling_back[dependency.id] then return task.empty() end
     end
 
-    return async.task.new(function(resolve, reject)
+    return task.new(function(resolve, reject)
       return node.source:get_completions(context, function(items, is_cached)
         items_by_provider[node.id] = items
         is_all_cached = is_all_cached and is_cached
@@ -80,14 +80,14 @@ function tree:get_completions(context, on_items_by_provider)
         -- run dependents if the source returned 0 items
         nodes_falling_back[node.id] = true
         local tasks = vim.tbl_map(function(dependent) return get_completions_for_node(dependent) end, node.dependents)
-        async.task.all(tasks):map(resolve):catch(reject)
+        task.all(tasks):map(resolve):catch(reject)
       end)
     end)
   end
 
   -- run the top level nodes and let them fall back to their dependents if needed
   local tasks = vim.tbl_map(function(node) return get_completions_for_node(node) end, self:get_top_level_nodes())
-  return async.task
+  return task
     .all(tasks)
     :map(function()
       should_push_upstream = true

@@ -1,4 +1,4 @@
-local async = require('blink.cmp.lib.async')
+local task = require('blink.lib.task')
 local config = require('blink.cmp.config').completion.accept.auto_brackets
 local utils = require('blink.cmp.completion.brackets.utils')
 
@@ -67,9 +67,9 @@ end
 --- @param ctx blink.cmp.Context
 --- @param filetype string
 --- @param item blink.cmp.CompletionItem
---- @return blink.cmp.Task
+--- @return blink.lib.Task
 function semantic.add_brackets_via_semantic_token(ctx, filetype, item)
-  return async.task.new(function(resolve)
+  return task.new(function(resolve)
     if not utils.should_run_resolution(ctx, filetype, 'semantic_token') then return resolve(false) end
 
     assert(item.textEdit ~= nil, 'Got nil text edit while adding brackets via semantic tokens')

@@ -1,4 +1,4 @@
-local async = require('blink.cmp.lib.async')
+local task = require('blink.lib.task')
 local fuzzy = require('blink.cmp.fuzzy')
 local uv = vim.uv
 
@@ -36,13 +36,13 @@ function parser.get_buf_text(bufnr, exclude_word_under_cursor)
 end
 
 --- @param text string
---- @return blink.cmp.Task
-function parser.run_sync(text) return async.task.identity(fuzzy.get_words(text)) end
+--- @return blink.lib.Task
+function parser.run_sync(text) return task.identity(fuzzy.get_words(text)) end
 
 --- @param text string
---- @return blink.cmp.Task
+--- @return blink.lib.Task
 function parser.run_async_rust(text)
-  return async.task.new(function(resolve)
+  return task.new(function(resolve)
     local worker = uv.new_work(
       -- must use rust module directly since the normal one requires the config which isn't present
       function(text, cpath)
@@ -60,7 +60,7 @@ function parser.run_async_rust(text)
 end
 
 --- @param text string
---- @return blink.cmp.Task
+--- @return blink.lib.Task
 function parser.run_async_lua(text)
   local min_chunk_size = 2000 -- Min chunk size in bytes
   local max_chunk_size = 4000 -- Max chunk size in bytes
@@ -70,7 +70,7 @@ function parser.run_async_lua(text)
   local pos = 1
   local all_words = {}
 
-  return async.task
+  return task
     .new(function(resolve)
       local function next_chunk()
         if cancelled then return end
@@ -122,7 +122,7 @@ function parser.get_buf_words(bufnr, exclude_word_under_cursor, opts)
     end
   else
     -- Too big, skip
-    return async.task.identity({})
+    return task.identity({})
   end
 end
 

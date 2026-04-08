@@ -1,4 +1,4 @@
-local async = require('blink.cmp.lib.async')
+local task = require('blink.lib.task')
 local fs = require('blink.cmp.sources.path.fs')
 local help_file_byte_limit = 1024 * 1024 -- 1MB, more than enough for any help file
 
@@ -6,7 +6,7 @@ local help = {}
 
 --- Processes a help file and returns a list of tags asynchronously
 --- @param file string
---- @return blink.cmp.Task
+--- @return blink.lib.Task
 local function read_tags_from_file(file)
   return fs.read_file(file, help_file_byte_limit)
     :map(function(data)
@@ -25,7 +25,7 @@ end
 function help.get_completions(arg_prefix)
   local help_files = vim.api.nvim_get_runtime_file('doc/tags', true)
 
-  return async.task
+  return task
     .all(vim.tbl_map(read_tags_from_file, help_files))
     :map(function(tags_arrs) return vim.iter(tags_arrs):flatten():totable() end)
     :map(function(tags)
