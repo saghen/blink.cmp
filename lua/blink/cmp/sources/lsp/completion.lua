@@ -1,3 +1,4 @@
+local lib = require('blink.lib._')
 local task = require('blink.lib.task')
 local utils = require('blink.cmp.lib.utils')
 local cache = require('blink.cmp.sources.lsp.cache')
@@ -49,8 +50,8 @@ local function process_response(context, client, res)
     -- score offset for deprecated items
     -- todo: make configurable
     if
-      (utils.is_not_nil(item.deprecated) and item.deprecated)
-      or (utils.is_not_nil(item.tags) and vim.tbl_contains(item.tags, 1))
+      (lib.is_not_nil(item.deprecated) and item.deprecated)
+      or (lib.is_not_nil(item.tags) and vim.tbl_contains(item.tags, 1))
     then
       item.score_offset = -2
     end

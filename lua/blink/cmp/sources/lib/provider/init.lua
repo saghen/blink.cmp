@@ -188,7 +188,7 @@ function source:get_signature_help_trigger_characters()
 end
 
 function source:get_signature_help(context)
-  return async.task.new(function(resolve)
+  return task.new(function(resolve)
     if self.module.get_signature_help == nil then return resolve(nil) end
     return self.module:get_signature_help(context, function(signature_help)
       vim.schedule(function() resolve(signature_help) end)

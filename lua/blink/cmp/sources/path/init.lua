@@ -71,8 +71,8 @@ function path:get_completions(context, callback)
 end
 
 function path:resolve(item, callback)
-  require('blink.cmp.sources.path.fs')
-    .read_file(item.data.full_path, 1024)
+  require('blink.lib.fs')
+    .read(item.data.full_path, 1024)
     :map(function(content)
       local is_binary = content:find('\0')
 

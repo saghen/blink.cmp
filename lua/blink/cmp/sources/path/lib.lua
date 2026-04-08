@@ -1,10 +1,12 @@
 local task = require('blink.lib.task')
 local regex = require('blink.cmp.sources.path.regex')
-local lib = {}
+local lib = require('blink.lib._')
+
+local path_lib = {}
 
 --- @param opts blink.cmp.PathOpts
 --- @param context blink.cmp.Context
-function lib.dirname(opts, context)
+function path_lib.dirname(opts, context)
   -- HACK: move this :sub logic into the context?
   -- it's not obvious that you need to avoid going back a char if the start_col == end_col
   local line_before_cursor = context.line:sub(1, context.bounds.start_col - (context.bounds.length == 0 and 1 or 0))
@@ -37,7 +39,7 @@ function lib.dirname(opts, context)
     -- Ignore math calculation
     accept = accept and not prefix:match('[%d%)]%s*/$')
     -- Ignore / comment
-    accept = accept and (not prefix:match('^[%s/]*$') or not lib.is_slash_comment())
+    accept = accept and (not prefix:match('^[%s/]*$') or not path_lib.is_slash_comment())
     if accept then
       if opts.ignore_root_slash then
         return vim.fn.resolve(buf_dirname .. '/' .. dirname)
@@ -55,42 +57,20 @@ end
 --- @param dirname string
 --- @param include_hidden boolean
 --- @param opts blink.cmp.PathOpts
---- @return blink.lib.Task
-function lib.candidates(context, dirname, include_hidden, opts)
-  local fs = require('blink.cmp.sources.path.fs')
-  local ranges = lib.get_text_edit_ranges(context)
-  local results = {}
-  local cancelled = false
-
-  -- Prevents excessive memory growth when scanning huge directories
-  local mem_usage_kb = collectgarbage('count')
-  local threshold_kb = 100 * 1024 -- 100Mb
-  if mem_usage_kb > threshold_kb then collectgarbage('collect') end
-
-  return task.new(function(resolve, reject)
-    fs.scan_dir_async(dirname, function(entries_chunk)
-      if cancelled then return end
-
-      for _, entry in ipairs(entries_chunk) do
-        if include_hidden or entry.name:sub(1, 1) ~= '.' then
-          local kind = entry.type == 'directory' and ranges.directory or ranges.file
-          local item = lib.entry_to_completion_item(entry, dirname, kind, opts)
-          results[#results + 1] = item
-
-          if #results >= opts.max_entries then
-            vim.print(string.format('%d entries in path source reached, further files ignored.', opts.max_entries))
-            cancelled = true
-            return
-          end
-        end
+--- @return blink.lib.Task<blink.lib.fs.DirEntry[]>
+function path_lib.candidates(context, dirname, include_hidden, opts)
+  local ranges = path_lib.get_text_edit_ranges(context)
+  return require('blink.lib.fs').list_dir(dirname, opts.max_entries):map(function(entries)
+    return lib.list.filter_map(entries, function(entry)
+      if include_hidden or entry.name:sub(1, 1) ~= '.' then
+        local kind = entry.type == 'directory' and ranges.directory or ranges.file
+        return path_lib.entry_to_completion_item(entry, dirname, kind, opts)
       end
-    end)
-      :map(function() resolve(results) end)
-      :catch(reject)
+    end, entries)
   end)
 end
 
-function lib.is_slash_comment()
+function path_lib.is_slash_comment()
   local commentstring = vim.bo.commentstring or ''
   local no_filetype = vim.bo.filetype == ''
   local is_slash_comment = false
@@ -104,7 +84,7 @@ end
 --- @param range lsp.Range
 --- @param opts table
 --- @return blink.cmp.CompletionItem[]
-function lib.entry_to_completion_item(entry, dirname, range, opts)
+function path_lib.entry_to_completion_item(entry, dirname, range, opts)
   local is_dir = entry.type == 'directory'
   local CompletionItemKind = require('blink.cmp.types').CompletionItemKind
   local insert_text = is_dir and opts.trailing_slash and entry.name .. '/' or entry.name
@@ -120,11 +100,11 @@ end
 
 --- @param context blink.cmp.Context
 --- @return { file: lsp.Range, directory: lsp.Range }
-function lib.get_text_edit_ranges(context)
+function path_lib.get_text_edit_ranges(context)
   local line_before_cursor = context.line:sub(1, context.cursor[2])
   local next_letter_is_slash = context.line:sub(context.cursor[2] + 1, context.cursor[2] + 1) == '/'
 
-  local last_part_idx = lib.get_last_path_part(line_before_cursor)
+  local last_part_idx = path_lib.get_last_path_part(line_before_cursor)
 
   -- TODO: return the insert and replace ranges, instead of only the insert range
   return {
@@ -142,7 +122,7 @@ end
 
 --- @param path string
 --- @return number
-function lib.get_last_path_part(path)
+function path_lib.get_last_path_part(path)
   local i = #path
   local start_pos = 1
   while i > 0 do
@@ -178,7 +158,7 @@ end
 --- Get the basename of a path, preserving trailing separator for directories.
 ---@param path string
 ---@return string
-function lib.basename_with_sep(path)
+function path_lib.basename_with_sep(path)
   local sep = package.config:sub(1, 1)
   local last_char = path:sub(-1)
   -- on Windows, both '/' and '\\' are accepted as path separators
@@ -192,7 +172,7 @@ end
 -- For example: 'foo bar\ baz' -> { 'foo', 'bar\ baz' }
 ---@param str string
 ---@return table
-function lib:split_unescaped(str)
+function path_lib:split_unescaped(str)
   local result, current, escaping = {}, '', false
   for i = 1, #str do
     local c = str:sub(i, i)
@@ -216,7 +196,7 @@ end
 --- Returns:     'src/mod.rs',     'test/mod.rs',     'bar.rs'
 --- @param paths string[]
 --- @return table<string, string> -- <path, unique_prefix>
-function lib:compute_unique_suffixes(paths)
+function path_lib:compute_unique_suffixes(paths)
   local is_windows = vim.fn.has('win32') == 1
   local sep = is_windows and '\\' or '/'
   if is_windows then paths = vim.tbl_map(function(path) return path:gsub('/', '\\') end, paths) end
@@ -298,4 +278,4 @@ function lib:compute_unique_suffixes(paths)
   return result
 end
 
-return lib
+return path_lib

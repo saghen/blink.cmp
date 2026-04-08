@@ -21,7 +21,7 @@ function text_edits.apply(text_edit, additional_text_edits)
     -- writing to dot repeat may fail in command-line window
     if mode == 'default' and config.completion.accept.dot_repeat then text_edits.write_to_dot_repeat(text_edit) end
 
-    local all_edits = lib.tbl.copy(additional_text_edits)
+    local all_edits = lib.list.copy(additional_text_edits)
     table.insert(all_edits, text_edit)
 
     local cur_bufnr = vim.api.nvim_get_current_buf()
