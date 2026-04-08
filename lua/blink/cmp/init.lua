@@ -68,16 +68,7 @@ function cmp.show(opts)
 
     -- Skip when passing the same list of providers
     local ctx = require('blink.cmp.completion.list').context
-    if ctx and #ctx.providers == #opts.providers then
-      local same = true
-      for i, v in ipairs(opts.providers) do
-        if ctx.providers[i] ~= v then
-          same = false
-          break
-        end
-      end
-      if same then return false end
-    end
+    if ctx and vim.deep_equal(ctx.providers, opts.providers) then return false end
   end
 
   require('blink.cmp.completion.windows.menu').force_auto_show()
