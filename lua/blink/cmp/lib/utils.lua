@@ -1,51 +1,6 @@
 local utils = {}
 
-function utils.is_not_nil(v) return v ~= nil and v ~= vim.NIL end
 function utils.to_string_or_empty(v) return (utils.is_not_nil(v) and type(v) == 'string') and v or '' end
-
---- Shallow copy table
---- @generic T
---- @param t T
---- @return T
-function utils.shallow_copy(t)
-  local t2 = {}
-  for k, v in pairs(t) do
-    t2[k] = v
-  end
-  return t2
-end
-
---- Returns the union of the keys of two tables
---- @generic T
---- @param t1 T[]
---- @param t2 T[]
---- @return T[]
-function utils.union_keys(t1, t2)
-  local t3 = {}
-  for k, _ in pairs(t1) do
-    t3[k] = true
-  end
-  for k, _ in pairs(t2) do
-    t3[k] = true
-  end
-  return vim.tbl_keys(t3)
-end
-
---- Returns a list of unique values from the input array
---- @generic T
---- @param arr T[]
---- @return T[]
-function utils.deduplicate(arr)
-  local seen = {}
-  local result = {}
-  for _, v in ipairs(arr) do
-    if not seen[v] then
-      seen[v] = true
-      table.insert(result, v)
-    end
-  end
-  return result
-end
 
 function utils.schedule_if_needed(fn)
   if vim.in_fast_event() then
@@ -53,46 +8,6 @@ function utils.schedule_if_needed(fn)
   else
     fn()
   end
-end
-
---- Returns the index of the first occurrence of the value in the array
---- @generic T
---- @param arr T[]
---- @param val T
---- @return number?
-function utils.index_of(arr, val)
-  for idx, v in ipairs(arr) do
-    if v == val then return idx end
-  end
-  return nil
-end
-
---- Finds an item in an array using a predicate function
---- @generic T
---- @param arr T[]
---- @param predicate fun(item: T): boolean
---- @return number?
-function utils.find_idx(arr, predicate)
-  for idx, v in ipairs(arr) do
-    if predicate(v) then return idx end
-  end
-  return nil
-end
-
---- Slices an array
---- @generic T
---- @param arr T[]
---- @param start number?
---- @param finish number?
---- @return T[]
-function utils.slice(arr, start, finish)
-  start = start or 1
-  finish = finish or #arr
-  local sliced = {}
-  for i = start, finish do
-    sliced[#sliced + 1] = arr[i]
-  end
-  return sliced
 end
 
 --- Gets the full Unicode character at cursor position
@@ -123,18 +38,6 @@ function utils.get_char_at_cursor()
   return line:sub(start_col, end_col)
 end
 
---- Reverses an array
---- @generic T
---- @param arr T[]
---- @return T[]
-function utils.reverse(arr)
-  local reversed = {}
-  for i = #arr, 1, -1 do
-    reversed[#reversed + 1] = arr[i]
-  end
-  return reversed
-end
-
 --- Disables all autocmds for the duration of the callback
 --- @param cb fun()
 function utils.with_no_autocmds(cb)
@@ -147,52 +50,6 @@ function utils.with_no_autocmds(cb)
 
   if not success then error(result_or_err) end
   return result_or_err
-end
-
---- Disables auto text wrapping by removing formatoptions 't' and 'c'.
---- Records which options were active in buffer variables so they can be
---- restored later by restore_auto_wrap(). Should be paired with restore_auto_wrap().
-function utils.disable_auto_wrap()
-  local formatoptions = vim.opt.formatoptions:get()
-  if formatoptions.t then
-    vim.b.blink_cmp_restore_formatoptions_t = true
-    vim.opt.formatoptions:remove('t')
-  end
-  if formatoptions.c then
-    vim.b.blink_cmp_restore_formatoptions_c = true
-    vim.opt.formatoptions:remove('c')
-  end
-  if formatoptions.a then
-    vim.b.blink_cmp_restore_formatoptions_a = true
-    vim.opt.formatoptions:remove('a')
-  end
-end
-
---- Restores auto text wrapping (formatoptions 't' and 'c') previously disabled
---- by disable_auto_wrap(). Uses pcall to ensure formatoptions are restored even
---- if an error occurs. If text exceeded textwidth while wrapping was disabled,
---- schedules a reformat of the current line.
-function utils.restore_auto_wrap()
-  local restore_t = vim.b.blink_cmp_restore_formatoptions_t
-  local restore_c = vim.b.blink_cmp_restore_formatoptions_c
-  local restore_a = vim.b.blink_cmp_restore_formatoptions_a
-
-  local success, err = pcall(function()
-    if restore_t then
-      vim.opt.formatoptions:append('t')
-      vim.b.blink_cmp_restore_formatoptions_t = nil
-    end
-    if restore_c then
-      vim.opt.formatoptions:append('c')
-      vim.b.blink_cmp_restore_formatoptions_c = nil
-    end
-    if restore_a then
-      vim.opt.formatoptions:append('a')
-      vim.b.blink_cmp_restore_formatoptions_a = nil
-    end
-  end)
-
-  if not success then error(err) end
 end
 
 --- Disable redraw in neovide for the duration of the callback
@@ -216,44 +73,5 @@ function utils.defer_neovide_redraw(fn)
   if not success then error(result) end
   return result
 end
-
----@type boolean Have we passed UIEnter?
-local _ui_entered = vim.v.vim_did_enter == 1 -- technically for VimEnter, but should be good enough for when we're lazy loaded
----@type function[] List of notifications.
-local _notification_queue = {}
-
---- Fancy notification wrapper.
---- @param msg [string, string?][]
---- @param lvl? number
-function utils.notify(msg, lvl)
-  local header_hl = 'DiagnosticVirtualTextWarn'
-  if lvl == vim.log.levels.ERROR then
-    header_hl = 'DiagnosticVirtualTextError'
-  elseif lvl == vim.log.levels.INFO then
-    header_hl = 'DiagnosticVirtualTextInfo'
-  end
-
-  table.insert(msg, 1, { ' blink.cmp ', header_hl })
-  table.insert(msg, 2, { ' ' })
-
-  local echo_opts = { verbose = false }
-  if lvl == vim.log.levels.ERROR and vim.fn.has('nvim-0.11') == 1 then echo_opts.err = true end
-  if _ui_entered then
-    vim.schedule(function() vim.api.nvim_echo(msg, true, echo_opts) end)
-  else
-    -- Queue notification for the UIEnter event.
-    table.insert(_notification_queue, function() vim.api.nvim_echo(msg, true, echo_opts) end)
-  end
-end
-
-vim.api.nvim_create_autocmd('UIEnter', {
-  callback = function()
-    _ui_entered = true
-
-    for _, fn in ipairs(_notification_queue) do
-      pcall(fn)
-    end
-  end,
-})
 
 return utils

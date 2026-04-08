@@ -1,3 +1,4 @@
+local _ = require('blink.lib._')
 local config = require('blink.cmp.config')
 local utils = require('blink.cmp.lib.utils')
 local context = require('blink.cmp.completion.trigger.context')
@@ -11,16 +12,13 @@ function text_edits.apply(text_edit, additional_text_edits)
   additional_text_edits = additional_text_edits or {}
 
   local mode = context.get_mode()
-  assert(
-    vim.tbl_contains({ 'default', 'cmdline', 'cmdwin', 'term' }, mode),
-    'Unsupported mode for text edits: ' .. mode
-  )
+  assert(_.list.contains({ 'default', 'cmdline', 'cmdwin', 'term' }, mode), 'Unsupported mode for text edits: ' .. mode)
 
   if mode == 'default' or mode == 'cmdwin' then
     -- writing to dot repeat may fail in command-line window
     if mode == 'default' and config.completion.accept.dot_repeat then text_edits.write_to_dot_repeat(text_edit) end
 
-    local all_edits = utils.shallow_copy(additional_text_edits)
+    local all_edits = _.tbl.copy(additional_text_edits)
     table.insert(all_edits, text_edit)
 
     local cur_bufnr = vim.api.nvim_get_current_buf()
@@ -203,9 +201,7 @@ end
 --- @param item blink.cmp.CompletionItem
 --- TODO: doesnt work when the item contains characters not included in the context regex
 function text_edits.guess(item)
-  local word = (utils.is_not_nil(item.insertText) and item.insertText)
-    or (utils.is_not_nil(item.label) and item.label)
-    or nil
+  local word = (_.is_not_nil(item.insertText) and item.insertText) or (_.is_not_nil(item.label) and item.label) or nil
 
   local start_col, end_col = require('blink.cmp.fuzzy').guess_edit_range(
     item,

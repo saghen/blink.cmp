@@ -4,7 +4,7 @@ local async = require('blink.cmp.lib.async')
 local git = require('blink.cmp.fuzzy.download.git')
 local files = require('blink.cmp.fuzzy.download.files')
 local system = require('blink.cmp.fuzzy.download.system')
-local utils = require('blink.cmp.lib.utils')
+local logger = require('blink.cmp.logger')
 
 local download = {}
 
@@ -36,7 +36,7 @@ function download.ensure_downloaded(callback)
           if loaded then return end
 
           -- shared library missing despite matching version info (e.g. incomplete build)
-          utils.notify({
+          logger.notify({
             { 'Incomplete build of the ' },
             { 'fuzzy matching library', 'DiagnosticInfo' },
             { ' detected, please re-run ' },
@@ -48,7 +48,7 @@ function download.ensure_downloaded(callback)
         end
 
         -- out of date
-        utils.notify({
+        logger.notify({
           { 'Found an ' },
           { 'outdated version', 'DiagnosticWarn' },
           { ' of the locally built ' },
@@ -57,7 +57,7 @@ function download.ensure_downloaded(callback)
 
         -- downloading is disabled, error
         if not download_config.download then
-          utils.notify({
+          logger.notify({
             { "Couldn't update fuzzy matching library due to github downloads being disabled." },
             { ' Try setting ' },
             { " build = 'cargo build --release' ", 'DiagnosticVirtualTextInfo' },
@@ -72,7 +72,7 @@ function download.ensure_downloaded(callback)
 
         -- downloading enabled but not on a git tag, error
         elseif target_git_tag == nil then
-          utils.notify({
+          logger.notify({
             { "Couldn't download the updated " },
             { 'fuzzy matching library', 'DiagnosticInfo' },
             { ' due to not being on a ' },
@@ -96,7 +96,7 @@ function download.ensure_downloaded(callback)
 
       -- downloading disabled but not built locally, error
       if not download_config.download then
-        utils.notify({
+        logger.notify({
           { 'No fuzzy matching library found!' },
           { ' Try setting ' },
           { " build = 'cargo build --release' ", 'DiagnosticVirtualTextInfo' },
@@ -109,7 +109,7 @@ function download.ensure_downloaded(callback)
 
       -- downloading enabled but not on a git tag, error
       if target_git_tag == nil then
-        utils.notify({
+        logger.notify({
           { 'No fuzzy matching library found!' },
           { ' Try building from source via ' },
           { " build = 'cargo build --release' ", 'DiagnosticVirtualTextInfo' },
@@ -127,7 +127,7 @@ function download.ensure_downloaded(callback)
       -- already downloaded and the correct version, just verify the checksum, and re-download if checksum fails
       if version.current.tag == target_git_tag then
         return files.verify_checksum():catch(function(err)
-          utils.notify({
+          logger.notify({
             { 'Pre-built binary checksum verification failed, ' },
             { err, 'DiagnosticError' },
           }, vim.log.levels.ERROR)
@@ -136,10 +136,10 @@ function download.ensure_downloaded(callback)
       end
 
       -- download as per usual
-      utils.notify({ { 'Downloading pre-built binary' } }, vim.log.levels.INFO)
+      logger.notify({ { 'Downloading pre-built binary' } }, vim.log.levels.INFO)
       return download
         .download(target_git_tag)
-        :map(function() utils.notify({ { 'Downloaded pre-built binary successfully' } }, vim.log.levels.INFO) end)
+        :map(function() logger.notify({ { 'Downloaded pre-built binary successfully' } }, vim.log.levels.INFO) end)
     end)
     :catch(function(err) return err end)
     :map(function(success_or_err)
@@ -147,7 +147,7 @@ function download.ensure_downloaded(callback)
         -- log error message
         if fuzzy_config.implementation ~= 'prefer_rust' then
           if type(success_or_err) == 'string' then
-            utils.notify({ { success_or_err, 'DiagnosticError' } }, vim.log.levels.ERROR)
+            logger.notify({ { success_or_err, 'DiagnosticError' } }, vim.log.levels.ERROR)
           end
         end
 
@@ -157,7 +157,7 @@ function download.ensure_downloaded(callback)
 
         -- fallback to lua implementation and emit warning
         elseif fuzzy_config.implementation == 'prefer_rust_with_warning' then
-          utils.notify({
+          logger.notify({
             { 'Falling back to ' },
             { 'Lua implementation', 'DiagnosticInfo' },
             { ' due to error while downloading pre-built binary, set ' },
@@ -198,7 +198,7 @@ end
 function download.from_github(tag)
   return system.get_triple():map(function(system_triple)
     if not system_triple then
-      utils.notify({
+      logger.notify({
         { 'Your system is not supported by ' },
         { ' pre-built binaries ', 'DiagnosticVirtualTextInfo' },
         { '. Try building from source via ' },

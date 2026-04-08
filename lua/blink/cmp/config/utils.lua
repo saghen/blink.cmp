@@ -1,3 +1,5 @@
+local _ = require('blink.lib._')
+
 local utils = {}
 
 -- Code taken from @MariaSolOs in a indent-blankline.nvim PR:
@@ -26,9 +28,7 @@ function utils.validate(path, tbl, source)
   local _, err = pcall(utils._validate, tbl)
   -- remove stack trace from error message
   if err ~= nil and vim.fn.has('nvim-0.11') == 1 then
-    local slice = require('blink.cmp.lib.utils').slice
-
-    err = table.concat(slice(vim.split(err, ':'), 3), ':'):gsub('^%s+', '')
+    err = table.concat(_.list.slice(vim.split(err, ':'), 3), ':'):gsub('^%s+', '')
   end
   if err then error(path .. '.' .. err) end
 
@@ -49,7 +49,7 @@ function utils.validate(path, tbl, source)
       table.insert(msg, { ' ' .. k .. ' ', 'DiagnosticVirtualTextError' })
       table.insert(msg, { ' Unexpected field in configuration!' })
 
-      require('blink.cmp.lib.utils').notify(msg)
+      require('blink.cmp.logger').notify(msg)
     end
   end
 end

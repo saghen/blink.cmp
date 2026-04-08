@@ -9,10 +9,16 @@ function cmp.setup(opts)
   if has_setup then return end
   has_setup = true
 
+  local success, err = pcall(require, 'blink.lib')
+  if not success then
+    vim.notify('blink.cmp v2 requires blink.lib ("saghen/blink.lib")', vim.log.levels.ERROR, { title = 'blink.cmp' })
+    return
+  end
+
   opts = opts or {}
 
-  if vim.fn.has('nvim-0.10') == 0 then
-    vim.notify('blink.cmp requires nvim 0.10 and newer', vim.log.levels.ERROR, { title = 'blink.cmp' })
+  if vim.fn.has('nvim-0.12') == 0 then
+    vim.notify('blink.cmp v2 requires nvim 0.12 and newer', vim.log.levels.ERROR, { title = 'blink.cmp' })
     return
   end
 

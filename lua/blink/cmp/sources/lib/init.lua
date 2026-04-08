@@ -1,6 +1,6 @@
 local async = require('blink.cmp.lib.async')
+local _ = require('blink.lib._')
 local config = require('blink.cmp.config')
-local deduplicate = require('blink.cmp.lib.utils').deduplicate
 
 --- @class blink.cmp.Sources
 --- @field completions_queue blink.cmp.SourcesQueue | nil
@@ -63,7 +63,7 @@ function sources.get_enabled_provider_ids(mode)
     local providers = config[mode].sources
     if type(providers) == 'function' then providers = providers() end
 
-    return deduplicate(providers)
+    return _.list.dedup(providers)
   end
 
   -- Default sources

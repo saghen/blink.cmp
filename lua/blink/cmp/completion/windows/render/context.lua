@@ -15,7 +15,6 @@
 --- @field source_name string
 
 local draw_context = {}
-local utils = require('blink.cmp.lib.utils')
 
 --- @param context blink.cmp.Context
 --- @param draw blink.cmp.Draw
@@ -60,10 +59,10 @@ function draw_context.new(draw, item_idx, item, matched_indices)
 
   local d = type(item.labelDetails) == 'table' and item.labelDetails or {}
 
-  local label_detail = utils.to_string_or_empty(d.detail):gsub('\n', newline_char)
+  local label_detail = type(d.detail) == 'string' and d.detail:gsub('\n', newline_char) or ''
   if label_detail:find('…') then label_detail = label_detail:gsub('…', '… ') end
 
-  local label_description = utils.to_string_or_empty(d.description):gsub('\n', newline_char)
+  local label_description = type(d.description) == 'string' and d.description:gsub('\n', newline_char) or ''
   if label_description:find('…') then label_description = label_description:gsub('…', '… ') end
 
   local source_id = item.source_id

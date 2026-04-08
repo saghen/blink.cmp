@@ -1,5 +1,5 @@
 local async = require('blink.cmp.lib.async')
-local utils = require('blink.cmp.lib.utils')
+local logger = require('blink.cmp.logger')
 local log_file = require('blink.cmp.fuzzy.build.log')
 
 local build = {}
@@ -38,7 +38,7 @@ end
 --- Builds the rust binary from source
 --- @return blink.cmp.Task
 function build.build()
-  utils.notify({ { 'Building fuzzy matching library from source...' } }, vim.log.levels.INFO)
+  logger.notify({ { 'Building fuzzy matching library from source...' } }, vim.log.levels.INFO)
 
   local log = log_file.create()
   log.write('Working Directory: ' .. get_project_root())
@@ -53,7 +53,7 @@ function build.build()
     })
     :map(
       function()
-        utils.notify({
+        logger.notify({
           { 'Successfully built fuzzy matching library. ' },
           { ':BlinkCmp build-log', 'DiagnosticInfo' },
         }, vim.log.levels.INFO)
@@ -61,7 +61,7 @@ function build.build()
     )
     :catch(
       function()
-        utils.notify({
+        logger.notify({
           { 'Failed to build fuzzy matching library! ', 'DiagnosticError' },
           { ':BlinkCmp build-log', 'DiagnosticInfo' },
         }, vim.log.levels.ERROR)

@@ -18,7 +18,7 @@ end
 
 function log.open()
   if log.latest_log_path == nil then
-    require('blink.cmp.lib.utils').notify({ { 'No build log available' } }, vim.log.levels.ERROR)
+    require('blink.cmp.logger').notify(vim.log.levels.ERROR, { { 'No build log available' } })
   else
     vim.cmd('edit ' .. log.latest_log_path)
   end

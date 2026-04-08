@@ -23,7 +23,7 @@
 
 local config = require('blink.cmp.config').completion.menu
 local event_emitter = require('blink.cmp.lib.event_emitter')
-local utils = require('blink.cmp.lib.utils')
+local auto_wrap = require('blink.cmp.completion.windows.menu.auto_wrap')
 
 --- @type blink.cmp.CompletionMenu
 --- @diagnostic disable-next-line: missing-fields
@@ -113,7 +113,7 @@ function menu.open()
   -- Disable auto text wrapping (formatoptions 't' and 'c') to prevent issues
   -- with preview undo when text wrapping occurs during completion.
   -- These options will be restored when the menu closes.
-  utils.disable_auto_wrap()
+  auto_wrap.disable()
 
   menu.win:open()
   menu.win:set_option_value('cursorline', menu.selected_item_idx ~= nil)
@@ -126,13 +126,9 @@ end
 
 function menu.close()
   menu.reset_auto_show()
-
   if not menu.win:is_open() then return end
-
   menu.win:close()
-
-  utils.restore_auto_wrap()
-
+  auto_wrap.restore()
   menu.close_emitter:emit()
 end
 

@@ -6,7 +6,7 @@ local async = require('blink.cmp.lib.async')
 local parser = require('blink.cmp.sources.buffer.parser')
 local buf_utils = require('blink.cmp.sources.buffer.utils')
 local cmdline_utils = require('blink.cmp.sources.cmdline.utils')
-local dedup = require('blink.cmp.lib.utils').deduplicate
+local _ = require('blink.lib._')
 
 --- @class blink.cmp.BufferOpts
 --- @field get_bufnrs fun(): integer[]
@@ -161,7 +161,7 @@ function buffer:enabled() return not cmdline_utils.is_command_line() or self:is_
 function buffer:get_completions(_, callback)
   local is_search = self:is_search_context()
   local get_bufnrs = is_search and self.opts.get_search_bufnrs or self.opts.get_bufnrs
-  local bufnrs = dedup(get_bufnrs())
+  local bufnrs = _.list.dedup(get_bufnrs())
 
   if #bufnrs == 0 then
     callback({ is_incomplete_forward = false, is_incomplete_backward = false, items = {} })

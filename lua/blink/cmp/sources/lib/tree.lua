@@ -12,8 +12,8 @@
 --- @field get_top_level_nodes fun(self: blink.cmp.SourceTree): blink.cmp.SourceTreeNode[]
 --- @field detect_cycle fun(node: blink.cmp.SourceTreeNode, visited?: table<string, boolean>, path?: table<string, boolean>): boolean
 
+local _ = require('blink.lib._')
 local sources_lib = require('blink.cmp.sources.lib')
-local utils = require('blink.cmp.lib.utils')
 local async = require('blink.cmp.lib.async')
 
 --- @type blink.cmp.SourceTree
@@ -40,7 +40,7 @@ function tree.new(context)
   for idx, source in ipairs(sources) do
     local node = nodes[idx]
     for _, fallback_source_id in ipairs(source.config.fallbacks(context, source_ids)) do
-      local fallback_node = nodes[utils.index_of(source_ids, fallback_source_id)]
+      local fallback_node = nodes[_.list.index_of(source_ids, fallback_source_id)]
       if fallback_node ~= nil then
         table.insert(node.dependents, fallback_node)
         table.insert(fallback_node.dependencies, node)
