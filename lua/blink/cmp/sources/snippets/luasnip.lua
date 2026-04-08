@@ -180,7 +180,7 @@ function source:execute(ctx, item)
             snip.insert_nodes[idx].static_text = { match }
           end
         end
-      end,
+      end)
     end
   end
 
