@@ -171,14 +171,11 @@ function menu.queue_auto_show(context, items)
   if menu.auto_show.timer:is_active() and menu.auto_show.timer_key == timer_key then return end
 
   menu.auto_show.timer_key = timer_key
-  -- TODO: this can race:
-  --  - timer fires, scheduling the function
-  --  - timer stopped by reset_auto_show()
-  --  - scheduled function runs (race!!)
   menu.auto_show.timer:start(
     delay_ms,
     0,
     vim.schedule_wrap(function()
+      if menu.auto_show.timer_key ~= timer_key then return end
       menu.open()
       menu.update_position()
     end)
