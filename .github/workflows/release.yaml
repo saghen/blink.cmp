@@ -119,7 +119,7 @@ jobs:
           persist-credentials: false
 
       - name: Build on OpenBSD/${{ matrix.arch }}
-        uses: cross-platform-actions/action@v0.32.0
+        uses: cross-platform-actions/action@v1.0.0
         with:
           operating_system: openbsd
           architecture: ${{ matrix.arch }}
