@@ -27,7 +27,7 @@ end
 --- @return boolean
 function utils.is_command_line(types)
   local mode = vim.api.nvim_get_mode().mode
-  if mode ~= 'c' and vim.fn.win_gettype() ~= 'command' then return false end
+  if mode ~= 'c' and vim.fn.getcmdwintype() == '' then return false end
 
   if not types or #types == 0 then return true end
 

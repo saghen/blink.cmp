@@ -95,7 +95,7 @@ function M.apply_mode_specific(cfg)
 
     set_at_path(path, function(...)
       local mode = vim.api.nvim_get_mode().mode
-      if (mode == 'c' or vim.fn.win_gettype() == 'command') and cmdline ~= nil then
+      if (mode == 'c' or vim.fn.getcmdwintype() ~= '') and cmdline ~= nil then
         return call_or_return(cmdline, ...)
       end
       if mode == 't' and term ~= nil then return call_or_return(term, ...) end
@@ -124,7 +124,7 @@ end
 function M.enabled()
   local mode = vim.api.nvim_get_mode().mode
 
-  if mode == 'c' or vim.fn.win_gettype() == 'command' then return config.cmdline.enabled end
+  if mode == 'c' or vim.fn.getcmdwintype() ~= '' then return config.cmdline.enabled end
   if mode == 't' then return config.term.enabled end
 
   -- Disable in macros
