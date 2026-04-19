@@ -67,34 +67,43 @@ function signature.open_with_signature_help(context, signature_help)
   signature.shown_signature = active_signature
 
   -- highlight active parameter
-  local _, active_highlight = vim.lsp.util.convert_signature_help_to_markdown_lines(
-    signature_help,
-    vim.bo.filetype,
-    sources.get_signature_help_trigger_characters().trigger_characters
-  )
-  if active_highlight ~= nil then
-    if vim.fn.has('nvim-0.11.0') == 1 then
-      local start_line = active_highlight[1] - 1
-      local start_col = active_highlight[2]
-      local end_line = active_highlight[3] - 1
-      local end_col = active_highlight[4]
-      vim.api.nvim_buf_set_extmark(
-        signature.win:get_buf(),
-        require('blink.cmp.config').appearance.highlight_ns,
-        start_line,
-        start_col,
-        { end_line = end_line, end_col = end_col, hl_group = 'BlinkCmpSignatureHelpActiveParameter' }
-      )
-    else
-      local start_col = active_highlight[1]
-      local end_col = active_highlight[2]
-      vim.api.nvim_buf_set_extmark(
-        signature.win:get_buf(),
-        require('blink.cmp.config').appearance.highlight_ns,
-        0,
-        start_col,
-        { end_col = end_col, hl_group = 'BlinkCmpSignatureHelpActiveParameter' }
-      )
+  local active_param_idx = active_signature.activeParameter or signature_help.activeParameter or 0
+  local params = active_signature.parameters or {}
+  local active_param = params[active_param_idx + 1]
+
+  if active_param ~= nil then
+    local label = active_param.label
+    local start_col, end_col
+
+    if type(label) == 'table' then
+      start_col = label[1]
+      end_col = label[2]
+    elseif type(label) == 'string' then
+      local from = active_signature.label:find(label, 1, true)
+      if from then
+        start_col = from - 1
+        end_col = start_col + #label
+      end
+    end
+
+    if start_col and end_col then
+      local sig_line = (signature_help.activeSignature or 0)
+      local bufnr = signature.win:get_buf()
+      local line_count = vim.api.nvim_buf_line_count(bufnr)
+
+      if sig_line < line_count then
+        local line_text = vim.api.nvim_buf_get_lines(bufnr, sig_line, sig_line + 1, false)[1] or ''
+        end_col = math.min(end_col, #line_text)
+        start_col = math.min(start_col, end_col)
+
+        vim.api.nvim_buf_set_extmark(
+          bufnr,
+          require('blink.cmp.config').appearance.highlight_ns,
+          sig_line,
+          start_col,
+          { end_col = end_col, hl_group = 'BlinkCmpSignatureHelpActiveParameter' }
+        )
+      end
     end
   end
 
