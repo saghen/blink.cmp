@@ -14,7 +14,7 @@
 --- @field source_id string
 --- @field source_name string
 
-local lib = require('blink.lib._')
+local lib = require('blink.lib')
 
 local draw_context = {}
 

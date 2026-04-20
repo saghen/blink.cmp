@@ -6,7 +6,7 @@ local task = require('blink.lib.task')
 local parser = require('blink.cmp.sources.buffer.parser')
 local buf_utils = require('blink.cmp.sources.buffer.utils')
 local cmdline_utils = require('blink.cmp.sources.cmdline.utils')
-local lib = require('blink.lib._')
+local lib = require('blink.lib')
 
 --- @class blink.cmp.BufferOpts
 --- @field get_bufnrs fun(): integer[]

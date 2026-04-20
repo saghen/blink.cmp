@@ -22,23 +22,17 @@ function cmp.setup(opts)
     return
   end
 
-  local start_time = vim.loop.hrtime()
-
-  local cmdline_config = opts.cmdline
-  local term_config = opts.term
-  opts = require('blink.lib._').tbl.copy(opts)
-  opts.cmdline = nil
-  opts.term = nil
-
   local config = require('blink.cmp.config')
+  opts = require('blink.lib').tbl.copy(opts)
+  if opts.cmdline then
+    config(opts.cmdline, { mode = 'cmdline' })
+    opts.cmdline = nil
+  end
+  if opts.term then
+    config(opts.term, { mode = 'term' })
+    opts.term = nil
+  end
   config(opts)
-
-  if cmdline_config then config(cmdline_config, { mode = 'cmdline' }) end
-  if term_config then config(term_config, { mode = 'term' }) end
-
-  local end_time = vim.loop.hrtime()
-  vim.print('duration: ' .. (end_time - start_time) / 1000000 .. 'ms')
-  vim.print(config.signature.enabled)
 
   require('blink.cmp.fuzzy').set_implementation(config.fuzzy.implementation)
 

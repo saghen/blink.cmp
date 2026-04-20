@@ -69,7 +69,7 @@
 --- @field item blink.cmp.CompletionItem
 --- @field context blink.cmp.Context
 
-local _ = require('blink.lib._')
+local lib = require('blink.lib')
 local context = require('blink.cmp.completion.trigger.context')
 
 --- @type blink.cmp.CompletionList
@@ -150,7 +150,7 @@ function list.fuzzy(context, items_by_source)
   filtered_items = require('blink.cmp.sources.lib').apply_max_items_for_completions(context, filtered_items)
 
   -- apply the global max_items
-  return _.list.slice(filtered_items, 1, list.config.max_items)
+  return lib.list.slice(filtered_items, 1, list.config.max_items)
 end
 
 function list.hide()
@@ -181,7 +181,7 @@ end
 
 function list.get_item_idx_in_list(item)
   if item == nil then return end
-  return _.list.find_idx(list.items, function(i) return i.label == item.label and item.source_id == i.source_id end)
+  return lib.list.find_idx(list.items, function(i) return i.label == item.label and item.source_id == i.source_id end)
 end
 
 function list.select(idx, opts)

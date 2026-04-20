@@ -1,5 +1,5 @@
 local highlight_ns = require('blink.cmp.config').appearance.highlight_ns
-local lib = require('blink.lib._')
+local lib = require('blink.lib')
 
 local docs = {}
 

@@ -8,7 +8,7 @@
 --- @field config blink.cmp.LuasnipSourceOptions
 --- @field items_cache table<string, blink.cmp.CompletionItem[]>
 
-local lib = require('blink.lib._')
+local lib = require('blink.lib')
 
 --- @type blink.cmp.LuasnipSource
 --- @diagnostic disable-next-line: missing-fields

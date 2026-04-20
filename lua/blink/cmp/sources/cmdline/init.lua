@@ -3,7 +3,7 @@
 -- License: MIT
 
 local task = require('blink.lib.task')
-local lib = require('blink.lib._')
+local lib = require('blink.lib')
 local constants = require('blink.cmp.sources.cmdline.constants')
 local cmdline_utils = require('blink.cmp.sources.cmdline.utils')
 local path_lib = require('blink.cmp.sources.path.lib')

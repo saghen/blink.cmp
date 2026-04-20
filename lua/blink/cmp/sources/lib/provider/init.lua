@@ -25,7 +25,7 @@
 local source = {}
 
 local task = require('blink.lib.task')
-local lib = require('blink.lib._')
+local lib = require('blink.lib')
 
 function source.new(id, config)
   assert(type(config.module) == 'string', 'Each source in config.sources.providers must have a "module" of type string')

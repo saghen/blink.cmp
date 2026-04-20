@@ -1,5 +1,5 @@
 local config = require('blink.cmp.config')
-local lib = require('blink.lib._')
+local lib = require('blink.lib')
 
 --- @class blink.cmp.Fuzzy
 local fuzzy = {

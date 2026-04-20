@@ -12,7 +12,7 @@
 --- @field get_top_level_nodes fun(self: blink.cmp.SourceTree): blink.cmp.SourceTreeNode[]
 --- @field detect_cycle fun(node: blink.cmp.SourceTreeNode, visited?: table<string, boolean>, path?: table<string, boolean>): boolean
 
-local lib = require('blink.lib._')
+local lib = require('blink.lib')
 local task = require('blink.lib.task')
 local sources_lib = require('blink.cmp.sources.lib')
 

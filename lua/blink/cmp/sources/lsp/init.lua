@@ -1,4 +1,4 @@
-local lib = require('blink.lib._')
+local lib = require('blink.lib')
 local task = require('blink.lib.task')
 
 --- Wraps client to support both 0.11 and 0.10 without deprecation warnings

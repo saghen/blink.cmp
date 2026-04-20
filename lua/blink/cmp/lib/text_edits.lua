@@ -1,4 +1,4 @@
-local lib = require('blink.lib._')
+local lib = require('blink.lib')
 local config = require('blink.cmp.config')
 local utils = require('blink.cmp.lib.utils')
 local context = require('blink.cmp.completion.trigger.context')
