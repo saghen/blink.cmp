@@ -20,13 +20,16 @@ local function is_hidden_snippet()
   return not require('blink.cmp').is_visible() and not ls.locally_jumpable(1) and ls.expandable()
 end
 
-local validate = require('blink.cmp.config.utils').validate
-local snippets = {
-  --- @type blink.cmp.SnippetsConfig
-  default = {
-    preset = 'default',
-    -- NOTE: we wrap `vim.snippet` calls to reduce startup by 1-2ms
-    expand = by_preset({
+local config = require('blink.lib.config')
+return {
+  preset = {
+    'default',
+    config.types.enum({ 'default', 'luasnip', 'mini_snippets', 'vsnip' }),
+  },
+  score_offset = { -3, 'number' },
+  -- NOTE: we wrap `vim.snippet` calls to reduce startup by 1-2ms
+  expand = {
+    by_preset({
       default = function(snippet) vim.snippet.expand(snippet) end,
       luasnip = function(snippet) require('luasnip').lsp_expand(snippet) end,
       mini_snippets = function(snippet)
@@ -39,7 +42,10 @@ local snippets = {
       end,
       vsnip = function(snippet) vim.fn['vsnip#anonymous'](snippet) end,
     }),
-    active = by_preset({
+    'function',
+  },
+  active = {
+    by_preset({
       default = function(filter) return vim.snippet.active(filter) end,
       luasnip = function(filter)
         local ls = require('luasnip')
@@ -53,7 +59,10 @@ local snippets = {
       end,
       vsnip = function() return vim.fn.empty(vim.fn['vsnip#get_session']()) ~= 1 end,
     }),
-    jump = by_preset({
+    'function',
+  },
+  jump = {
+    by_preset({
       default = function(direction)
         vim.snippet.jump(direction)
         return true
@@ -74,22 +83,6 @@ local snippets = {
         return true
       end,
     }),
-    score_offset = -3,
+    'function',
   },
 }
-
-function snippets.validate(config)
-  validate('snippets', {
-    preset = {
-      config.preset,
-      function(preset) return vim.tbl_contains({ 'default', 'luasnip', 'mini_snippets', 'vsnip' }, preset) end,
-      'one of: "default", "luasnip", "mini_snippets", "vsnip"',
-    },
-    expand = { config.expand, 'function' },
-    active = { config.active, 'function' },
-    jump = { config.jump, 'function' },
-    score_offset = { config.score_offset, 'number' },
-  }, config)
-end
-
-return snippets

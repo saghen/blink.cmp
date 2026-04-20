@@ -161,16 +161,9 @@
 --- @field preset? blink.cmp.KeymapPreset
 --- @field [string] blink.cmp.KeymapCommand[] | false Table of keys => commands[] or false to disable
 
-local keymap = {
-  --- @type blink.cmp.KeymapConfig
-  default = {
-    preset = 'default',
-  },
-}
-
 --- @param config blink.cmp.KeymapConfig
 --- @param is_mode boolean? Is mode-specific keymap config
-function keymap.validate(config, is_mode)
+function validate(config, is_mode)
   assert(config.cmdline == nil, '`keymap.cmdline` has been replaced with `cmdline.keymap`')
   assert(config.term == nil, '`keymap.term` has been replaced with `term.keymap`')
 
@@ -233,4 +226,5 @@ function keymap.validate(config, is_mode)
   require('blink.cmp.config.utils')._validate(validation_schema)
 end
 
-return keymap
+-- TODO:
+return { { preset = 'default' }, 'table' }

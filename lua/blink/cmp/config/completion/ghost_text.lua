@@ -6,26 +6,11 @@
 --- @field show_with_menu boolean Show the ghost text when the menu is open
 --- @field show_without_menu boolean Show the ghost text when the menu is closed
 
-local validate = require('blink.cmp.config.utils').validate
-local ghost_text = {
-  --- @type blink.cmp.CompletionGhostTextConfig
-  default = {
-    enabled = false,
-    show_with_selection = true,
-    show_without_selection = false,
-    show_with_menu = true,
-    show_without_menu = true,
-  },
+local config = require('blink.lib.config')
+return {
+  enabled = { true, 'boolean' },
+  show_with_selection = { true, 'boolean' },
+  show_without_selection = { false, 'boolean' },
+  show_with_menu = { true, 'boolean' },
+  show_without_menu = { true, 'boolean' },
 }
-
-function ghost_text.validate(config)
-  validate('completion.ghost_text', {
-    enabled = { config.enabled, { 'boolean', 'function' } },
-    show_with_selection = { config.show_with_selection, 'boolean' },
-    show_without_selection = { config.show_without_selection, 'boolean' },
-    show_without_menu = { config.show_without_menu, 'boolean' },
-    show_with_menu = { config.show_with_menu, 'boolean' },
-  }, config)
-end
-
-return ghost_text

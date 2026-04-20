@@ -38,20 +38,19 @@
 --- @field min_keyword_length? number | fun(ctx: blink.cmp.Context): number Minimum number of characters in the keyword to trigger the provider
 --- @field fallbacks? string[] | fun(ctx: blink.cmp.Context, enabled_sources: string[]): string[] If this provider returns 0 items, it will fallback to these providers
 --- @field score_offset? number | fun(ctx: blink.cmp.Context, enabled_sources: string[]): number Boost/penalize the score of the items
---- @field deduplicate? blink.cmp.DeduplicateConfig TODO: implement
 --- @field override? blink.cmp.SourceOverride Override the source's functions
 
-local validate = require('blink.cmp.config.utils').validate
-local sources = {
-  --- @type blink.cmp.SourceConfig
-  default = {
-    default = { 'lsp', 'path', 'snippets', 'buffer' },
-    per_filetype = {},
+local config = require('blink.lib.config')
+return {
+  default = { { 'lsp', 'path', 'snippets', 'buffer' }, config.types.list('string') },
+  per_filetype = { {}, config.types.map('string', config.types.list('string')) },
 
-    transform_items = function(_, items) return items end,
-    min_keyword_length = 0,
+  transform_items = { function(_, items) return items end, 'function' },
+  min_keyword_length = { 0, { 'number', 'function' } },
 
-    providers = {
+  -- TODO: replacing this with in-process LSPs so we don't need to write validation for it
+  providers = {
+    {
       lsp = {
         name = 'LSP',
         module = 'blink.cmp.sources.lsp',
@@ -81,58 +80,25 @@ local sources = {
           complete_func = function() return vim.bo.omnifunc end,
         },
       },
-      -- NOTE: in the future, we may want a built-in terminal source. For now
-      -- the infrastructure exists, so community terminal sources can be
-      -- added, but this functionality is not baked into blink.cmp.
-      -- term = { module = 'blink.cmp.sources.term' },
     },
+    config.types.map(
+      'string',
+      'table'
+      -- config.types.table({
+      --   module = 'string',
+      --   name = { 'string', 'nil' },
+      --   enabled = { 'boolean', 'function', 'nil' },
+      --   opts = { 'table', 'nil' },
+      --   async = { 'boolean', 'function', 'nil' },
+      --   timeout_ms = { 'number', 'function', 'nil' },
+      --   transform_items = { 'function', 'nil' },
+      --   should_show_items = { 'boolean', 'function', 'nil' },
+      --   max_items = { 'number', 'function', 'nil' },
+      --   min_keyword_length = { 'number', 'function', 'nil' },
+      --   fallbacks = { 'string', 'function', 'nil' },
+      --   score_offset = { 'number', 'function', 'nil' },
+      --   override = { 'table', 'nil' },
+      -- })
+    ),
   },
 }
-
-function sources.validate(config)
-  assert(config.cmdline == nil, '`sources.cmdline` has been replaced with `cmdline.sources`')
-  assert(config.term == nil, '`sources.term` has been replaced with `term.sources`')
-  assert(
-    config.providers.omni.module ~= 'blink.cmp.sources.omni',
-    '`blink.cmp.sources.omni` has been replaced with `blink.cmp.sources.complete_func`'
-  )
-
-  validate('sources', {
-    default = { config.default, { 'function', 'table' } },
-    per_filetype = { config.per_filetype, 'table' },
-
-    transform_items = { config.transform_items, 'function' },
-    min_keyword_length = { config.min_keyword_length, { 'number', 'function' } },
-
-    providers = { config.providers, 'table' },
-  }, config)
-  for id, provider in pairs(config.providers) do
-    sources.validate_provider(id, provider)
-  end
-end
-
-function sources.validate_provider(id, provider)
-  assert(
-    provider.fallback_for == nil,
-    '`fallback_for` has been replaced with `fallbacks` which work in the opposite direction. For example, fallback_for = { "lsp" } on "buffer" would now be "fallbacks" = { "buffer" } on "lsp"'
-  )
-
-  validate('sources.providers.' .. id, {
-    module = { provider.module, 'string' },
-    name = { provider.name, 'string', true },
-    enabled = { provider.enabled, { 'boolean', 'function' }, true },
-    opts = { provider.opts, 'table', true },
-    async = { provider.async, { 'boolean', 'function' }, true },
-    timeout_ms = { provider.timeout_ms, { 'number', 'function' }, true },
-    transform_items = { provider.transform_items, 'function', true },
-    should_show_items = { provider.should_show_items, { 'boolean', 'function' }, true },
-    max_items = { provider.max_items, { 'number', 'function' }, true },
-    min_keyword_length = { provider.min_keyword_length, { 'number', 'function' }, true },
-    fallbacks = { provider.fallback_for, { 'table', 'function' }, true },
-    score_offset = { provider.score_offset, { 'number', 'function' }, true },
-    deduplicate = { provider.deduplicate, 'table', true },
-    override = { provider.override, 'table', true },
-  }, provider)
-end
-
-return sources

@@ -28,85 +28,33 @@
 --- @field config blink.cmp.CompletionDocumentationConfig
 --- @field default_implementation fun(opts?: blink.cmp.RenderDetailAndDocumentationOptsPartial)
 
-local validate = require('blink.cmp.config.utils').validate
-local documentation = {
-  --- @type blink.cmp.CompletionDocumentationConfig
-  default = {
-    auto_show = false,
-    auto_show_delay_ms = 500,
-    update_delay_ms = 50,
-    treesitter_highlighting = true,
-    draw = function(opts) opts.default_implementation() end,
-    window = {
-      min_width = 10,
-      max_width = 80,
-      max_height = 20,
-      desired_min_width = 50,
-      desired_min_height = 10,
-      border = nil,
-      winblend = 0,
-      winhighlight = 'Normal:BlinkCmpDoc,FloatBorder:BlinkCmpDocBorder,EndOfBuffer:BlinkCmpDoc',
-      scrollbar = true,
-      direction_priority = {
-        menu_north = { 'e', 'w', 'n', 's' },
-        menu_south = { 'e', 'w', 's', 'n' },
-      },
+local config = require('blink.lib.config')
+return {
+  enabled = { true, 'boolean' },
+  auto_show = { true, 'boolean' },
+  auto_show_delay_ms = { 500, 'number' },
+  update_delay_ms = {
+    50,
+    config.types.validator(
+      'number >= 50 (lower causes lag)',
+      function(delay) return type(delay) == 'number' and delay >= 50 end
+    ),
+  },
+  treesitter_highlighting = { true, 'boolean' },
+  draw = { function(opts) opts.default_implementation() end, 'function' },
+  window = {
+    min_width = { 10, 'number' },
+    max_width = { 80, 'number' },
+    max_height = { 20, 'number' },
+    desired_min_width = { 50, 'number' },
+    desired_min_height = { 10, 'number' },
+    border = { nil, { 'table', 'nil' } },
+    winblend = { 0, 'number' },
+    winhighlight = { 'Normal:BlinkCmpDoc,FloatBorder:BlinkCmpDocBorder,EndOfBuffer:BlinkCmpDoc', 'string' },
+    scrollbar = { true, 'boolean' },
+    direction_priority = {
+      menu_north = { { 'e', 'w', 'n', 's' }, config.types.list(config.types.enum({ 'n', 's', 'e', 'w' })) },
+      menu_south = { { 'e', 'w', 's', 'n' }, config.types.list(config.types.enum({ 'n', 's', 'e', 'w' })) },
     },
   },
 }
-
-function documentation.validate(config)
-  assert(
-    config.update_delay_ms >= 50,
-    'completion.documentation.update_delay_ms must be >= 50. Setting it lower will cause noticeable lag'
-  )
-
-  validate('completion.documentation', {
-    auto_show = { config.auto_show, 'boolean' },
-    auto_show_delay_ms = { config.auto_show_delay_ms, 'number' },
-    update_delay_ms = { config.update_delay_ms, 'number' },
-    treesitter_highlighting = { config.treesitter_highlighting, 'boolean' },
-    draw = { config.draw, 'function' },
-    window = { config.window, 'table' },
-  }, config)
-
-  validate('completion.documentation.window', {
-    min_width = { config.window.min_width, 'number' },
-    max_width = { config.window.max_width, 'number' },
-    max_height = { config.window.max_height, 'number' },
-    desired_min_width = { config.window.desired_min_width, 'number' },
-    desired_min_height = { config.window.desired_min_height, 'number' },
-    border = { config.window.border, { 'string', 'table' }, true },
-    winblend = { config.window.winblend, 'number' },
-    winhighlight = { config.window.winhighlight, 'string' },
-    scrollbar = { config.window.scrollbar, 'boolean' },
-    direction_priority = { config.window.direction_priority, 'table' },
-  }, config.window)
-
-  validate('completion.documentation.window.direction_priority', {
-    menu_north = {
-      config.window.direction_priority.menu_north,
-      function(directions)
-        if type(directions) ~= 'table' or #directions == 0 then return false end
-        for _, direction in ipairs(directions) do
-          if not vim.tbl_contains({ 'n', 's', 'e', 'w' }, direction) then return false end
-        end
-        return true
-      end,
-      'one of: "n", "s", "e", "w"',
-    },
-    menu_south = {
-      config.window.direction_priority.menu_south,
-      function(directions)
-        if type(directions) ~= 'table' or #directions == 0 then return false end
-        for _, direction in ipairs(directions) do
-          if not vim.tbl_contains({ 'n', 's', 'e', 'w' }, direction) then return false end
-        end
-        return true
-      end,
-      'one of: "n", "s", "e", "w"',
-    },
-  }, config.window.direction_priority)
-end
-
-return documentation

@@ -22,19 +22,31 @@ function cmp.setup(opts)
     return
   end
 
+  local start_time = vim.loop.hrtime()
+
+  local cmdline_config = opts.cmdline
+  local term_config = opts.term
+  opts = require('blink.lib._').tbl.copy(opts)
+  opts.cmdline = nil
+  opts.term = nil
+
   local config = require('blink.cmp.config')
-  config.merge_with(opts)
+  config(opts)
 
-  require('blink.cmp.fuzzy.download').ensure_downloaded(function(err, fuzzy_implementation)
-    if err then error(err) end
-    require('blink.cmp.fuzzy').set_implementation(fuzzy_implementation)
+  if cmdline_config then config(cmdline_config, { mode = 'cmdline' }) end
+  if term_config then config(term_config, { mode = 'term' }) end
 
-    -- setup highlights, keymap, completion, and signature help
-    require('blink.cmp.highlights').setup()
-    require('blink.cmp.keymap').setup()
-    require('blink.cmp.completion').setup()
-    if config.signature.enabled then require('blink.cmp.signature').setup() end
-  end)
+  local end_time = vim.loop.hrtime()
+  vim.print('duration: ' .. (end_time - start_time) / 1000000 .. 'ms')
+  vim.print(config.signature.enabled)
+
+  require('blink.cmp.fuzzy').set_implementation(config.fuzzy.implementation)
+
+  -- setup highlights, keymap, completion, and signature help
+  require('blink.cmp.highlights').setup()
+  require('blink.cmp.keymap').setup()
+  require('blink.cmp.completion').setup()
+  if config.signature.enabled then require('blink.cmp.signature').setup() end
 end
 
 ------- Public API -------
