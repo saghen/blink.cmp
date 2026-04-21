@@ -33,7 +33,7 @@ return {
   -- falling back to the next direction when there's not enough space
   direction_priority = { { 's', 'n' }, config.types.list(config.types.enum({ 'n', 's' })) },
   -- Whether to automatically show the window when new completion items are available
-  auto_show = { true, 'boolean' },
+  auto_show = { true, { 'boolean', 'function' } },
   -- Delay before showing the completion menu
   auto_show_delay_ms = { 0, 'number' },
   -- Screen coordinates of the command line

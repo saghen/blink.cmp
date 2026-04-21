@@ -28,6 +28,9 @@ return {
     { 'score', 'sort_text' },
     config.types.list({ 'function', config.types.enum({ 'label', 'sort_text', 'kind', 'score', 'exact' }) }),
   },
-  frecency = { true, 'boolean' },
+  frecency = {
+    enabled = { true, 'boolean' },
+    path = { vim.fn.stdpath('state') .. '/blink/cmp/frecency.dat', 'string' },
+  },
   use_proximity = { true, 'boolean' },
 }

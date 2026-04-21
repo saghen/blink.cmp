@@ -21,7 +21,7 @@ end
 function fuzzy.init_db()
   if fuzzy.has_init_db then return end
 
-  fuzzy.implementation.init_db(config.fuzzy.frecency.path, config.fuzzy.frecency.unsafe_no_lock)
+  fuzzy.implementation.init_db(config.fuzzy.frecency.path)
 
   vim.api.nvim_create_autocmd('VimLeavePre', {
     callback = fuzzy.implementation.destroy_db,
