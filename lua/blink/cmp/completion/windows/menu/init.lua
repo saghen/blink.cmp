@@ -21,6 +21,7 @@
 --- @field update_position fun()
 --- @field redraw_if_needed fun()
 
+local lib = require('blink.lib')
 local config = require('blink.cmp.config').completion.menu
 local event_emitter = require('blink.cmp.lib.event_emitter')
 local auto_wrap = require('blink.cmp.completion.windows.menu.auto_wrap')
@@ -49,7 +50,7 @@ local menu = {
     enabled = type(config.auto_show) == 'function' and config.auto_show or function() return config.auto_show end,
     delay_ms = type(config.auto_show_delay_ms) == 'function' and config.auto_show_delay_ms
       or function() return config.auto_show_delay_ms end,
-    timer = vim.uv.new_timer(),
+    timer = lib.timer.new(),
     timer_key = '',
   },
 
@@ -156,6 +157,7 @@ function menu.queue_auto_show(context, items)
   -- no delay, show immediately
   -- only start a new timer if the cursor has moved or the id has changed.
   if delay_ms == 0 then
+    menu.auto_show.timer:stop()
     menu.open()
     menu.update_position()
     return
