@@ -68,7 +68,7 @@ function cmp.setup(opts)
   require('blink.cmp.highlights').setup()
   require('blink.cmp.keymap').setup()
   require('blink.cmp.completion').setup()
-  if config.signature.enabled then require('blink.cmp.signature').setup() end
+  require('blink.cmp.signature').setup()
 end
 
 ------- Public API -------

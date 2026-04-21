@@ -29,6 +29,7 @@ local nvim = require('blink.lib.nvim')
 --- @field hide fun()
 --- @field set_active_signature_help fun(signature_help: lsp.SignatureHelp)
 
+local root_config = require('blink.cmp.config')
 local config = require('blink.cmp.config').signature.trigger
 local utils = require('blink.cmp.lib.utils')
 local fuzzy = require('blink.cmp.fuzzy')
@@ -124,7 +125,9 @@ end
 function trigger.show(opts)
   opts = opts or {}
 
-  if not opts.force and not config.enabled and trigger.context == nil then return end
+  if not opts.force and (not config.enabled or not root_config.signature.enabled) and trigger.context == nil then
+    return
+  end
 
   -- update context
   local cursor = nvim.win_get_cursor(0)

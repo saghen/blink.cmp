@@ -86,17 +86,15 @@ function completion.setup()
   end
 
   -- setup ghost text
-  if config.completion.ghost_text.enabled then
-    local ghost_text = function() return require('blink.cmp.completion.windows.ghost_text') end
+  local ghost_text = function() return require('blink.cmp.completion.windows.ghost_text') end
 
-    local menu = require('blink.cmp.completion.windows.menu')
-    menu.open_emitter:on(function() ghost_text().show_preview(menu.context, menu.items, menu.selected_item_idx) end)
+  local menu = require('blink.cmp.completion.windows.menu')
+  menu.open_emitter:on(function() ghost_text().show_preview(menu.context, menu.items, menu.selected_item_idx) end)
 
-    list.show_emitter:on(function(event) ghost_text().show_preview(event.context, event.items, 1) end)
-    list.select_emitter:on(function(event) ghost_text().show_preview(event.context, event.items, event.idx) end)
+  list.show_emitter:on(function(event) ghost_text().show_preview(event.context, event.items, 1) end)
+  list.select_emitter:on(function(event) ghost_text().show_preview(event.context, event.items, event.idx) end)
 
-    list.hide_emitter:on(function() ghost_text().clear_preview() end)
-  end
+  list.hide_emitter:on(function() ghost_text().clear_preview() end)
 
   -- run 'resolve' on the item ahead of time to avoid delays
   -- when accepting the item or showing documentation
