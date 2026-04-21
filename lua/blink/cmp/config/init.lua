@@ -30,7 +30,7 @@ local config = require('blink.lib.config').new('blink_cmp', {
     enabled = { true, 'boolean' },
     keymap = { { preset = 'default' }, 'table' },
   },
-})
+}, { validate = false })
 
 -- cmdline override
 config({
@@ -41,7 +41,7 @@ config({
     menu = { auto_show = function(ctx, _) return ctx.mode == 'cmdwin' end },
     ghost_text = { enabled = true },
   },
-}, { mode = 'cmdline' })
+}, { mode = 'cmdline', validate = false })
 
 -- term override
 config({
@@ -56,6 +56,6 @@ config({
       },
     },
   },
-}, { mode = 'terminal' })
+}, { mode = 'terminal', validate = false })
 
 return config
