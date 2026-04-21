@@ -31,7 +31,7 @@ local function apply_callback(mode, key, commands, callback)
 
   return function()
     -- Early return if disabled
-    if not config.enabled() then
+    if not cmp.is_enabled() then
       consume_fallback_keys()
       return
     end

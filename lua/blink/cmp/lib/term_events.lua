@@ -48,7 +48,7 @@ function term_events:listen(opts)
 
   vim.api.nvim_create_autocmd('TextChangedT', {
     callback = function()
-      if not require('blink.cmp.config').enabled() then return end
+      if not require('blink.cmp').is_enabled() then return end
 
       local is_ignored = self.ignore_next_text_changed
       self.ignore_next_text_changed = false

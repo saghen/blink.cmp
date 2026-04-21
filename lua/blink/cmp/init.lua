@@ -1,5 +1,37 @@
+local success, err = pcall(require, 'blink.lib')
+if not success then error('blink.cmp v2 requires blink.lib ("saghen/blink.lib")') end
+if vim.fn.has('nvim-0.12') == 0 then error('blink.cmp v2 requires nvim 0.12 and newer') end
+
+local config = require('blink.cmp.config')
+
 --- @class blink.cmp.API
 local cmp = {}
+
+function cmp.is_enabled()
+  local mode = vim.api.nvim_get_mode().mode
+
+  if mode == 'c' or vim.fn.getcmdwintype() ~= '' then return config.cmdline.enabled end
+  if mode == 't' then return config.term.enabled end
+
+  -- Disable in macros
+  if vim.fn.reg_recording() ~= '' or vim.fn.reg_executing() ~= '' then return false end
+
+  local user_enabled = config.enabled
+  if type(user_enabled) == 'function' then user_enabled = user_enabled() end
+  -- User explicitly ignores default conditions
+  if user_enabled == 'force' then return true end
+
+  -- Buffer explicitly set completion to true, always enable
+  if user_enabled and vim.b.completion == true then return true end
+
+  -- Buffer explicitly set completion to false, always disable
+  if vim.b.completion == false then return false end
+
+  -- Exceptions
+  if user_enabled and (vim.bo.filetype == 'dap-repl' or vim.startswith(vim.bo.filetype, 'dapui_')) then return true end
+
+  return user_enabled and vim.bo.buftype ~= 'prompt' and vim.b.completion ~= false
+end
 
 local has_setup = false
 --- Initializes blink.cmp with the given configuration and initiates the download
@@ -9,28 +41,24 @@ function cmp.setup(opts)
   if has_setup then return end
   has_setup = true
 
-  local success, err = pcall(require, 'blink.lib')
-  if not success then
-    vim.notify('blink.cmp v2 requires blink.lib ("saghen/blink.lib")', vim.log.levels.ERROR, { title = 'blink.cmp' })
-    return
-  end
-
   opts = opts or {}
 
-  if vim.fn.has('nvim-0.12') == 0 then
-    vim.notify('blink.cmp v2 requires nvim 0.12 and newer', vim.log.levels.ERROR, { title = 'blink.cmp' })
-    return
-  end
-
-  local config = require('blink.cmp.config')
   opts = require('blink.lib').tbl.copy(opts)
   if opts.cmdline then
+    local enabled = opts.cmdline.enabled
+    local keymap = opts.cmdline.keymap
+    opts.cmdline.enabled = nil
+    opts.cmdline.keymap = nil
     config(opts.cmdline, { mode = 'cmdline' })
-    opts.cmdline = nil
+    opts.cmdline = { enabled = enabled, keymap = keymap }
   end
   if opts.term then
+    local enabled = opts.term.enabled
+    local keymap = opts.term.keymap
+    opts.term.enabled = nil
+    opts.term.keymap = nil
     config(opts.term, { mode = 'term' })
-    opts.term = nil
+    opts.term = { enabled = enabled, keymap = keymap }
   end
   config(opts)
 

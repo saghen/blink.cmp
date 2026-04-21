@@ -19,7 +19,7 @@ local keymap = {
 
 --- @return blink.cmp.KeymapContext?
 local function get_keymap_context()
-  if not config.enabled() then return end
+  if not require('blink.cmp').is_enabled() then return end
 
   local vim_mode = vim.api.nvim_get_mode().mode
   local blink_mode = keymap.mode_map[vim_mode]

@@ -12,35 +12,7 @@
 
 --- @type blink.cmp.ConfigStrict
 local config = require('blink.lib.config').new('blink_cmp', {
-  enabled = {
-    function()
-      local mode = vim.api.nvim_get_mode().mode
-
-      if mode == 'c' or vim.fn.getcmdwintype() ~= '' then return config.cmdline.enabled end
-      if mode == 't' then return config.term.enabled end
-
-      -- Disable in macros
-      if vim.fn.reg_recording() ~= '' or vim.fn.reg_executing() ~= '' then return false end
-
-      local user_enabled = config.enabled()
-      -- User explicitly ignores default conditions
-      if user_enabled == 'force' then return true end
-
-      -- Buffer explicitly set completion to true, always enable
-      if user_enabled and vim.b.completion == true then return true end
-
-      -- Buffer explicitly set completion to false, always disable
-      if vim.b.completion == false then return false end
-
-      -- Exceptions
-      if user_enabled and (vim.bo.filetype == 'dap-repl' or vim.startswith(vim.bo.filetype, 'dapui_')) then
-        return true
-      end
-
-      return user_enabled and vim.bo.buftype ~= 'prompt' and vim.b.completion ~= false
-    end,
-    'function',
-  },
+  enabled = { true, { 'boolean', 'function' } },
   keymap = require('blink.cmp.config.keymap'),
   completion = require('blink.cmp.config.completion'),
   fuzzy = require('blink.cmp.config.fuzzy'),

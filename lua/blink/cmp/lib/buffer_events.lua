@@ -48,7 +48,7 @@ end
 
 local function make_char_added(self, snippet, on_char_added)
   return function()
-    if not require('blink.cmp.config').enabled() then return end
+    if not require('blink.cmp').is_enabled() then return end
     if snippet.active() and not self.show_in_snippet and not self.has_context() then return end
 
     local is_ignored = self.ignore_next_text_changed
@@ -117,7 +117,7 @@ local function make_cursor_moved(self, snippet, on_cursor_moved)
     -- characters added so let textchanged handle it
     if self.last_char ~= '' then return end
 
-    if not require('blink.cmp.config').enabled() then return end
+    if not require('blink.cmp').is_enabled() then return end
     if not self.show_in_snippet and not self.has_context() and snippet.active() then return end
 
     on_cursor_moved(is_cursor_moved and 'CursorMoved' or ev.event, is_ignored, is_backspace, tmp_last_event)

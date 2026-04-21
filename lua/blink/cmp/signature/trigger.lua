@@ -51,7 +51,7 @@ function trigger.activate()
       local char_under_cursor = utils.get_char_at_cursor()
 
       -- ignore if disabled
-      if not require('blink.cmp.config').enabled() then
+      if not require('blink.cmp').is_enabled() then
         return trigger.hide()
       elseif not config.enabled and trigger.context == nil then
         return
