@@ -1,4 +1,5 @@
 local lib = require('blink.lib')
+local nvim = require('blink.lib.nvim')
 local config = require('blink.cmp.config')
 local utils = require('blink.cmp.lib.utils')
 local context = require('blink.cmp.completion.trigger.context')
@@ -24,7 +25,7 @@ function text_edits.apply(text_edit, additional_text_edits)
     local all_edits = lib.list.copy(additional_text_edits)
     table.insert(all_edits, text_edit)
 
-    local cur_bufnr = vim.api.nvim_get_current_buf()
+    local cur_bufnr = nvim.get_current_buf()
     local buf = vim.bo[cur_bufnr]
     local prev_buflisted = buf.buflisted
     vim.lsp.util.apply_text_edits(all_edits, cur_bufnr, 'utf-8')
@@ -55,7 +56,7 @@ function text_edits.apply(text_edit, additional_text_edits)
     assert(#additional_text_edits == 0, 'Terminal mode only supports one text edit. Contributions welcome!')
 
     if vim.bo.channel and vim.bo.channel ~= 0 then
-      local cur_col = vim.api.nvim_win_get_cursor(0)[2]
+      local cur_col = nvim.win_get_cursor(0)[2]
       local n_replaced = cur_col - text_edit.range.start.character
       local backspace_keycode = '\8'
 
@@ -120,13 +121,13 @@ end
 --- @param offset_encoding? 'utf-8'|'utf-16'|'utf-32'
 --- @return number
 local function get_line_byte_from_position(position, offset_encoding)
-  local bufnr = vim.api.nvim_get_current_buf()
+  local bufnr = nvim.get_current_buf()
   local col = position.character
 
   -- When on the first character, we can ignore the difference between byte and character
   if col == 0 then return 0 end
 
-  local line = vim.api.nvim_buf_get_lines(bufnr, position.line, position.line + 1, false)[1] or ''
+  local line = nvim.buf_get_lines(bufnr, position.line, position.line + 1, false)[1] or ''
   col = vim.str_byteindex(line, offset_encoding or 'utf-16', col, false) or 0
   return math.min(col, #line)
 end
@@ -228,7 +229,7 @@ end
 function text_edits.clamp_range_to_bounds(range)
   range = vim.deepcopy(range)
 
-  local line_count = vim.api.nvim_buf_line_count(0)
+  local line_count = nvim.buf_line_count(0)
 
   range.start.line = math.min(math.max(range.start.line, 0), line_count - 1)
   local start_line = context.get_line(range.start.line)
@@ -320,7 +321,7 @@ end
 local dot_repeat_hack_name = '<Plug>BlinkCmpDotRepeatHack'
 local opts = {
   callback = function()
-    if vim.api.nvim_get_mode().mode:match('i') then return '<C-x><C-z>' end
+    if nvim.get_mode().mode:match('i') then return '<C-x><C-z>' end
     return ''
   end,
   silent = true,
@@ -328,17 +329,17 @@ local opts = {
   expr = true,
   noremap = true,
 }
-vim.api.nvim_set_keymap('i', dot_repeat_hack_name, '', opts)
-vim.api.nvim_set_keymap('n', dot_repeat_hack_name, '', opts)
-vim.api.nvim_set_keymap('s', dot_repeat_hack_name, '', opts)
-vim.api.nvim_set_keymap('v', dot_repeat_hack_name, '', opts)
-vim.api.nvim_set_keymap('c', dot_repeat_hack_name, '', opts)
-vim.api.nvim_set_keymap('t', dot_repeat_hack_name, '', opts)
+nvim.set_keymap('i', dot_repeat_hack_name, '', opts)
+nvim.set_keymap('n', dot_repeat_hack_name, '', opts)
+nvim.set_keymap('s', dot_repeat_hack_name, '', opts)
+nvim.set_keymap('v', dot_repeat_hack_name, '', opts)
+nvim.set_keymap('c', dot_repeat_hack_name, '', opts)
+nvim.set_keymap('t', dot_repeat_hack_name, '', opts)
 
 local dot_repeat_buffer = nil
 local function get_dot_repeat_buffer()
-  if dot_repeat_buffer == nil or not vim.api.nvim_buf_is_valid(dot_repeat_buffer) then
-    dot_repeat_buffer = vim.api.nvim_create_buf(false, true)
+  if dot_repeat_buffer == nil or not nvim.buf_is_valid(dot_repeat_buffer) then
+    dot_repeat_buffer = nvim.create_buf(false, true)
     vim.bo[dot_repeat_buffer].filetype = 'blink-cmp-dot-repeat'
     vim.bo[dot_repeat_buffer].buftype = 'nofile'
   end
@@ -354,7 +355,7 @@ end
 --- @param text_edit lsp.TextEdit
 function text_edits.write_to_dot_repeat(text_edit)
   local chars_to_delete = #table.concat(
-    vim.api.nvim_buf_get_text(
+    nvim.buf_get_text(
       0,
       text_edit.range.start.line,
       text_edit.range.start.character,
@@ -368,21 +369,21 @@ function text_edits.write_to_dot_repeat(text_edit)
 
   utils.defer_neovide_redraw(function()
     utils.with_no_autocmds(function()
-      local curr_win = vim.api.nvim_get_current_win()
+      local curr_win = nvim.get_current_win()
 
       -- create temporary floating window and buffer for writing
       local buf = get_dot_repeat_buffer()
-      local win = vim.api.nvim_open_win(buf, true, {
+      local win = nvim.open_win(buf, true, {
         relative = 'win',
-        win = vim.api.nvim_get_current_win(),
+        win = nvim.get_current_win(),
         width = 1,
         height = 1,
         row = 0,
         col = 0,
         noautocmd = true,
       })
-      vim.api.nvim_buf_set_text(buf, 0, 0, 0, 0, { '_' .. string.rep('a', chars_to_delete) })
-      vim.api.nvim_win_set_cursor(0, { 1, chars_to_delete + 1 })
+      nvim.buf_set_text(buf, 0, 0, 0, 0, { '_' .. string.rep('a', chars_to_delete) })
+      nvim.win_set_cursor(0, { 1, chars_to_delete + 1 })
 
       -- emulate builtin completion (dot repeat)
       local saved_completeopt = vim.opt.completeopt
@@ -394,11 +395,11 @@ function text_edits.write_to_dot_repeat(text_edit)
       vim.o.shortmess = saved_shortmess
 
       -- close window and focus original window
-      vim.api.nvim_win_close(win, true)
-      vim.api.nvim_set_current_win(curr_win)
+      nvim.win_close(win, true)
+      nvim.set_current_win(curr_win)
 
       -- exit completion mode
-      vim.api.nvim_feedkeys(vim.keycode('<Plug>BlinkCmpDotRepeatHack'), 'in', false)
+      nvim.feedkeys(vim.keycode('<Plug>BlinkCmpDotRepeatHack'), 'in', false)
     end)
   end)
 end
@@ -409,7 +410,7 @@ function text_edits.move_cursor_in_dot_repeat(amount)
   if amount == 0 then return end
 
   local keys = string.rep('<C-g>U' .. (amount > 0 and '<Right>' or '<Left>'), math.abs(amount))
-  vim.api.nvim_feedkeys(vim.keycode(keys), 'in', false)
+  nvim.feedkeys(vim.keycode(keys), 'in', false)
 end
 
 return text_edits

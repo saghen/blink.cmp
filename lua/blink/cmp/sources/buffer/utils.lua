@@ -1,6 +1,7 @@
-local utils = {}
-
+local nvim = require('blink.lib.nvim')
 local priority = require('blink.cmp.sources.buffer.priority')
+
+local utils = {}
 
 --- @param lower integer
 function utils.validate_buffer_size(lower)
@@ -14,10 +15,10 @@ end
 --- @param bufnr integer
 --- @return integer
 function utils.get_buffer_size(bufnr)
-  local last = vim.api.nvim_buf_line_count(bufnr) - 1 -- 0-indexed
-  local size = vim.api.nvim_buf_get_offset(bufnr, last)
+  local last = nvim.buf_line_count(bufnr) - 1 -- 0-indexed
+  local size = nvim.buf_get_offset(bufnr, last)
   -- Add size of the last line
-  size = size + #(vim.api.nvim_buf_get_lines(bufnr, last, last + 1, false)[1] or '')
+  size = size + #(nvim.buf_get_lines(bufnr, last, last + 1, false)[1] or '')
   return size
 end
 

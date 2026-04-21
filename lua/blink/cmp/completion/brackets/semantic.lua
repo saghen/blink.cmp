@@ -1,3 +1,4 @@
+local nvim = require('blink.lib.nvim')
 local task = require('blink.lib.task')
 local config = require('blink.cmp.config').completion.accept.auto_brackets
 local utils = require('blink.cmp.completion.brackets.utils')
@@ -15,7 +16,7 @@ local semantic = {
   request = nil,
 }
 
-vim.api.nvim_create_autocmd('LspTokenUpdate', {
+nvim.create_autocmd('LspTokenUpdate', {
   callback = vim.schedule_wrap(function(args) semantic.process_request({ args.data.token }) end),
 })
 
@@ -31,7 +32,7 @@ function semantic.process_request(tokens)
   local request = semantic.request
   if request == nil then return end
 
-  local cursor = vim.api.nvim_win_get_cursor(0)
+  local cursor = nvim.win_get_cursor(0)
   -- cancel if the cursor moved
   if request.cursor[1] ~= cursor[1] or request.cursor[2] ~= cursor[2] then return semantic.finish_request() end
 
@@ -56,8 +57,8 @@ function semantic.process_request(tokens)
             ['end'] = { line = cursor[1] - 1, character = start_col },
           },
         },
-      }, vim.api.nvim_get_current_buf(), 'utf-8')
-      vim.api.nvim_win_set_cursor(0, { cursor[1], start_col + #brackets_for_filetype[1] })
+      }, nvim.get_current_buf(), 'utf-8')
+      nvim.win_set_cursor(0, { cursor[1], start_col + #brackets_for_filetype[1] })
       return semantic.finish_request()
     end
   end
@@ -85,9 +86,9 @@ function semantic.add_brackets_via_semantic_token(ctx, filetype, item)
     if highlighter == nil then return resolve(false) end
 
     semantic.timer:stop()
-    local cursor = vim.api.nvim_win_get_cursor(0)
+    local cursor = nvim.win_get_cursor(0)
     semantic.request = {
-      cursor = vim.api.nvim_win_get_cursor(0),
+      cursor = nvim.win_get_cursor(0),
       filetype = filetype,
       item = item,
       callback = resolve,

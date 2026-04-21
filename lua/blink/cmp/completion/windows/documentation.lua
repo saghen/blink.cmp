@@ -11,6 +11,7 @@
 --- @field scroll_down fun(amount: number): boolean
 --- @field close fun()
 
+local nvim = require('blink.lib.nvim')
 local config = require('blink.cmp.config').completion.documentation
 local win_config = config.window
 
@@ -91,14 +92,14 @@ function docs.show_item(context, item)
         -- allow the provider to override the drawing optionally
         -- TODO: should the default_implementation be the configured draw function instead of the built-in?
         local draw = type(item.documentation) == 'table' and item.documentation.draw or config.draw
-        vim.api.nvim_set_option_value('modifiable', true, { buf = docs_buf })
+        nvim.set_option_value('modifiable', true, { buf = docs_buf })
         draw({
           item = item,
           window = docs.win,
           config = config,
           default_implementation = default_impl,
         })
-        vim.api.nvim_set_option_value('modifiable', false, { buf = docs_buf })
+        nvim.set_option_value('modifiable', false, { buf = docs_buf })
       end
       docs.shown_item = item
 
@@ -132,7 +133,7 @@ function docs.scroll_down(amount)
   local winnr = docs.win:get_win()
   if winnr == nil then return false end
 
-  local line_count = vim.api.nvim_buf_line_count(docs.win:get_buf())
+  local line_count = nvim.buf_line_count(docs.win:get_buf())
   local bottom_line = math.max(1, vim.fn.line('w$', winnr))
   local desired_line = math.min(line_count, bottom_line + amount)
 
@@ -148,7 +149,7 @@ function docs.update_position()
   local menu_winnr = menu.win:get_win()
   if not menu_winnr then return end
 
-  local menu_win_config = vim.api.nvim_win_get_config(menu_winnr)
+  local menu_win_config = nvim.win_get_config(menu_winnr)
   local menu_win_height = menu.win:get_height()
   local menu_border_size = menu.win:get_border_size()
   local cursor_win_row = vim.fn.winline()

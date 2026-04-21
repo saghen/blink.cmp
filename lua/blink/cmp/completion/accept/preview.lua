@@ -1,3 +1,5 @@
+local nvim = require('blink.lib.nvim')
+
 --- @param item blink.cmp.CompletionItem
 --- @return { text_edit: lsp.TextEdit, cursor?: integer[] } undo_text_edit, integer[]? undo_cursor_pos The text edit to apply and the original cursor
 local function preview(item)
@@ -14,7 +16,7 @@ local function preview(item)
   -- only keep the first line.
   text_edit.newText = vim.split(text_edit.newText, '\n', { plain = true, trimempty = true })[1] or '' -- vim.split returns an empty list if the string was empty, making [1] nil
 
-  local original_cursor = vim.api.nvim_win_get_cursor(0)
+  local original_cursor = nvim.win_get_cursor(0)
   local cursor_pos = {
     text_edit.range.start.line + 1,
     text_edit.range.start.character + #text_edit.newText,
@@ -26,8 +28,8 @@ local function preview(item)
   local cursor_moved = false
 
   -- TODO: remove when text_edits_lib.apply begins setting cursor position
-  if vim.api.nvim_get_mode().mode ~= 'c' then
-    vim.api.nvim_win_set_cursor(0, cursor_pos)
+  if nvim.get_mode().mode ~= 'c' then
+    nvim.win_set_cursor(0, cursor_pos)
     cursor_moved = true
   end
 

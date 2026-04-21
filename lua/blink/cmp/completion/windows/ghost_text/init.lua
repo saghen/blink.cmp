@@ -1,3 +1,4 @@
+local nvim = require('blink.lib.nvim')
 local config = require('blink.cmp.config').completion.ghost_text
 local highlight_ns = require('blink.cmp.config').appearance.highlight_ns
 
@@ -15,10 +16,10 @@ local ghost_text = {
   --- @type integer?
   extmark_buf = nil,
   --- @type integer
-  ns = vim.api.nvim_create_namespace('blink_cmp_ghost_text'),
+  ns = nvim.create_namespace('blink_cmp_ghost_text'),
 }
 
-vim.api.nvim_create_autocmd({ 'CursorMovedI' }, {
+nvim.create_autocmd({ 'CursorMovedI' }, {
   callback = function() ghost_text.draw_preview() end,
 })
 
@@ -46,7 +47,7 @@ function ghost_text.show_preview(context, items, selection_idx)
 
   -- cmdline without noice not supported
   local ghost_text_buf = utils.get_buf()
-  if ghost_text_buf == nil or not vim.api.nvim_buf_is_valid(ghost_text_buf) then return end
+  if ghost_text_buf == nil or not nvim.buf_is_valid(ghost_text_buf) then return end
 
   -- nothing to show, clear the preview
   local selected_item = items[selection_idx or 1]
@@ -78,7 +79,7 @@ function ghost_text.draw_preview()
   -- check if the state is valid
   if not ghost_text.selected_item or not ghost_text.context then return end
   local buf = utils.get_buf()
-  if buf == nil or not vim.api.nvim_buf_is_valid(buf) then return end
+  if buf == nil or not nvim.buf_is_valid(buf) then return end
 
   -- get the text to draw
   local text_edit = text_edits_lib.get_from_item(ghost_text.selected_item)
@@ -107,7 +108,7 @@ function ghost_text.draw_preview()
   end
 
   ghost_text.extmark_id =
-    vim.api.nvim_buf_set_extmark(buf, highlight_ns, range.start.line, typed_end_col + utils.get_offset(), {
+    nvim.buf_set_extmark(buf, highlight_ns, range.start.line, typed_end_col + utils.get_offset(), {
       id = ghost_text.extmark_id,
       virt_text_pos = 'inline',
       virt_text = { { display_lines[1], 'BlinkCmpGhostText' } },
@@ -124,8 +125,8 @@ function ghost_text.clear_preview()
   ghost_text.context = nil
 
   if ghost_text.extmark_id ~= nil then
-    if ghost_text.extmark_buf ~= nil and vim.api.nvim_buf_is_valid(ghost_text.extmark_buf) then
-      vim.api.nvim_buf_del_extmark(ghost_text.extmark_buf, highlight_ns, ghost_text.extmark_id)
+    if ghost_text.extmark_buf ~= nil and nvim.buf_is_valid(ghost_text.extmark_buf) then
+      nvim.buf_del_extmark(ghost_text.extmark_buf, highlight_ns, ghost_text.extmark_id)
     end
 
     ghost_text.extmark_id = nil

@@ -1,5 +1,7 @@
 -- TODO: move the get_line, get_cursor, etc.. to a separate lib
 
+local nvim = require('blink.lib.nvim')
+
 --- @class blink.cmp.ContextBounds
 --- @field line string
 --- @field line_number number
@@ -64,7 +66,7 @@ function context.new(opts)
   return setmetatable({
     mode = context.get_mode(),
     id = opts.id,
-    bufnr = vim.api.nvim_get_current_buf(),
+    bufnr = nvim.get_current_buf(),
     cursor = cursor,
     line = line,
     term = { command = context.get_term_command() },
@@ -104,7 +106,7 @@ function context:within_query_bounds(cursor, include_start_bound)
 end
 
 function context.get_mode()
-  local mode = vim.api.nvim_get_mode().mode
+  local mode = nvim.get_mode().mode
   return (mode == 'c' and 'cmdline')
     or (mode == 't' and 'term')
     -- 'cmdwin' is not a real mode returned by nvim_get_mode().
@@ -118,12 +120,12 @@ function context.get_mode()
 end
 
 function context.get_cursor()
-  return context.get_mode() == 'cmdline' and { 1, vim.fn.getcmdpos() - 1 } or vim.api.nvim_win_get_cursor(0)
+  return context.get_mode() == 'cmdline' and { 1, vim.fn.getcmdpos() - 1 } or nvim.win_get_cursor(0)
 end
 
 function context.set_cursor(cursor)
   local mode = context.get_mode()
-  if vim.tbl_contains({ 'default', 'term', 'cmdwin' }, mode) then return vim.api.nvim_win_set_cursor(0, cursor) end
+  if vim.tbl_contains({ 'default', 'term', 'cmdwin' }, mode) then return nvim.win_set_cursor(0, cursor) end
 
   assert(mode == 'cmdline', 'Unsupported mode for setting cursor: ' .. mode)
   assert(cursor[1] == 1, 'Cursor must be on the first line in cmdline mode')
@@ -141,7 +143,7 @@ function context.get_line(num)
 
   -- This method works for normal buffers and the terminal prompt
   if num == nil then num = context.get_cursor()[1] - 1 end
-  return vim.api.nvim_buf_get_lines(0, num, num + 1, false)[1]
+  return nvim.buf_get_lines(0, num, num + 1, false)[1]
 end
 
 --- Gets characters around the cursor and returns the range, 0-indexed
@@ -170,9 +172,9 @@ function context.get_term_command()
   local cursor_col = cursor[2] + 1
   local line = string.sub(context.get_line(), 1, cursor_col - 1)
 
-  local extmarks = vim.api.nvim_buf_get_extmarks(
+  local extmarks = nvim.buf_get_extmarks(
     0,
-    vim.api.nvim_create_namespace('blink_cmp_term_command_start'),
+    nvim.create_namespace('blink_cmp_term_command_start'),
     { cursor_row - 1, cursor_col - 1 },
     { cursor_row - 1, 0 },
     { limit = 1 }

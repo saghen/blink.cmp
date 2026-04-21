@@ -1,3 +1,4 @@
+local nvim = require('blink.lib.nvim')
 local config = require('blink.cmp.config')
 local apply = require('blink.cmp.keymap.apply')
 local presets = require('blink.cmp.keymap.presets')
@@ -21,12 +22,12 @@ local keymap = {
 local function get_keymap_context()
   if not require('blink.cmp').is_enabled() then return end
 
-  local vim_mode = vim.api.nvim_get_mode().mode
+  local vim_mode = nvim.get_mode().mode
   local blink_mode = keymap.mode_map[vim_mode]
   if not blink_mode then return end
 
   local has_noice = package.loaded.noice and vim.g.ui_cmdline_pos
-  local bufnr = (blink_mode == 'cmdline' and not has_noice) and 0 or vim.api.nvim_get_current_buf()
+  local bufnr = (blink_mode == 'cmdline' and not has_noice) and 0 or nvim.get_current_buf()
   local bufkey = keymap.bufkey_prefix .. blink_mode
 
   return { vim_mode = vim_mode, blink_mode = blink_mode, bufnr = bufnr, bufkey = bufkey }
@@ -41,7 +42,7 @@ local function repair_mappings(ctx, expected_mappings)
   if expected_hash == current_hash then return end
 
   local existing_mappings = {}
-  for _, map in ipairs(vim.api.nvim_buf_get_keymap(ctx.bufnr, ctx.vim_mode)) do
+  for _, map in ipairs(nvim.buf_get_keymap(ctx.bufnr, ctx.vim_mode)) do
     if utils.is_blink_keymap(map) then existing_mappings[utils.normalize_lhs(map.lhs)] = true end
   end
 
@@ -117,8 +118,8 @@ function keymap.setup()
   }
 
   -- Ensure blink.cmp keymaps are (still) applied
-  vim.api.nvim_create_autocmd('ModeChanged', {
-    group = vim.api.nvim_create_augroup('BlinkCmpKeymap', { clear = true }),
+  nvim.create_autocmd('ModeChanged', {
+    group = nvim.create_augroup('BlinkCmpKeymap', { clear = true }),
     pattern = { 'n:i', 'n:c', 'n:t', 'no:i', 'v:s', 'nt:c' },
     callback = vim.schedule_wrap(keymap.ensure_mappings),
   })

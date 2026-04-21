@@ -1,6 +1,8 @@
+local nvim = require('blink.lib.nvim')
+
 local utils = {}
 
-function utils.is_cmdline() return vim.api.nvim_get_mode().mode == 'c' end
+function utils.is_cmdline() return nvim.get_mode().mode == 'c' end
 
 function utils.is_noice()
   return utils.is_cmdline()
@@ -13,7 +15,7 @@ end
 function utils.redraw_if_needed()
   if utils.is_cmdline() then
     local bufnr = utils.get_buf() or 0
-    if vim.api.nvim_buf_is_valid(bufnr) then vim.api.nvim__redraw({ buf = bufnr, flush = true }) end
+    if nvim.buf_is_valid(bufnr) then nvim._redraw({ buf = bufnr, flush = true }) end
   end
 end
 
@@ -24,7 +26,7 @@ function utils.get_buf()
     if not utils.is_noice() then return end
     return require('noice.ui.cmdline').position.buf
   end
-  return vim.api.nvim_get_current_buf()
+  return nvim.get_current_buf()
 end
 
 --- Gets the offset from the cursor, primarily used for noice cmdline

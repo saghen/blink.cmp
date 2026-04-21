@@ -1,13 +1,15 @@
+local nvim = require('blink.lib.nvim')
+
 local priority = {}
 
 function priority.focused()
-  return function(bufnr) return bufnr == vim.api.nvim_win_get_buf(0) and 0 or 1 end
+  return function(bufnr) return bufnr == nvim.win_get_buf(0) and 0 or 1 end
 end
 
 function priority.visible()
   local visible = {}
-  for _, win in ipairs(vim.api.nvim_list_wins()) do
-    visible[vim.api.nvim_win_get_buf(win)] = true
+  for _, win in ipairs(nvim.list_wins()) do
+    visible[nvim.win_get_buf(win)] = true
   end
   return function(bufnr) return visible[bufnr] and 0 or 1 end
 end

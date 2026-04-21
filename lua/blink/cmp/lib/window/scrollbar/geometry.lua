@@ -1,5 +1,7 @@
 --- Helper for calculating placement of the scrollbar thumb and gutter
 
+local nvim = require('blink.lib.nvim')
+
 --- @class blink.cmp.ScrollbarGeometry
 --- @field width number
 --- @field height number
@@ -14,13 +16,13 @@ local M = {}
 --- @param target_win number
 --- @return number
 local function get_win_buf_height(target_win)
-  local buf = vim.api.nvim_win_get_buf(target_win)
+  local buf = nvim.win_get_buf(target_win)
 
   -- not wrapping, so just get the line count
-  if not vim.wo[target_win].wrap then return vim.api.nvim_buf_line_count(buf) end
+  if not vim.wo[target_win].wrap then return nvim.buf_line_count(buf) end
 
-  local width = vim.api.nvim_win_get_width(target_win)
-  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  local width = nvim.win_get_width(target_win)
+  local lines = nvim.buf_get_lines(buf, 0, -1, false)
   local height = 0
   for _, l in ipairs(lines) do
     if vim.fn.type(l) == vim.v.t_blob then l = vim.fn.string(l) end
@@ -47,9 +49,9 @@ local get_content_start_line = function(target_win, width)
   local start_line = math.max(1, vim.fn.line('w0', target_win))
   if not vim.wo[target_win].wrap then return start_line end
 
-  local bufnr = vim.api.nvim_win_get_buf(target_win)
+  local bufnr = nvim.win_get_buf(target_win)
   local wrapped_start_line = 1
-  for _, text in ipairs(vim.api.nvim_buf_get_lines(bufnr, 0, start_line - 1, false)) do
+  for _, text in ipairs(nvim.buf_get_lines(bufnr, 0, start_line - 1, false)) do
     -- nvim_buf_get_lines sometimes returns a blob. see hrsh7th/nvim-cmp#2050
     if vim.fn.type(text) == vim.v.t_blob then text = vim.fn.string(text) end
     wrapped_start_line = wrapped_start_line + math.max(1, math.ceil(vim.fn.strdisplaywidth(text) / width))
@@ -60,7 +62,7 @@ end
 --- @param target_win number
 --- @return { should_hide: boolean, thumb: blink.cmp.ScrollbarGeometry, gutter: blink.cmp.ScrollbarGeometry }
 function M.get_geometry(target_win)
-  local config = vim.api.nvim_win_get_config(target_win)
+  local config = nvim.win_get_config(target_win)
   local width = config.width
   local height = config.height
   local zindex = config.zindex

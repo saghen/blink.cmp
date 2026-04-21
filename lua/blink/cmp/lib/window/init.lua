@@ -1,6 +1,7 @@
 -- TODO: The scrollbar and redrawing logic should be done by wrapping the functions that would
 -- trigger a redraw or update the window
 
+local nvim = require('blink.lib.nvim')
 local utils = require('blink.cmp.lib.window.utils')
 
 --- @class blink.cmp.WindowOptions
@@ -96,26 +97,26 @@ end
 
 function win:get_buf()
   -- create buffer if it doesn't exist
-  if self.buf == nil or not vim.api.nvim_buf_is_valid(self.buf) then
-    self.buf = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_set_option_value('tabstop', 1, { buf = self.buf }) -- prevents tab widths from being unpredictable
+  if self.buf == nil or not nvim.buf_is_valid(self.buf) then
+    self.buf = nvim.create_buf(false, true)
+    nvim.set_option_value('tabstop', 1, { buf = self.buf }) -- prevents tab widths from being unpredictable
   end
   return self.buf
 end
 
 function win:get_win()
-  if self.id ~= nil and not vim.api.nvim_win_is_valid(self.id) then self.id = nil end
+  if self.id ~= nil and not nvim.win_is_valid(self.id) then self.id = nil end
   return self.id
 end
 
-function win:is_open() return self.id ~= nil and vim.api.nvim_win_is_valid(self.id) end
+function win:is_open() return self.id ~= nil and nvim.win_is_valid(self.id) end
 
 function win:open()
   -- window already exists
-  if self.id ~= nil and vim.api.nvim_win_is_valid(self.id) then return end
+  if self.id ~= nil and nvim.win_is_valid(self.id) then return end
 
   -- create window
-  self.id = vim.api.nvim_open_win(self:get_buf(), false, {
+  self.id = nvim.open_win(self:get_buf(), false, {
     relative = 'cursor',
     style = 'minimal',
     width = self.config.min_width or 1,
@@ -125,18 +126,18 @@ function win:open()
     zindex = 1001,
     border = self.config.border == 'padded' and { ' ', '', '', ' ', '', '', ' ', ' ' } or self.config.border,
   })
-  vim.api.nvim_set_option_value('winblend', self.config.winblend, { win = self.id })
-  vim.api.nvim_set_option_value('winhighlight', self.config.winhighlight, { win = self.id })
-  vim.api.nvim_set_option_value('wrap', self.config.wrap, { win = self.id })
-  vim.api.nvim_set_option_value('linebreak', self.config.linebreak, { win = self.id })
-  vim.api.nvim_set_option_value('foldenable', false, { win = self.id })
-  vim.api.nvim_set_option_value('conceallevel', 2, { win = self.id })
-  vim.api.nvim_set_option_value('concealcursor', 'n', { win = self.id })
-  vim.api.nvim_set_option_value('cursorlineopt', 'line', { win = self.id })
-  vim.api.nvim_set_option_value('cursorline', false, { win = self.id })
-  vim.api.nvim_set_option_value('scrolloff', self.config.scrolloff, { win = self.id })
-  vim.api.nvim_set_option_value('filetype', self.config.filetype, { buf = self.buf })
-  vim.api.nvim_set_option_value('modifiable', false, { buf = self.buf })
+  nvim.set_option_value('winblend', self.config.winblend, { win = self.id })
+  nvim.set_option_value('winhighlight', self.config.winhighlight, { win = self.id })
+  nvim.set_option_value('wrap', self.config.wrap, { win = self.id })
+  nvim.set_option_value('linebreak', self.config.linebreak, { win = self.id })
+  nvim.set_option_value('foldenable', false, { win = self.id })
+  nvim.set_option_value('conceallevel', 2, { win = self.id })
+  nvim.set_option_value('concealcursor', 'n', { win = self.id })
+  nvim.set_option_value('cursorlineopt', 'line', { win = self.id })
+  nvim.set_option_value('cursorline', false, { win = self.id })
+  nvim.set_option_value('scrolloff', self.config.scrolloff, { win = self.id })
+  nvim.set_option_value('filetype', self.config.filetype, { buf = self.buf })
+  nvim.set_option_value('modifiable', false, { buf = self.buf })
 
   self.cursor_line:update(self.id)
   if self.scrollbar then self.scrollbar:update(self.id) end
@@ -144,13 +145,13 @@ function win:open()
 end
 
 function win:set_option_value(option, value)
-  if self.id == nil or not vim.api.nvim_win_is_valid(self.id) then return end
-  vim.api.nvim_set_option_value(option, value, { win = self.id })
+  if self.id == nil or not nvim.win_is_valid(self.id) then return end
+  nvim.set_option_value(option, value, { win = self.id })
 end
 
 function win:close()
   if self.id ~= nil then
-    vim.api.nvim_win_close(self.id, true)
+    nvim.win_close(self.id, true)
     self.id = nil
   end
   if self.scrollbar then self.scrollbar:update() end
@@ -169,18 +170,18 @@ function win:update_size()
   local width = self:get_content_width()
   if config.max_width then width = math.min(width, config.max_width) end
   if config.min_width then width = math.max(width, config.min_width) end
-  vim.api.nvim_win_set_width(winnr, width)
+  nvim.win_set_width(winnr, width)
 
   -- set height to current line count, bounded by max
   local height = math.min(self:get_content_height(), config.max_height)
-  vim.api.nvim_win_set_height(winnr, height)
+  nvim.win_set_height(winnr, height)
 end
 
 -- todo: fix nvim_win_text_height
 -- @return number
 function win:get_content_height()
   if not self:is_open() then return 0 end
-  return vim.api.nvim_win_text_height(self:get_win(), {}).all
+  return nvim.win_text_height(self:get_win(), {}).all
 end
 
 --- Gets the size of the borders around the window
@@ -240,15 +241,15 @@ end
 --- Gets the height of the window, taking into account the border
 function win:get_height()
   if not self:is_open() then return 0 end
-  return vim.api.nvim_win_get_height(self:get_win()) + self:get_border_size().vertical
+  return nvim.win_get_height(self:get_win()) + self:get_border_size().vertical
 end
 
 --- Gets the width of the longest line in the window
 function win:get_content_width()
   if not self:is_open() then return 0 end
   local max_width = 0
-  for _, line in ipairs(vim.api.nvim_buf_get_lines(self.buf, 0, -1, false)) do
-    max_width = math.max(max_width, vim.api.nvim_strwidth(line))
+  for _, line in ipairs(nvim.buf_get_lines(self.buf, 0, -1, false)) do
+    max_width = math.max(max_width, nvim.strwidth(line))
   end
   return max_width
 end
@@ -256,7 +257,7 @@ end
 --- Gets the width of the window, taking into account the border
 function win:get_width()
   if not self:is_open() then return 0 end
-  return vim.api.nvim_win_get_width(self:get_win()) + self:get_border_size().horizontal
+  return nvim.win_get_width(self:get_win()) + self:get_border_size().horizontal
 end
 
 --- Gets the cursor's distance from all sides of the screen
@@ -265,7 +266,7 @@ function win.get_cursor_screen_position()
   local screen_width = vim.o.columns
 
   -- command line
-  if vim.api.nvim_get_mode().mode == 'c' then
+  if nvim.get_mode().mode == 'c' then
     local config = require('blink.cmp.config').completion.menu
     local cmdline_position = config.cmdline_position()
 
@@ -278,7 +279,7 @@ function win.get_cursor_screen_position()
   end
 
   -- default
-  local cursor_line, cursor_column = unpack(vim.api.nvim_win_get_cursor(0))
+  local cursor_line, cursor_column = unpack(nvim.win_get_cursor(0))
   -- todo: convert cursor_column to byte index
   local pos = vim.fn.screenpos(0, cursor_line, cursor_column)
 
@@ -294,7 +295,7 @@ function win:set_cursor(cursor)
   local winnr = self:get_win()
   assert(winnr ~= nil, 'Window must be open to set cursor')
 
-  vim.api.nvim_win_set_cursor(winnr, cursor)
+  nvim.win_set_cursor(winnr, cursor)
 
   if self.scrollbar then self.scrollbar:update(winnr) end
   self:redraw_if_needed()
@@ -304,7 +305,7 @@ function win:set_height(height)
   local winnr = self:get_win()
   assert(winnr ~= nil, 'Window must be open to set height')
 
-  vim.api.nvim_win_set_height(winnr, height)
+  nvim.win_set_height(winnr, height)
 
   if self.scrollbar then self.scrollbar:update(winnr) end
   self:redraw_if_needed()
@@ -314,7 +315,7 @@ function win:set_width(width)
   local winnr = self:get_win()
   assert(winnr ~= nil, 'Window must be open to set width')
 
-  vim.api.nvim_win_set_width(winnr, width)
+  nvim.win_set_width(winnr, width)
 
   if self.scrollbar then self.scrollbar:update(winnr) end
   self:redraw_if_needed()
@@ -324,7 +325,7 @@ function win:set_win_config(config)
   local winnr = self:get_win()
   assert(winnr ~= nil, 'Window must be open to set window config')
 
-  vim.api.nvim_win_set_config(winnr, config)
+  nvim.win_set_config(winnr, config)
 
   if self.scrollbar then self.scrollbar:update(winnr) end
   self:redraw_if_needed()
@@ -355,12 +356,12 @@ end
 function win:get_direction_with_window_constraints(anchor_win, direction_priority, desired_min_size)
   local cursor_constraints = self.get_cursor_screen_position()
 
-  -- nvim.api.nvim_win_get_position doesn't return the correct position most of the time
+  -- nnvim.win_get_position doesn't return the correct position most of the time
   -- so we calculate the position ourselves
   local anchor_config
-  local anchor_win_config = vim.api.nvim_win_get_config(anchor_win:get_win())
+  local anchor_win_config = nvim.win_get_config(anchor_win:get_win())
   if anchor_win_config.relative == 'win' then
-    local anchor_relative_win_position = vim.api.nvim_win_get_position(anchor_win_config.win)
+    local anchor_relative_win_position = nvim.win_get_position(anchor_win_config.win)
     anchor_config = {
       row = anchor_win_config.row + anchor_relative_win_position[1] + 1,
       col = anchor_win_config.col + anchor_relative_win_position[2] + 1,
@@ -386,7 +387,7 @@ function win:get_direction_with_window_constraints(anchor_win, direction_priorit
 
   -- we want to avoid covering the cursor line, so we need to get the direction of the window
   -- that we're anchoring against
-  local cursor_screen_row = vim.api.nvim_get_mode().mode == 'c' and vim.o.lines - 1 or vim.fn.winline()
+  local cursor_screen_row = nvim.get_mode().mode == 'c' and vim.o.lines - 1 or vim.fn.winline()
   local anchor_is_above_cursor = anchor_config.row - cursor_screen_row < 0
 
   local screen_height = vim.o.lines
@@ -456,14 +457,14 @@ end
 
 --- In cmdline mode, the window won't be redrawn automatically so we redraw ourselves on schedule
 function win:redraw_if_needed()
-  if self.redraw_queued or vim.api.nvim_get_mode().mode ~= 'c' or self:get_win() == nil then return end
+  if self.redraw_queued or nvim.get_mode().mode ~= 'c' or self:get_win() == nil then return end
 
   -- We redraw on schedule to avoid the cmdline disappearing during redraw
   -- and to batch multiple redraws together
   self.redraw_queued = true
   vim.schedule(function()
     self.redraw_queued = false
-    vim.api.nvim__redraw({ win = self:get_win(), flush = true })
+    nvim._redraw({ win = self:get_win(), flush = true })
   end)
 end
 

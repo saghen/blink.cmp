@@ -2,8 +2,9 @@
 -- https://github.com/hrsh7th/cmp-cmdline
 -- License: MIT
 
-local task = require('blink.lib.task')
 local lib = require('blink.lib')
+local task = require('blink.lib.task')
+local nvim = require('blink.lib.nvim')
 local constants = require('blink.cmp.sources.cmdline.constants')
 local cmdline_utils = require('blink.cmp.sources.cmdline.utils')
 local path_lib = require('blink.cmp.sources.path.lib')
@@ -11,7 +12,7 @@ local path_lib = require('blink.cmp.sources.path.lib')
 --- @class blink.cmp.Source
 local cmdline = {
   ---@type table<string, vim.api.keyset.get_option_info?>
-  options = vim.api.nvim_get_all_options_info(),
+  options = nvim.get_all_options_info(),
 }
 
 function cmdline.new()
@@ -148,7 +149,7 @@ function cmdline:get_completions(context, callback)
           local alt_buf = vim.fn.bufnr('#')
           if alt_buf ~= -1 then
             local buffers = { [''] = vim.fn.expand('#') } -- Keep the '#' prefix as a completion option
-            local curr_buf = vim.api.nvim_get_current_buf()
+            local curr_buf = nvim.get_current_buf()
             for _, buf in ipairs(vim.fn.getbufinfo({ bufloaded = 1, buflisted = 1 })) do
               if buf.bufnr ~= curr_buf and buf.bufnr ~= alt_buf then
                 buffers[tostring(buf.bufnr)] = vim.fn.expand('#' .. buf.bufnr)

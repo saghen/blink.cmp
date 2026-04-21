@@ -1,8 +1,9 @@
-local utils = {}
-
+local nvim = require('blink.lib.nvim')
 local constants = require('blink.cmp.sources.cmdline.constants')
 local path_lib = require('blink.cmp.sources.path.lib')
 local reg_modifier = vim.regex([[\v(\s+|'|")((\%|#\d*|\<\w+\>)(:(h|p|t|r|e|s|S|gs|\~|\.)?)*)\<?(\s+|'|"|$)]])
+
+local utils = {}
 
 --- Safely parses a command-line string.
 --- Skips parsing for known incomplete expressions that cause nvim_parse_cmd() to emit errors even inside pcall(). Not exhaustive.
@@ -18,7 +19,7 @@ local function safe_parse_cmd(line)
   if line:match('[/?&]%s*$') then return nil end
   if line:match('%([^)]*$') or line:match('{[^}]*$') then return nil end
 
-  local ok, parsed = pcall(vim.api.nvim_parse_cmd, line, {})
+  local ok, parsed = pcall(nvim.parse_cmd, line, {})
   return ok and parsed or nil
 end
 
@@ -26,7 +27,7 @@ end
 --- @param types? string[] Optional list of command types to check. If nil or empty, only checks for context.
 --- @return boolean
 function utils.is_command_line(types)
-  local mode = vim.api.nvim_get_mode().mode
+  local mode = nvim.get_mode().mode
   if mode ~= 'c' and vim.fn.getcmdwintype() == '' then return false end
 
   if not types or #types == 0 then return true end
@@ -40,8 +41,8 @@ end
 function utils.in_ex_search_commands()
   if not utils.is_command_line({ ':' }) then return false end
 
-  local mode = vim.api.nvim_get_mode().mode
-  local line = mode == 'c' and vim.fn.getcmdline() or vim.api.nvim_get_current_line()
+  local mode = nvim.get_mode().mode
+  local line = mode == 'c' and vim.fn.getcmdline() or nvim.get_current_line()
 
   local parsed = safe_parse_cmd(line)
   if not parsed then return false end
@@ -59,7 +60,7 @@ function utils.get_completion_type(mode)
   if mode == 'cmdline' then return vim.fn.getcmdcompltype() end
   if mode ~= 'cmdwin' then return '' end
 
-  local line = vim.api.nvim_get_current_line()
+  local line = nvim.get_current_line()
   return vim.fn.getcompletiontype(line)
 end
 

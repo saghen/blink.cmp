@@ -9,6 +9,7 @@
 --- @field items_cache table<string, blink.cmp.CompletionItem[]>
 
 local lib = require('blink.lib')
+local nvim = require('blink.lib.nvim')
 
 --- @type blink.cmp.LuasnipSource
 --- @diagnostic disable-next-line: missing-fields
@@ -45,14 +46,14 @@ function source.new(opts)
   self.config = config
   self.items_cache = {}
 
-  local luasnip_ag = vim.api.nvim_create_augroup('BlinkCmpLuaSnipReload', { clear = true })
-  vim.api.nvim_create_autocmd('User', {
+  local luasnip_ag = nvim.create_augroup('BlinkCmpLuaSnipReload', { clear = true })
+  nvim.create_autocmd('User', {
     pattern = 'LuasnipSnippetsAdded',
     callback = function() self:reload() end,
     group = luasnip_ag,
     desc = 'Reset internal cache of luasnip source of blink.cmp when new snippets are added',
   })
-  vim.api.nvim_create_autocmd('User', {
+  nvim.create_autocmd('User', {
     pattern = 'LuasnipCleanup',
     callback = function() self:reload() end,
     group = luasnip_ag,

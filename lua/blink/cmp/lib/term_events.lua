@@ -1,3 +1,5 @@
+local nvim = require('blink.lib.nvim')
+
 --- @class blink.cmp.TermEvents
 --- @field has_context fun(): boolean
 --- @field ignore_next_text_changed boolean
@@ -26,27 +28,27 @@ function term_events.new(opts)
   }, { __index = term_events })
 end
 
-local term_on_key_ns = vim.api.nvim_create_namespace('blink_cmp_term_keypress')
-local term_command_start_ns = vim.api.nvim_create_namespace('blink_cmp_term_command_start')
+local term_on_key_ns = nvim.create_namespace('blink_cmp_term_keypress')
+local term_command_start_ns = nvim.create_namespace('blink_cmp_term_command_start')
 
 --- Normalizes the autocmds + ctrl+c into a common api and handles ignored events
 function term_events:listen(opts)
   local last_char = ''
   -- There's no terminal equivalent to 'InsertCharPre', so we need to simulate
   -- something similar to this by watching with `vim.on_key()`
-  vim.api.nvim_create_autocmd('TermEnter', {
+  nvim.create_autocmd('TermEnter', {
     callback = function()
       vim.on_key(function(k) last_char = k end, term_on_key_ns)
     end,
   })
-  vim.api.nvim_create_autocmd('TermLeave', {
+  nvim.create_autocmd('TermLeave', {
     callback = function()
       vim.on_key(nil, term_on_key_ns)
       last_char = ''
     end,
   })
 
-  vim.api.nvim_create_autocmd('TextChangedT', {
+  nvim.create_autocmd('TextChangedT', {
     callback = function()
       if not require('blink.cmp').is_enabled() then return end
 
@@ -64,7 +66,7 @@ function term_events:listen(opts)
 
   -- definitely leaving the context
   -- HACK: we don't handle mode changed here because the buffer events handles it
-  vim.api.nvim_create_autocmd('TermLeave', {
+  nvim.create_autocmd('TermLeave', {
     callback = function()
       last_char = ''
       vim.schedule(function() opts.on_term_leave() end)
@@ -84,11 +86,11 @@ function term_events:listen(opts)
   --- "~/Downloads > " is your prompt <- an extmark is added after this
   --- "ls --he" is the command you typed <- this is what we need to provide proper shell completions
   --- "|" marks your cursor position
-  vim.api.nvim_create_autocmd('TermRequest', {
+  nvim.create_autocmd('TermRequest', {
     callback = function(args)
       if string.match(args.data.sequence, '^\027]133;B') then
         local row, col = unpack(args.data.cursor)
-        pcall(vim.api.nvim_buf_set_extmark, args.buf, term_command_start_ns, row - 1, col, {})
+        pcall(nvim.buf_set_extmark, args.buf, term_command_start_ns, row - 1, col, {})
       end
     end,
   })
@@ -98,15 +100,15 @@ end
 --- HACK: there's likely edge cases with this since we can't know for sure
 --- if the autocmds will fire for cursor_moved afaik
 function term_events:suppress_events_for_callback(cb)
-  local cursor_before = vim.api.nvim_win_get_cursor(0)
-  local changed_tick_before = vim.api.nvim_buf_get_changedtick(0)
+  local cursor_before = nvim.win_get_cursor(0)
+  local changed_tick_before = nvim.buf_get_changedtick(0)
 
   cb()
 
-  local cursor_after = vim.api.nvim_win_get_cursor(0)
-  local changed_tick_after = vim.api.nvim_buf_get_changedtick(0)
+  local cursor_after = nvim.win_get_cursor(0)
+  local changed_tick_after = nvim.buf_get_changedtick(0)
 
-  local is_term_mode = vim.api.nvim_get_mode().mode == 't'
+  local is_term_mode = nvim.get_mode().mode == 't'
   self.ignore_next_text_changed = changed_tick_after ~= changed_tick_before and is_term_mode
   -- TODO: does this guarantee that the CursorMovedI event will fire?
   self.ignore_next_cursor_moved = (cursor_after[1] ~= cursor_before[1] or cursor_after[2] ~= cursor_before[2])

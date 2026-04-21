@@ -1,3 +1,5 @@
+local nvim = require('blink.lib.nvim')
+
 local Kind = require('blink.cmp.types').CompletionItemKind
 
 ---@class blink.cmp.CompleteFuncOpts
@@ -35,7 +37,7 @@ function Source.new(_, config)
 end
 
 function Source:enabled()
-  return not vim.tbl_contains({ nil, '' }, self.opts.complete_func()) and vim.api.nvim_get_mode().mode == 'i'
+  return not vim.tbl_contains({ nil, '' }, self.opts.complete_func()) and nvim.get_mode().mode == 'i'
 end
 
 ---Invoke an complete_func handling `v:lua.*`
@@ -43,7 +45,7 @@ end
 ---@overload fun(func: string, findstart: 1, base: ''): integer
 ---@overload fun(func: string, findstart: 0, base: string): table<{ words: blink.cmp.CompleteFuncWords, refresh: string }> | blink.cmp.CompleteFuncWords
 local function invoke_complete_func(func, findstart, base)
-  local prev_pos = vim.api.nvim_win_get_cursor(0)
+  local prev_pos = nvim.win_get_cursor(0)
 
   local _, result = pcall(function()
     local args = { findstart, base }
@@ -52,12 +54,12 @@ local function invoke_complete_func(func, findstart, base)
     if match then
       return vim.fn.luaeval(string.format('%s(_A[1], _A[2], _A[3])', match), args)
     else
-      return vim.api.nvim_call_function(func, args)
+      return nvim.call_function(func, args)
     end
   end)
 
-  local next_pos = vim.api.nvim_win_get_cursor(0)
-  if prev_pos[1] ~= next_pos[1] or prev_pos[2] ~= next_pos[2] then vim.api.nvim_win_set_cursor(0, prev_pos) end
+  local next_pos = nvim.win_get_cursor(0)
+  if prev_pos[1] ~= next_pos[1] or prev_pos[2] ~= next_pos[2] then nvim.win_set_cursor(0, prev_pos) end
 
   return result
 end

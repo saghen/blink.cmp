@@ -1,3 +1,5 @@
+local nvim = require('blink.lib.nvim')
+
 --- @class blink.cmp.Renderer
 --- @field def blink.cmp.Draw
 --- @field padding number[]
@@ -12,7 +14,7 @@
 --- @field get_component_start_col fun(self: blink.cmp.Renderer, columns: blink.cmp.DrawColumn[], component_name: string): number
 --- @field get_alignment_start_col fun(self: blink.cmp.Renderer): number
 
-local ns = vim.api.nvim_create_namespace('blink_cmp_renderer')
+local ns = nvim.create_namespace('blink_cmp_renderer')
 
 --- @type blink.cmp.Renderer
 --- @diagnostic disable-next-line: missing-fields
@@ -30,7 +32,7 @@ function renderer.new(draw)
   -- Setting highlights is slow and we update on every keystroke so we instead use a decoration provider
   -- which will only render highlights of the visible lines. This also avoids having to do virtual scroll
   -- like nvim-cmp does, which breaks on UIs like neovide
-  vim.api.nvim_set_decoration_provider(ns, {
+  nvim.set_decoration_provider(ns, {
     on_win = function(_, _, win_bufnr) return self.bufnr == win_bufnr end,
     on_line = function(_, _, _, line)
       local offset = self.padding[1]
@@ -41,7 +43,7 @@ function renderer.new(draw)
           for _, highlight in ipairs(highlights) do
             local col = offset + highlight[1]
             local end_col = offset + highlight[2]
-            vim.api.nvim_buf_set_extmark(self.bufnr, ns, line, col, {
+            nvim.buf_set_extmark(self.bufnr, ns, line, col, {
               end_col = end_col,
               hl_group = highlight.group,
               hl_mode = 'combine',
@@ -119,10 +121,10 @@ function renderer:draw(context, bufnr, items)
     table.insert(lines, line)
   end
 
-  vim.api.nvim_set_option_value('modifiable', true, { buf = bufnr })
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
-  vim.api.nvim_set_option_value('modifiable', false, { buf = bufnr })
-  vim.api.nvim_set_option_value('modified', false, { buf = bufnr })
+  nvim.set_option_value('modifiable', true, { buf = bufnr })
+  nvim.buf_set_lines(bufnr, 0, -1, false, lines)
+  nvim.set_option_value('modifiable', false, { buf = bufnr })
+  nvim.set_option_value('modified', false, { buf = bufnr })
 
   self.columns = columns
   self.bufnr = bufnr

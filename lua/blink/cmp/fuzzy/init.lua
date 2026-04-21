@@ -1,5 +1,6 @@
-local config = require('blink.cmp.config')
 local lib = require('blink.lib')
+local nvim = require('blink.lib.nvim')
+local config = require('blink.cmp.config')
 
 --- @class blink.cmp.Fuzzy
 local fuzzy = {
@@ -23,7 +24,7 @@ function fuzzy.init_db()
 
   fuzzy.implementation.init_db(config.fuzzy.frecency.path)
 
-  vim.api.nvim_create_autocmd('VimLeavePre', {
+  nvim.create_autocmd('VimLeavePre', {
     callback = fuzzy.implementation.destroy_db,
   })
 
@@ -98,10 +99,10 @@ function fuzzy.fuzzy(line, cursor_col, haystacks_by_provider, range)
   end
 
   -- get the nearby words
-  local cursor_row = vim.api.nvim_win_get_cursor(0)[1]
+  local cursor_row = nvim.win_get_cursor(0)[1]
   local start_row = math.max(0, cursor_row - 30)
-  local end_row = math.min(cursor_row + 30, vim.api.nvim_buf_line_count(0))
-  local nearby_text = table.concat(vim.api.nvim_buf_get_lines(0, start_row, end_row, false), '\n')
+  local end_row = math.min(cursor_row + 30, nvim.buf_line_count(0))
+  local nearby_text = table.concat(nvim.buf_get_lines(0, start_row, end_row, false), '\n')
   local nearby_words = #nearby_text < 10000 and fuzzy.implementation.get_words(nearby_text) or {}
 
   -- get the keyword

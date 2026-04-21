@@ -4,6 +4,8 @@
 -- we update the context's re-trigger counter.
 -- TODO: ensure this always calls *after* the completion trigger to avoid increasing latency
 
+local nvim = require('blink.lib.nvim')
+
 --- @class blink.cmp.SignatureHelpContext
 --- @field id number
 --- @field bufnr number
@@ -85,8 +87,8 @@ function trigger.activate()
 
   if config.show_on_accept then
     require('blink.cmp.completion.list').accept_emitter:on(function()
-      local cursor_col = vim.api.nvim_win_get_cursor(0)[2]
-      local char_under_cursor = vim.api.nvim_get_current_line():sub(cursor_col, cursor_col)
+      local cursor_col = nvim.win_get_cursor(0)[2]
+      local char_under_cursor = nvim.get_current_line():sub(cursor_col, cursor_col)
 
       local is_on_trigger = trigger.is_trigger_character(char_under_cursor)
       local opts = is_on_trigger and { trigger_character = char_under_cursor } or nil
@@ -114,8 +116,8 @@ function trigger.show_if_on_trigger_character()
   if require('blink.cmp.completion.trigger.context').get_mode() ~= 'default' then return end
   if not config.enabled and trigger.context == nil then return end
 
-  local cursor_col = vim.api.nvim_win_get_cursor(0)[2]
-  local char_under_cursor = vim.api.nvim_get_current_line():sub(cursor_col, cursor_col)
+  local cursor_col = nvim.win_get_cursor(0)[2]
+  local char_under_cursor = nvim.get_current_line():sub(cursor_col, cursor_col)
   if trigger.is_trigger_character(char_under_cursor) then trigger.show({ trigger_character = char_under_cursor }) end
 end
 
@@ -125,13 +127,13 @@ function trigger.show(opts)
   if not opts.force and not config.enabled and trigger.context == nil then return end
 
   -- update context
-  local cursor = vim.api.nvim_win_get_cursor(0)
+  local cursor = nvim.win_get_cursor(0)
   if trigger.context == nil then trigger.current_context_id = trigger.current_context_id + 1 end
   trigger.context = {
     id = trigger.current_context_id,
-    bufnr = vim.api.nvim_get_current_buf(),
+    bufnr = nvim.get_current_buf(),
     cursor = cursor,
-    line = vim.api.nvim_buf_get_lines(0, cursor[1] - 1, cursor[1], false)[1],
+    line = nvim.buf_get_lines(0, cursor[1] - 1, cursor[1], false)[1],
     trigger = {
       kind = opts.trigger_character and vim.lsp.protocol.CompletionTriggerKind.TriggerCharacter
         or vim.lsp.protocol.CompletionTriggerKind.Invoked,

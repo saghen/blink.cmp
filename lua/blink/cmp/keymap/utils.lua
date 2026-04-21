@@ -1,3 +1,5 @@
+local nvim = require('blink.lib.nvim')
+
 local utils = {}
 
 --- @param mapping vim.api.keyset.get_keymap
@@ -8,7 +10,7 @@ function utils.is_blink_keymap(mapping) return mapping.desc and mapping.desc:mat
 --- @param mode string
 function utils.feedkeys(keys, mode)
   local translated_keys = keys:find('\128') and keys or vim.keycode(keys)
-  vim.api.nvim_feedkeys(translated_keys, mode, false)
+  nvim.feedkeys(translated_keys, mode, false)
 end
 
 --- Evaluate a v:lua expression RHS.
@@ -146,7 +148,7 @@ end
 --- @return string
 function utils.hash_keymaps(bufnr, vim_mode)
   local lhs = {}
-  for _, map in ipairs(vim.api.nvim_buf_get_keymap(bufnr, vim_mode)) do
+  for _, map in ipairs(nvim.buf_get_keymap(bufnr, vim_mode)) do
     if utils.is_blink_keymap(map) then lhs[#lhs + 1] = utils.normalize_lhs(map.lhs) end
   end
   table.sort(lhs)

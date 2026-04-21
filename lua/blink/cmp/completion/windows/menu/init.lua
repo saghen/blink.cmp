@@ -22,6 +22,7 @@
 --- @field redraw_if_needed fun()
 
 local lib = require('blink.lib')
+local nvim = require('blink.lib.nvim')
 local config = require('blink.cmp.config').completion.menu
 local event_emitter = require('blink.cmp.lib.event_emitter')
 local auto_wrap = require('blink.cmp.completion.windows.menu.auto_wrap')
@@ -59,7 +60,7 @@ local menu = {
   position_update_emitter = event_emitter.new('completion_menu_position_update', 'BlinkCmpMenuPositionUpdate'),
 }
 
-vim.api.nvim_create_autocmd({ 'CursorMovedI', 'WinScrolled', 'WinResized' }, {
+nvim.create_autocmd({ 'CursorMovedI', 'WinScrolled', 'WinResized' }, {
   callback = function() menu.update_position() end,
 })
 
@@ -118,9 +119,7 @@ function menu.open()
 
   menu.win:open()
   menu.win:set_option_value('cursorline', menu.selected_item_idx ~= nil)
-  if menu.selected_item_idx ~= nil then
-    vim.api.nvim_win_set_cursor(menu.win:get_win(), { menu.selected_item_idx, 0 })
-  end
+  if menu.selected_item_idx ~= nil then nvim.win_set_cursor(menu.win:get_win(), { menu.selected_item_idx, 0 }) end
 
   menu.open_emitter:emit()
 end
@@ -230,7 +229,7 @@ function menu.update_position()
   local row = pos.direction == 's' and 1 or -pos.height - border_size.vertical
 
   -- in cmdline mode, we get the position from a function to support UI plugins like noice
-  if vim.api.nvim_get_mode().mode == 'c' then
+  if nvim.get_mode().mode == 'c' then
     local cmdline_position = config.cmdline_position()
     win:set_win_config({
       relative = 'editor',

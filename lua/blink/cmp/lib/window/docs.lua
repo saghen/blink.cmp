@@ -1,5 +1,6 @@
-local highlight_ns = require('blink.cmp.config').appearance.highlight_ns
 local lib = require('blink.lib')
+local nvim = require('blink.lib.nvim')
+local highlight_ns = require('blink.cmp.config').appearance.highlight_ns
 
 local docs = {}
 
@@ -44,13 +45,13 @@ function docs.render_detail_and_documentation(opts)
   -- skip original separator in doc_lines, so we can highlight it later
   vim.list_extend(combined_lines, doc_lines, doc_already_has_separator and 2 or 1)
 
-  vim.api.nvim_set_option_value('modifiable', true, { buf = opts.bufnr })
-  vim.api.nvim_buf_set_lines(opts.bufnr, 0, -1, true, combined_lines)
-  vim.api.nvim_set_option_value('modifiable', false, { buf = opts.bufnr })
-  vim.api.nvim_set_option_value('modified', false, { buf = opts.bufnr })
+  nvim.set_option_value('modifiable', true, { buf = opts.bufnr })
+  nvim.buf_set_lines(opts.bufnr, 0, -1, true, combined_lines)
+  nvim.set_option_value('modifiable', false, { buf = opts.bufnr })
+  nvim.set_option_value('modified', false, { buf = opts.bufnr })
 
   -- Highlight with treesitter
-  vim.api.nvim_buf_clear_namespace(opts.bufnr, highlight_ns, 0, -1)
+  nvim.buf_clear_namespace(opts.bufnr, highlight_ns, 0, -1)
 
   if #detail_lines > 0 and opts.use_treesitter_highlighting then
     docs.highlight_with_treesitter(opts.bufnr, vim.bo.filetype, 0, #detail_lines)
@@ -58,7 +59,7 @@ function docs.render_detail_and_documentation(opts)
 
   -- Only add the separator if there are documentation lines (otherwise only display the detail)
   if #detail_lines > 0 and #doc_lines > 0 then
-    vim.api.nvim_buf_set_extmark(opts.bufnr, highlight_ns, #detail_lines, 0, {
+    nvim.buf_set_extmark(opts.bufnr, highlight_ns, #detail_lines, 0, {
       virt_text = { { string.rep('─', opts.max_width), 'BlinkCmpDocSeparator' } },
       virt_text_pos = 'overlay',
     })
@@ -110,7 +111,7 @@ function docs.highlight_with_treesitter(bufnr, filetype, start_line, end_line)
       if capture then
         local name = highlighter_query.captures[capture]
         local hl = 0
-        if not vim.startswith(name, '_') then hl = vim.api.nvim_get_hl_id_by_name('@' .. name .. '.' .. lang) end
+        if not vim.startswith(name, '_') then hl = nvim.get_hl_id_by_name('@' .. name .. '.' .. lang) end
 
         -- The "priority" attribute can be set at the pattern level or on a particular capture
         local priority = (
@@ -122,7 +123,7 @@ function docs.highlight_with_treesitter(bufnr, filetype, start_line, end_line)
         local conceal = metadata.conceal or metadata[capture] and metadata[capture].conceal
 
         if hl and end_row >= line then
-          vim.api.nvim_buf_set_extmark(bufnr, highlight_ns, start_row, start_col, {
+          nvim.buf_set_extmark(bufnr, highlight_ns, start_row, start_col, {
             end_line = end_row,
             end_col = end_col,
             hl_group = hl,

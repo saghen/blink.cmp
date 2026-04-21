@@ -1,4 +1,6 @@
+local nvim = require('blink.lib.nvim')
 local config = require('blink.cmp.config')
+
 local text_lib = {}
 
 --- Applies the component width settings to the text
@@ -22,7 +24,7 @@ end
 --- @param component blink.cmp.DrawComponent
 --- @return string text
 function text_lib.set_width(text, width, component)
-  local length = vim.api.nvim_strwidth(text)
+  local length = nvim.strwidth(text)
   if length > width then
     return text_lib.truncate(text, width, component.ellipsis)
   elseif length < width then
@@ -41,8 +43,8 @@ function text_lib.truncate(text, target_width, ellipsis)
   local ellipsis_str = ellipsis ~= false and '…' or ''
   if ellipsis ~= false and config.nerd_font_variant == 'normal' then ellipsis_str = ellipsis_str .. ' ' end
 
-  local text_width = vim.api.nvim_strwidth(text)
-  local ellipsis_width = vim.api.nvim_strwidth(ellipsis_str)
+  local text_width = nvim.strwidth(text)
+  local ellipsis_width = nvim.strwidth(ellipsis_str)
   if text_width > target_width then
     return vim.fn.strcharpart(text, 0, target_width - ellipsis_width) .. ellipsis_str
   end
@@ -68,7 +70,7 @@ end
 --- @param target_width number
 --- @return string padded_text The amount of padding added to the left and the padded text
 function text_lib.pad(text, target_width)
-  local text_width = vim.api.nvim_strwidth(text)
+  local text_width = nvim.strwidth(text)
   if text_width >= target_width then return text end
   return text .. string.rep(' ', target_width - text_width)
 

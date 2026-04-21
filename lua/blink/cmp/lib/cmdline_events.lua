@@ -1,3 +1,5 @@
+local nvim = require('blink.lib.nvim')
+
 --- @class blink.cmp.CmdlineEvents
 --- @field has_context fun(): boolean
 --- @field ignore_next_text_changed boolean
@@ -30,7 +32,7 @@ function cmdline_events:listen(opts)
   local last_move_time, pending_key
   local is_change_queued = false
   vim.on_key(function(raw_key, escaped_key)
-    if vim.api.nvim_get_mode().mode ~= 'c' then return end
+    if nvim.get_mode().mode ~= 'c' then return end
 
     -- ignore if it's a special key
     -- FIXME: odd behavior when escaped_key has multiple keycodes, e.g. by pressing <C-p> and then "t"
@@ -65,9 +67,9 @@ function cmdline_events:listen(opts)
   end
 
   -- CursorMoved
-  vim.api.nvim_create_autocmd('CursorMovedC', {
+  nvim.create_autocmd('CursorMovedC', {
     callback = function()
-      if vim.api.nvim_get_mode().mode ~= 'c' then return end
+      if nvim.get_mode().mode ~= 'c' then return end
 
       local is_ignored = self.ignore_next_cursor_moved
       self.ignore_next_cursor_moved = false
@@ -78,7 +80,7 @@ function cmdline_events:listen(opts)
     end,
   })
 
-  vim.api.nvim_create_autocmd('CmdlineLeave', {
+  nvim.create_autocmd('CmdlineLeave', {
     callback = function() opts.on_leave() end,
   })
 end
@@ -90,7 +92,7 @@ function cmdline_events:suppress_events_for_callback(cb)
 
   cb()
 
-  if not vim.api.nvim_get_mode().mode == 'c' then return end
+  if not nvim.get_mode().mode == 'c' then return end
 
   -- HACK: the cursor may move from position 1 to 0 and back to 1 during the callback
   -- This will trigger a CursorMovedC event, but we can't detect it simply by checking the cursor position

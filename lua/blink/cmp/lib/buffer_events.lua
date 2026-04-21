@@ -2,6 +2,8 @@
 --- Notably, when "char added" is fired, the "cursor moved" event will not be fired.
 --- Unlike in regular neovim, ctrl + c and buffer switching will trigger "insert leave"
 
+local nvim = require('blink.lib.nvim')
+
 --- @class blink.cmp.BufferEvents
 --- @field has_context fun(): boolean
 --- @field show_in_snippet boolean
@@ -76,7 +78,7 @@ local function make_cursor_moved(self, snippet, on_cursor_moved)
   require('blink.cmp.completion.list').accept_emitter:on(function() did_accept = true end)
 
   -- clear state on insert leave
-  vim.api.nvim_create_autocmd('InsertLeave', {
+  nvim.create_autocmd('InsertLeave', {
     callback = function()
       did_backspace = false
       did_accept = false
@@ -89,7 +91,7 @@ local function make_cursor_moved(self, snippet, on_cursor_moved)
     -- when jumping between tab stops in a snippet while showing the menu
     if
       ev.event == 'CursorMoved'
-      and (vim.api.nvim_get_mode().mode ~= 'v' or not self.has_context() or not snippet.active())
+      and (nvim.get_mode().mode ~= 'v' or not self.has_context() or not snippet.active())
     then
       return
     end
@@ -130,7 +132,7 @@ local function make_insert_leave(self, on_insert_leave)
     -- so we schedule to ignore the intermediary modes
     -- TODO: deduplicate requests
     vim.schedule(function()
-      local mode = vim.api.nvim_get_mode().mode
+      local mode = nvim.get_mode().mode
       if not mode:match('i') and not mode:match('s') then
         self.last_char = ''
         on_insert_leave()
@@ -143,7 +145,7 @@ end
 function buffer_events:listen(opts)
   local snippet = require('blink.cmp.config').snippets
 
-  vim.api.nvim_create_autocmd('InsertCharPre', {
+  nvim.create_autocmd('InsertCharPre', {
     callback = function()
       if snippet.active() and not self.show_in_snippet and not self.has_context() then return end
       -- FIXME: vim.v.char can be an escape code such as <95> in the case of <F2>. This breaks downstream
@@ -152,16 +154,16 @@ function buffer_events:listen(opts)
     end,
   })
 
-  self.textchangedi_id = vim.api.nvim_create_autocmd('TextChangedI', {
+  self.textchangedi_id = nvim.create_autocmd('TextChangedI', {
     callback = make_char_added(self, snippet, opts.on_char_added),
   })
 
-  vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI', 'InsertEnter' }, {
+  nvim.create_autocmd({ 'CursorMoved', 'CursorMovedI', 'InsertEnter' }, {
     callback = make_cursor_moved(self, snippet, opts.on_cursor_moved),
   })
 
   -- definitely leaving the context
-  vim.api.nvim_create_autocmd({ 'ModeChanged', 'BufLeave' }, {
+  nvim.create_autocmd({ 'ModeChanged', 'BufLeave' }, {
     callback = make_insert_leave(self, opts.on_insert_leave),
   })
 
@@ -170,7 +172,7 @@ function buffer_events:listen(opts)
   vim.on_key(function(key)
     if key == ctrl_c then
       vim.schedule(function()
-        local mode = vim.api.nvim_get_mode().mode
+        local mode = nvim.get_mode().mode
         if mode ~= 'i' then
           self.last_char = ''
           opts.on_insert_leave()
@@ -180,7 +182,7 @@ function buffer_events:listen(opts)
   end)
 
   if opts.on_complete_changed then
-    vim.api.nvim_create_autocmd('CompleteChanged', {
+    nvim.create_autocmd('CompleteChanged', {
       callback = vim.schedule_wrap(function() opts.on_complete_changed() end),
     })
   end
@@ -192,8 +194,8 @@ function buffer_events:resubscribe(opts)
   if self.textchangedi_id == -1 then return end
 
   local snippet = require('blink.cmp.config').snippets
-  vim.api.nvim_del_autocmd(self.textchangedi_id)
-  self.textchangedi_id = vim.api.nvim_create_autocmd('TextChangedI', {
+  nvim.del_autocmd(self.textchangedi_id)
+  self.textchangedi_id = nvim.create_autocmd('TextChangedI', {
     callback = make_char_added(self, snippet, opts.on_char_added),
   })
 end
@@ -202,15 +204,15 @@ end
 --- HACK: there's likely edge cases with this since we can't know for sure
 --- if the autocmds will fire for cursor_moved afaik
 function buffer_events:suppress_events_for_callback(cb)
-  local cursor_before = vim.api.nvim_win_get_cursor(0)
-  local changed_tick_before = vim.api.nvim_buf_get_changedtick(0)
+  local cursor_before = nvim.win_get_cursor(0)
+  local changed_tick_before = nvim.buf_get_changedtick(0)
 
   cb()
 
-  local cursor_after = vim.api.nvim_win_get_cursor(0)
-  local changed_tick_after = vim.api.nvim_buf_get_changedtick(0)
+  local cursor_after = nvim.win_get_cursor(0)
+  local changed_tick_after = nvim.buf_get_changedtick(0)
 
-  local is_insert_mode = vim.api.nvim_get_mode().mode:sub(1, 1) == 'i'
+  local is_insert_mode = nvim.get_mode().mode:sub(1, 1) == 'i'
 
   self.ignore_next_text_changed = changed_tick_before ~= changed_tick_after and is_insert_mode
 

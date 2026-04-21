@@ -1,3 +1,5 @@
+local nvim = require('blink.lib.nvim')
+
 --- @class blink.cmp.SignatureWindow
 --- @field win blink.cmp.Window
 --- @field context? blink.cmp.SignatureHelpContext
@@ -30,7 +32,7 @@ local signature = {
 
 -- todo: deduplicate this
 menu.position_update_emitter:on(function() signature.update_position() end)
-vim.api.nvim_create_autocmd({ 'CursorMovedI', 'WinScrolled', 'WinResized' }, {
+nvim.create_autocmd({ 'CursorMovedI', 'WinScrolled', 'WinResized' }, {
   callback = function()
     if signature.context then signature.update_position() end
   end,
@@ -77,7 +79,7 @@ function signature.open_with_signature_help(context, signature_help)
     local start_col = active_highlight[2]
     local end_line = active_highlight[3] - 1
     local end_col = active_highlight[4]
-    vim.api.nvim_buf_set_extmark(
+    nvim.buf_set_extmark(
       signature.win:get_buf(),
       require('blink.cmp.config').appearance.highlight_ns,
       start_line,
@@ -115,7 +117,7 @@ function signature.scroll_down(amount)
   local winnr = signature.win:get_win()
   if winnr == nil then return false end
 
-  local line_count = vim.api.nvim_buf_line_count(signature.win:get_buf())
+  local line_count = nvim.buf_line_count(signature.win:get_buf())
   local bottom_line = math.max(1, vim.fn.line('w$', winnr) + 1)
   local desired_line = math.min(line_count, bottom_line + amount)
 
@@ -133,7 +135,7 @@ function signature.update_position()
   local direction_priority = config.direction_priority
 
   -- if the menu window is open, we want to place the signature window on the opposite side
-  local menu_win_config = menu.win:get_win() and vim.api.nvim_win_get_config(menu.win:get_win())
+  local menu_win_config = menu.win:get_win() and nvim.win_get_config(menu.win:get_win())
   if menu.win:is_open() then
     local cursor_screen_row = vim.fn.winline()
     local menu_win_is_up = menu_win_config.row - cursor_screen_row < 0
@@ -165,14 +167,14 @@ function signature.update_position()
     assert(menu_win_config.relative == 'win', 'The menu window must be relative to a window')
     local cursor_screen_row = vim.fn.winline()
     local menu_win_is_up = menu_win_config.row - cursor_screen_row < 0
-    vim.api.nvim_win_set_config(winnr, {
+    nvim.win_set_config(winnr, {
       relative = menu_win_config.relative,
       win = menu_win_config.win,
       row = menu_win_is_up and menu_win_config.row + menu.win:get_height() + 1 or menu_win_config.row - height - 1,
       col = menu_win_config.col,
     })
   else
-    vim.api.nvim_win_set_config(winnr, { relative = 'cursor', row = pos.direction == 's' and 1 or -height, col = 0 })
+    nvim.win_set_config(winnr, { relative = 'cursor', row = pos.direction == 's' and 1 or -height, col = 0 })
   end
 end
 

@@ -3,6 +3,8 @@
 -- and credit to https://github.com/garymjr for his changes
 -- see: https://github.com/garymjr/nvim-snippets/blob/main/lua/snippets/utils/builtin.lua
 
+local nvim = require('blink.lib.nvim')
+
 local builtin = {
   lazy = {},
 }
@@ -32,7 +34,7 @@ builtin.lazy.CLIPBOARD = cached(
 
 local function buf_to_ws_part()
   local LSP_WORSKPACE_PARTS = 'LSP_WORSKPACE_PARTS'
-  local ok, ws_parts = pcall(vim.api.nvim_buf_get_var, 0, LSP_WORSKPACE_PARTS)
+  local ok, ws_parts = pcall(nvim.buf_get_var, 0, LSP_WORSKPACE_PARTS)
   if not ok then
     local file_path = vim.fn.expand('%:p')
 
@@ -44,7 +46,7 @@ local function buf_to_ws_part()
     end
     -- If it can't be extracted from lsp, then we use the file path
     if not ok and not ws_parts then ws_parts = { vim.fn.expand('%:p:h'), vim.fn.expand('%:p:t') } end
-    vim.api.nvim_buf_set_var(0, LSP_WORSKPACE_PARTS, ws_parts)
+    nvim.buf_set_var(0, LSP_WORSKPACE_PARTS, ws_parts)
   end
   return ws_parts
 end
@@ -145,14 +147,14 @@ builtin.lazy.BLOCK_COMMENT_START = cached(function() return buffer_comment_chars
 builtin.lazy.BLOCK_COMMENT_END = cached(function() return buffer_comment_chars()[3] end)
 
 local function get_cursor()
-  local c = vim.api.nvim_win_get_cursor(0)
+  local c = nvim.win_get_cursor(0)
   c[1] = c[1] - 1
   return c
 end
 
 local function get_current_line()
   local pos = get_cursor()
-  return vim.api.nvim_buf_get_lines(0, pos[1], pos[1] + 1, false)[1]
+  return nvim.buf_get_lines(0, pos[1], pos[1] + 1, false)[1]
 end
 
 local function word_under_cursor(cur, line)
@@ -174,8 +176,8 @@ local function word_under_cursor(cur, line)
   return string.sub(line, ind_start, ind_end)
 end
 
-vim.api.nvim_create_autocmd('InsertEnter', {
-  group = vim.api.nvim_create_augroup('BlinkSnippetsEagerEnter', { clear = true }),
+nvim.create_autocmd('InsertEnter', {
+  group = nvim.create_augroup('BlinkSnippetsEagerEnter', { clear = true }),
   callback = function()
     builtin.eager = {}
     builtin.eager.TM_CURRENT_LINE = get_current_line()
@@ -185,8 +187,8 @@ vim.api.nvim_create_autocmd('InsertEnter', {
   end,
 })
 
-vim.api.nvim_create_autocmd('InsertLeave', {
-  group = vim.api.nvim_create_augroup('BlinkSnippetsEagerLeave', { clear = true }),
+nvim.create_autocmd('InsertLeave', {
+  group = nvim.create_augroup('BlinkSnippetsEagerLeave', { clear = true }),
   callback = function() builtin.eager = nil end,
 })
 

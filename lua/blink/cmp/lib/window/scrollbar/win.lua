@@ -1,5 +1,7 @@
 --- Manages creating/updating scrollbar gutter and thumb windows
 
+local nvim = require('blink.lib.nvim')
+
 --- @class blink.cmp.ScrollbarWin
 --- @field enable_gutter boolean
 --- @field thumb_win? number
@@ -22,17 +24,17 @@ local scrollbar_win = {}
 
 function scrollbar_win.new(opts) return setmetatable(opts, { __index = scrollbar_win }) end
 
-function scrollbar_win:is_visible() return self.thumb_win ~= nil and vim.api.nvim_win_is_valid(self.thumb_win) end
+function scrollbar_win:is_visible() return self.thumb_win ~= nil and nvim.win_is_valid(self.thumb_win) end
 
 function scrollbar_win:show_thumb(geometry)
   -- create window if it doesn't exist
-  if self.thumb_win == nil or not vim.api.nvim_win_is_valid(self.thumb_win) then
+  if self.thumb_win == nil or not nvim.win_is_valid(self.thumb_win) then
     self.thumb_win = self:_make_win(geometry, 'BlinkCmpScrollBarThumb')
   else
     -- update with the geometry
-    local thumb_existing_config = vim.api.nvim_win_get_config(self.thumb_win)
+    local thumb_existing_config = nvim.win_get_config(self.thumb_win)
     local thumb_config = vim.tbl_deep_extend('force', thumb_existing_config, geometry)
-    vim.api.nvim_win_set_config(self.thumb_win, thumb_config)
+    nvim.win_set_config(self.thumb_win, thumb_config)
   end
 
   self:redraw_if_needed()
@@ -42,29 +44,29 @@ function scrollbar_win:show_gutter(geometry)
   if not self.enable_gutter then return end
 
   -- create window if it doesn't exist
-  if self.gutter_win == nil or not vim.api.nvim_win_is_valid(self.gutter_win) then
+  if self.gutter_win == nil or not nvim.win_is_valid(self.gutter_win) then
     self.gutter_win = self:_make_win(geometry, 'BlinkCmpScrollBarGutter')
   else
     -- update with the geometry
-    local gutter_existing_config = vim.api.nvim_win_get_config(self.gutter_win)
+    local gutter_existing_config = nvim.win_get_config(self.gutter_win)
     local gutter_config = vim.tbl_deep_extend('force', gutter_existing_config, geometry)
-    vim.api.nvim_win_set_config(self.gutter_win, gutter_config)
+    nvim.win_set_config(self.gutter_win, gutter_config)
   end
 
   self:redraw_if_needed()
 end
 
 function scrollbar_win:hide_thumb()
-  if self.thumb_win and vim.api.nvim_win_is_valid(self.thumb_win) then
-    vim.api.nvim_win_close(self.thumb_win, true)
+  if self.thumb_win and nvim.win_is_valid(self.thumb_win) then
+    nvim.win_close(self.thumb_win, true)
     self.thumb_win = nil
     self:redraw_if_needed()
   end
 end
 
 function scrollbar_win:hide_gutter()
-  if self.gutter_win and vim.api.nvim_win_is_valid(self.gutter_win) then
-    vim.api.nvim_win_close(self.gutter_win, true)
+  if self.gutter_win and nvim.win_is_valid(self.gutter_win) then
+    nvim.win_close(self.gutter_win, true)
     self.gutter_win = nil
     self:redraw_if_needed()
   end
@@ -76,7 +78,7 @@ function scrollbar_win:hide()
 end
 
 function scrollbar_win:_make_win(geometry, hl_group)
-  if self.buf == nil or not vim.api.nvim_buf_is_valid(self.buf) then self.buf = vim.api.nvim_create_buf(false, true) end
+  if self.buf == nil or not nvim.buf_is_valid(self.buf) then self.buf = nvim.create_buf(false, true) end
 
   local win_config = vim.tbl_deep_extend('force', geometry, {
     style = 'minimal',
@@ -84,23 +86,23 @@ function scrollbar_win:_make_win(geometry, hl_group)
     noautocmd = true,
     border = 'none',
   })
-  local win = vim.api.nvim_open_win(self.buf, false, win_config)
-  vim.api.nvim_set_option_value('winhighlight', 'Normal:' .. hl_group .. ',EndOfBuffer:' .. hl_group, { win = win })
+  local win = nvim.open_win(self.buf, false, win_config)
+  nvim.set_option_value('winhighlight', 'Normal:' .. hl_group .. ',EndOfBuffer:' .. hl_group, { win = win })
   return win
 end
 
 local redraw_queued = false
 function scrollbar_win:redraw_if_needed()
-  if redraw_queued or vim.api.nvim_get_mode().mode ~= 'c' then return end
+  if redraw_queued or nvim.get_mode().mode ~= 'c' then return end
 
   redraw_queued = true
   vim.schedule(function()
     redraw_queued = false
-    if self.gutter_win ~= nil and vim.api.nvim_win_is_valid(self.gutter_win) then
-      vim.api.nvim__redraw({ win = self.gutter_win, flush = true })
+    if self.gutter_win ~= nil and nvim.win_is_valid(self.gutter_win) then
+      nvim._redraw({ win = self.gutter_win, flush = true })
     end
-    if self.thumb_win ~= nil and vim.api.nvim_win_is_valid(self.thumb_win) then
-      vim.api.nvim__redraw({ win = self.thumb_win, flush = true })
+    if self.thumb_win ~= nil and nvim.win_is_valid(self.thumb_win) then
+      nvim._redraw({ win = self.thumb_win, flush = true })
     end
   end)
 end
