@@ -1,20 +1,6 @@
---- @return string
-local function get_lib_extension()
-  if jit.os:lower() == 'mac' or jit.os:lower() == 'osx' then return '.dylib' end
-  if jit.os:lower() == 'windows' then return '.dll' end
-  return '.so'
-end
+local current_file = debug.getinfo(1, 'S').source:sub(2)
+-- Go up from lua/blink.cmp/fuzzy/build/init.lua to the project root
+local project_root = vim.fn.fnamemodify(current_file, ':p:h:h:h:h:h:h')
 
--- search for the lib in the /target/release directory with and without the lib prefix
--- since MSVC doesn't include the prefix
-package.cpath = package.cpath
-  .. ';'
-  .. debug.getinfo(1).source:match('@?(.*/)')
-  .. '../../../../../target/release/lib?'
-  .. get_lib_extension()
-  .. ';'
-  .. debug.getinfo(1).source:match('@?(.*/)')
-  .. '../../../../../target/release/?'
-  .. get_lib_extension()
-
-return require('blink_cmp_fuzzy')
+local native = require('blink.lib.native')
+return native.load('blink_cmp_fuzzy', native.git_commit(project_root))
