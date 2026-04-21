@@ -57,10 +57,9 @@ function sources.get_enabled_provider_ids(mode)
   if vim.tbl_contains({ 'cmdline', 'cmdwin', 'term' }, mode) then
     -- 'cmdwin' use the 'cmdline' source provider
     if mode == 'cmdwin' then mode = 'cmdline' end
-
     if not config[mode].enabled then return {} end
 
-    local providers = config[mode].sources
+    local providers = config.sources.default
     if type(providers) == 'function' then providers = providers() end
 
     return lib.list.dedup(providers)

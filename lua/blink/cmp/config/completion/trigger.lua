@@ -17,7 +17,7 @@
 -- TODO: tell users to use filetype configs for show_on_blocked_trigger_characters and show_on_x_blocked_trigger_characters (previously could be functions)
 local config = require('blink.lib.config')
 return {
-  prefetch_on_insert = { true, 'boolean' },
+  prefetch_on_insert = { false, 'boolean' },
   show_in_snippet = { true, 'boolean' },
   show_on_keyword = { true, 'boolean' },
   show_on_backspace = { false, 'boolean' },
@@ -25,7 +25,7 @@ return {
   show_on_backspace_after_accept = { true, 'boolean' },
   show_on_backspace_after_insert_enter = { true, 'boolean' },
   show_on_trigger_character = { true, 'boolean' },
-  show_on_insert = { true, 'boolean' },
+  show_on_insert = { false, 'boolean' },
   show_on_blocked_trigger_characters = { { ' ', '\n', '\t' }, config.types.list('string') },
   show_on_accept_on_trigger_character = { true, 'boolean' },
   show_on_insert_on_trigger_character = { true, 'boolean' },

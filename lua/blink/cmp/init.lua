@@ -34,16 +34,13 @@ function cmp.is_enabled()
 end
 
 local has_setup = false
---- Initializes blink.cmp with the given configuration and initiates the download
---- for the fuzzy matcher's prebuilt binaries, if necessary
+--- Initializes blink.cmp with the given configuration
 --- @param opts? blink.cmp.Config
 function cmp.setup(opts)
   if has_setup then return end
   has_setup = true
 
-  opts = opts or {}
-
-  opts = require('blink.lib').tbl.copy(opts)
+  opts = lib.tbl.copy(opts or {})
   if opts.cmdline then
     local enabled = opts.cmdline.enabled
     local keymap = opts.cmdline.keymap
@@ -57,7 +54,7 @@ function cmp.setup(opts)
     local keymap = opts.term.keymap
     opts.term.enabled = nil
     opts.term.keymap = nil
-    config(opts.term, { mode = 'term' })
+    config(opts.term, { mode = 'terminal' })
     opts.term = { enabled = enabled, keymap = keymap }
   end
   config(opts)

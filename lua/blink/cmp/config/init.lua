@@ -56,6 +56,6 @@ config({
       },
     },
   },
-}, { mode = 'term' })
+}, { mode = 'terminal' })
 
 return config
