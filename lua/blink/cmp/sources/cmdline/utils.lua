@@ -60,38 +60,7 @@ function utils.get_completion_type(mode)
   if mode ~= 'cmdwin' then return '' end
 
   local line = vim.api.nvim_get_current_line()
-  if vim.fn.exists('*getcompletiontype') == 1 then return vim.fn.getcompletiontype(line) end
-
-  -- As fallback, parse the command-line and map it to a known completion type,
-  -- either by guessing from the last argument or from the command name.
-  -- TODO: Remove the fallback below once 0.12 is the minimum supported version
-  local parsed = safe_parse_cmd(line)
-  if not parsed then return '' end
-
-  local function guess_type_by_prefix(arg)
-    for prefix, t in pairs(constants.arg_prefix_type) do
-      if vim.startswith(arg, prefix) then return t end
-    end
-
-    return nil
-  end
-
-  -- Guess by last argument
-  local args = parsed.args or {}
-  if #args > 0 then
-    local ct = guess_type_by_prefix(args[#args])
-    if ct then return ct end
-  end
-
-  -- Guess by command name
-  local completion_type = constants.commands_type[parsed.cmd] or ''
-  if #args > 0 then
-    -- Adjust some completion type when args exists (to match cmdline)
-    if completion_type == 'shellcmd' then completion_type = 'file' end
-    if completion_type == 'command' then completion_type = '' end
-  end
-
-  return completion_type
+  return vim.fn.getcompletiontype(line)
 end
 
 --- @param path string

@@ -127,11 +127,7 @@ local function get_line_byte_from_position(position, offset_encoding)
   if col == 0 then return 0 end
 
   local line = vim.api.nvim_buf_get_lines(bufnr, position.line, position.line + 1, false)[1] or ''
-  if vim.fn.has('nvim-0.11.0') == 1 then
-    col = vim.str_byteindex(line, offset_encoding or 'utf-16', col, false) or 0
-  else
-    col = vim.lsp.util._str_byteindex_enc(line, col, offset_encoding or 'utf-16')
-  end
+  col = vim.str_byteindex(line, offset_encoding or 'utf-16', col, false) or 0
   return math.min(col, #line)
 end
 

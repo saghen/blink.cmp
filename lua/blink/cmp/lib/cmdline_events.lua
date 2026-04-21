@@ -65,56 +65,18 @@ function cmdline_events:listen(opts)
   end
 
   -- CursorMoved
-  if vim.fn.has('nvim-0.11') == 1 then
-    vim.api.nvim_create_autocmd('CursorMovedC', {
-      callback = function()
-        if vim.api.nvim_get_mode().mode ~= 'c' then return end
-
-        local is_ignored = self.ignore_next_cursor_moved
-        self.ignore_next_cursor_moved = false
-
-        if is_change_queued then return end
-
-        if not is_burst_move() then opts.on_cursor_moved('CursorMoved', is_ignored) end
-      end,
-    })
-
-  -- TODO: remove when nvim 0.11 is the minimum version
-  -- HACK: check every 16ms (60 times/second) to see if the cursor moved
-  -- for neovim < 0.11
-  else
-    local previous_cmdline = ''
-    local previous_cursor
-
-    local timer = vim.uv.new_timer()
-    local callback = vim.schedule_wrap(function()
+  vim.api.nvim_create_autocmd('CursorMovedC', {
+    callback = function()
       if vim.api.nvim_get_mode().mode ~= 'c' then return end
 
-      local current_cmdline = vim.fn.getcmdline()
-      local current_cursor = vim.fn.getcmdpos()
-      local cursor_changed = current_cursor ~= previous_cursor
+      local is_ignored = self.ignore_next_cursor_moved
+      self.ignore_next_cursor_moved = false
 
-      -- Fire on_cursor_moved if cursor changed or destructive edits (<BS>, <C-W> or <C-u>)
-      if cursor_changed and #current_cmdline < #previous_cmdline then
-        local is_ignored = self.ignore_next_cursor_moved
-        self.ignore_next_cursor_moved = false
-        if is_change_queued then return end
-        opts.on_cursor_moved('CursorMoved', is_ignored)
-      end
+      if is_change_queued then return end
 
-      previous_cmdline = current_cmdline
-      previous_cursor = current_cursor
-    end)
-    vim.api.nvim_create_autocmd('CmdlineEnter', {
-      callback = function()
-        previous_cmdline = ''
-        timer:start(16, 16, callback)
-      end,
-    })
-    vim.api.nvim_create_autocmd('CmdlineLeave', {
-      callback = function() timer:stop() end,
-    })
-  end
+      if not is_burst_move() then opts.on_cursor_moved('CursorMoved', is_ignored) end
+    end,
+  })
 
   vim.api.nvim_create_autocmd('CmdlineLeave', {
     callback = function() opts.on_leave() end,
