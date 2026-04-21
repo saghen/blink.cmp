@@ -28,14 +28,14 @@ function path.new(opts)
     ignore_root_slash = false,
     max_entries = 10000,
   })
-  require('blink.cmp.config.utils').validate('sources.providers.path', {
-    trailing_slash = { opts.trailing_slash, 'boolean' },
-    label_trailing_slash = { opts.label_trailing_slash, 'boolean' },
-    get_cwd = { opts.get_cwd, 'function' },
-    show_hidden_files_by_default = { opts.show_hidden_files_by_default, 'boolean' },
-    ignore_root_slash = { opts.ignore_root_slash, 'boolean' },
-    max_entries = { opts.max_entries, 'number' },
-  }, opts)
+  -- require('blink.cmp.config.utils').validate('sources.providers.path', {
+  --   trailing_slash = { opts.trailing_slash, 'boolean' },
+  --   label_trailing_slash = { opts.label_trailing_slash, 'boolean' },
+  --   get_cwd = { opts.get_cwd, 'function' },
+  --   show_hidden_files_by_default = { opts.show_hidden_files_by_default, 'boolean' },
+  --   ignore_root_slash = { opts.ignore_root_slash, 'boolean' },
+  --   max_entries = { opts.max_entries, 'number' },
+  -- }, opts)
 
   self.opts = opts
   return self --[[@as blink.cmp.Source]]

@@ -26,14 +26,14 @@ local default_config = {
 
 function source.new(opts)
   local config = vim.tbl_deep_extend('keep', opts, default_config)
-  require('blink.cmp.config.utils').validate('sources.providers.snippets.opts', {
-    use_items_cache = {
-      config.use_items_cache,
-      'boolean',
-      'use_items_cache must be a boolean when using mini__snippets preset',
-    },
-    use_label_description = { config.use_label_description, 'boolean' },
-  }, opts)
+  -- require('blink.cmp.config.utils').validate('sources.providers.snippets.opts', {
+  --   use_items_cache = {
+  --     config.use_items_cache,
+  --     'boolean',
+  --     'use_items_cache must be a boolean when using mini__snippets preset',
+  --   },
+  --   use_label_description = { config.use_label_description, 'boolean' },
+  -- }, opts)
 
   local self = setmetatable({}, { __index = source })
   self.config = config

@@ -34,12 +34,12 @@ end
 
 function source.new(opts)
   local config = vim.tbl_deep_extend('keep', opts, default_config)
-  require('blink.cmp.config.utils').validate('sources.providers.snippets.opts', {
-    use_show_condition = { config.use_show_condition, 'boolean' },
-    show_autosnippets = { config.show_autosnippets, 'boolean' },
-    prefer_doc_trig = { config.prefer_doc_trig, 'boolean' },
-    use_label_description = { config.use_label_description, 'boolean' },
-  }, config)
+  -- require('blink.cmp.config.utils').validate('sources.providers.snippets.opts', {
+  --   use_show_condition = { config.use_show_condition, 'boolean' },
+  --   show_autosnippets = { config.show_autosnippets, 'boolean' },
+  --   prefer_doc_trig = { config.prefer_doc_trig, 'boolean' },
+  --   use_label_description = { config.use_label_description, 'boolean' },
+  -- }, config)
 
   local self = setmetatable({}, { __index = source })
   self.config = config

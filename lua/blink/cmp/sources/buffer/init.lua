@@ -63,34 +63,34 @@ function buffer.new(opts)
     use_cache = true,
     enable_in_ex_commands = false,
   })
-  require('blink.cmp.config.utils').validate('sources.providers.buffer', {
-    get_bufnrs = { opts.get_bufnrs, 'function' },
-    get_search_bufnrs = { opts.get_search_bufnrs, 'function' },
-    max_sync_buffer_size = { opts.max_sync_buffer_size, 'number' },
-    max_async_buffer_size = {
-      opts.max_async_buffer_size,
-      buf_utils.validate_buffer_size(opts.max_sync_buffer_size),
-      'a number greater than max_sync_buffer_size (' .. opts.max_sync_buffer_size .. ')',
-    },
-    max_total_buffer_size = {
-      opts.max_total_buffer_size,
-      buf_utils.validate_buffer_size(opts.max_async_buffer_size),
-      'a number greater than max_async_buffer_size (' .. opts.max_async_buffer_size .. ')',
-    },
-    retention_order = {
-      opts.retention_order,
-      function(retention_order)
-        if type(retention_order) ~= 'table' then return false end
-        for _, retention_type in ipairs(retention_order) do
-          if not vim.tbl_contains({ 'focused', 'visible', 'recency', 'largest' }, retention_type) then return false end
-        end
-        return true
-      end,
-      'table of: "focused", "visible", "recency", or "largest"',
-    },
-    use_cache = { opts.use_cache, 'boolean' },
-    enable_in_ex_commands = { opts.enable_in_ex_commands, 'boolean' },
-  }, opts)
+  -- require('blink.cmp.config.utils').validate('sources.providers.buffer', {
+  --   get_bufnrs = { opts.get_bufnrs, 'function' },
+  --   get_search_bufnrs = { opts.get_search_bufnrs, 'function' },
+  --   max_sync_buffer_size = { opts.max_sync_buffer_size, 'number' },
+  --   max_async_buffer_size = {
+  --     opts.max_async_buffer_size,
+  --     buf_utils.validate_buffer_size(opts.max_sync_buffer_size),
+  --     'a number greater than max_sync_buffer_size (' .. opts.max_sync_buffer_size .. ')',
+  --   },
+  --   max_total_buffer_size = {
+  --     opts.max_total_buffer_size,
+  --     buf_utils.validate_buffer_size(opts.max_async_buffer_size),
+  --     'a number greater than max_async_buffer_size (' .. opts.max_async_buffer_size .. ')',
+  --   },
+  --   retention_order = {
+  --     opts.retention_order,
+  --     function(retention_order)
+  --       if type(retention_order) ~= 'table' then return false end
+  --       for _, retention_type in ipairs(retention_order) do
+  --         if not vim.tbl_contains({ 'focused', 'visible', 'recency', 'largest' }, retention_type) then return false end
+  --       end
+  --       return true
+  --     end,
+  --     'table of: "focused", "visible", "recency", or "largest"',
+  --   },
+  --   use_cache = { opts.use_cache, 'boolean' },
+  --   enable_in_ex_commands = { opts.enable_in_ex_commands, 'boolean' },
+  -- }, opts)
 
   if vim.tbl_contains(opts.retention_order, 'recency') then
     require('blink.cmp.sources.buffer.recency').start_tracking()

@@ -27,11 +27,11 @@ function lsp.new(opts)
   opts = opts or {}
   opts.tailwind_color_icon = opts.tailwind_color_icon or '██'
 
-  require('blink.cmp.config.utils').validate(
-    'sources.providers.lsp.opts',
-    { tailwind_color_icon = { opts.tailwind_color_icon, 'string' } },
-    opts
-  )
+  -- require('blink.cmp.config.utils').validate(
+  --   'sources.providers.lsp.opts',
+  --   { tailwind_color_icon = { opts.tailwind_color_icon, 'string' } },
+  --   opts
+  -- )
 
   require('blink.cmp.sources.lsp.commands').register()
 
