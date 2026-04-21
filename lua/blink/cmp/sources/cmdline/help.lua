@@ -1,5 +1,5 @@
 local task = require('blink.lib.task')
-local fs = require('blink.cmp.sources.path.fs')
+local fs = require('blink.lib.fs')
 local help_file_byte_limit = 1024 * 1024 -- 1MB, more than enough for any help file
 
 local help = {}
@@ -8,7 +8,7 @@ local help = {}
 --- @param file string
 --- @return blink.lib.Task
 local function read_tags_from_file(file)
-  return fs.read_file(file, help_file_byte_limit)
+  return fs.read(file, help_file_byte_limit)
     :map(function(data)
       if not data then return {} end
       local tags = {}
