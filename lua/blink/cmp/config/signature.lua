@@ -13,6 +13,7 @@
 --- @field show_on_insert_on_trigger_character boolean Show the signature help window when the cursor comes after a trigger character when entering insert mode
 --- @field show_on_accept boolean Show the signature help window after accepting a completion item
 --- @field show_on_accept_on_trigger_character boolean Show the signature help window when the cursor comes after a trigger character after accepting a completion item, e.g. func(|) where "(" is a trigger character
+--- @field hide_in_nested_blocks boolean Hide the signature help when the cursor is inside a nested block (e.g. a callback body) within the triggering call's arguments. Uses treesitter when available; no-op when no parser is loaded for the buffer.
 
 --- @class (exact) blink.cmp.SignatureWindowConfig
 --- @field min_width number
@@ -41,6 +42,7 @@ local signature = {
       show_on_insert_on_trigger_character = true,
       show_on_accept = false,
       show_on_accept_on_trigger_character = true,
+      hide_in_nested_blocks = true,
     },
     window = {
       min_width = 1,
@@ -73,6 +75,7 @@ function signature.validate(config)
     show_on_insert_on_trigger_character = { config.trigger.show_on_insert_on_trigger_character, 'boolean' },
     show_on_accept = { config.trigger.show_on_accept, 'boolean' },
     show_on_accept_on_trigger_character = { config.trigger.show_on_accept_on_trigger_character, 'boolean' },
+    hide_in_nested_blocks = { config.trigger.hide_in_nested_blocks, 'boolean' },
   }, config.trigger)
   validate('signature.window', {
     min_width = { config.window.min_width, 'number' },

@@ -26,10 +26,25 @@
 --- @field show fun(opts?: { trigger_character: string, force?: boolean })
 --- @field hide fun()
 --- @field set_active_signature_help fun(signature_help: lsp.SignatureHelp)
+--- @field is_in_nested_block fun(cursor: number[]): boolean
 
 local config = require('blink.cmp.config').signature.trigger
 local utils = require('blink.cmp.lib.utils')
 local fuzzy = require('blink.cmp.fuzzy')
+
+local FN_SUBSTRINGS = { 'function', 'lambda', 'arrow', 'method', 'closure' }
+local function type_is_fn(t)
+  for i = 1, #FN_SUBSTRINGS do
+    if t:find(FN_SUBSTRINGS[i], 1, true) then return true end
+  end
+  return false
+end
+local function type_is_params(t)
+  return t:sub(-#'parameters') == 'parameters' or t:sub(-#'parameter_list') == 'parameter_list'
+end
+local function type_is_body(t)
+  return t:sub(-#'block') == 'block' or t:sub(-#'body') == 'body' or t == 'compound_statement'
+end
 
 --- @type blink.cmp.SignatureTrigger
 --- @diagnostic disable-next-line: missing-fields
@@ -119,6 +134,35 @@ function trigger.show_if_on_trigger_character()
   if trigger.is_trigger_character(char_under_cursor) then trigger.show({ trigger_character = char_under_cursor }) end
 end
 
+function trigger.is_in_nested_block(cursor)
+  local ok, parser = pcall(vim.treesitter.get_parser, 0)
+  if not ok or not parser then return false end
+  pcall(parser.parse, parser)
+
+  local cursor_row, cursor_col = cursor[1] - 1, cursor[2]
+  local node = vim.treesitter.get_node({ pos = { cursor_row, cursor_col } })
+  if not node then return false end
+
+  local saw_boundary = false
+  local prev_type = nil
+  while node do
+    local t = node:type()
+    if t == 'arguments' or t == 'argument_list' then
+      local sr, sc = node:start()
+      if cursor_row < sr or (cursor_row == sr and cursor_col <= sc) then return true end
+      return saw_boundary
+    end
+    if type_is_body(t) then
+      saw_boundary = true
+    elseif type_is_fn(t) and prev_type and not type_is_params(prev_type) then
+      saw_boundary = true
+    end
+    prev_type = t
+    node = node:parent()
+  end
+  return false
+end
+
 function trigger.show(opts)
   opts = opts or {}
 
@@ -126,6 +170,8 @@ function trigger.show(opts)
 
   -- update context
   local cursor = vim.api.nvim_win_get_cursor(0)
+  if config.hide_in_nested_blocks and trigger.is_in_nested_block(cursor) then return trigger.hide() end
+
   if trigger.context == nil then trigger.current_context_id = trigger.current_context_id + 1 end
   trigger.context = {
     id = trigger.current_context_id,
