@@ -361,6 +361,8 @@ signature = {
     show_on_insert = false,
     -- Show the signature help window when the cursor comes after a trigger character when entering insert mode
     show_on_insert_on_trigger_character = true,
+    -- Hide the signature help window when the cursor is inside a nested block
+    hide_in_nested_blocks = true,
   },
   window = {
     min_width = 1,
@@ -533,7 +535,7 @@ sources.providers = {
     -- May also be a function(ctx: blink.cmp.Context): number
     -- To ignore this property when manually showing the menu, set it like:
     -- min_keyword_length = function(ctx) return ctx.trigger.initial_kind == 'manual' and 0 or 1 end
-    min_keyword_length = 0, 
+    min_keyword_length = 0,
     -- If this provider returns 0 items, it will fallback to these providers.
     -- If multiple providers fallback to the same provider, all of the providers must return 0 items for it to fallback
     fallbacks = {},
