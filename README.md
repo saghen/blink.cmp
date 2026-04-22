@@ -1,9 +1,7 @@
 > [!WARNING]
-> Development on V2 has begun, requiring [blink.lib](https://github.com/saghen/blink.lib) to be installed via your package manager.
+> V2 is under active development with many breaking changes. Consider staying on stable by using `branch = 'v1'` or `version = "1.*"` in your `lazy.nvim` config.
 >
-> To remain on a stable version, use `branch = 'v1'` or `version = "1.*"` in your `lazy.nvim` config.
-> 
-> Please open any PRs for v1 against the `v1` branch.
+> [blink.lib](https://github.com/saghen/blink.lib) must now be installed via your package manager.
 
 <p align="center">
   <h2 align="center">Blink Completion (blink.cmp)</h2>
