@@ -130,6 +130,7 @@ Here is a non-exhaustive list of third-party plugins providing additional comple
 - [blink-nerdfont.nvim](https://github.com/MahanRahmati/blink-nerdfont.nvim) by `MahanRahmati`: [Nerd Fonts](https://www.nerdfonts.com)
 - [blink-ripgrep](https://github.com/mikavilpas/blink-ripgrep.nvim) by `mikavilpas`: Ripgrep
 - [cmp-pandoc-references](https://github.com/jmbuhr/cmp-pandoc-references) by `jmbuhr`: Bibliography, reference and cross-ref items
+- [cmp-wezterm](https://github.com/delphinus/cmp-wezterm) by `delphinus`: [WezTerm](https://wezterm.org) terminal (also works with `nvim-cmp`)
 - [css-vars.nvim](https://github.com/jdrupal-dev/css-vars.nvim) by `jdrupal-dev`: CSS variables
 - [ecolog.nvim](https://github.com/ph1losof/ecolog.nvim) by `ph1losof`: Environment variables
 - [gitmoji.nvim](https://github.com/Dynge/gitmoji.nvim) by `Dynge`: [gitmojis](https://gitmoji.dev)
