@@ -1,7 +1,7 @@
 > [!WARNING]
 > V2 is under active development with many breaking changes. Consider staying on stable by using `branch = 'v1'` or `version = "1.*"` in your `lazy.nvim` config.
 >
-> [blink.lib](https://github.com/saghen/blink.lib) must now be installed via your package manager.
+> For V2, [blink.lib](https://github.com/saghen/blink.lib) must be installed via your package manager.
 
 <p align="center">
   <h2 align="center">Blink Completion (blink.cmp)</h2>
@@ -21,7 +21,9 @@
 </p>
 
 <p align="center">
-  <a href="https://cmp.saghen.dev">Documentation</a>
+  <a href="https://cmp.saghen.dev">V1 Documentation</a>
+  ·
+  <a href="https://main.cmp.saghen.dev">V2 Documentation</a>
   ·
   <a href="https://cmp.saghen.dev/installation">Installation</a>
   ·
@@ -51,7 +53,9 @@
 
 ## Installation
 
-Head over to the [documentation website](https://cmp.saghen.dev/installation) for installation instructions and configuration options.
+Head over to the [V1 documentation website](https://cmp.saghen.dev/installation) for installation instructions and configuration options.
+
+For V2, use the [documentation website tracking `main`](https://main.cmp.saghen.dev/installation).
 
 ## Special Thanks
 

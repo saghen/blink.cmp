@@ -6,9 +6,9 @@
 --- @field proximity boolean Boosts the score of items matching nearby words. Note, this does not apply when using the Lua implementation.
 
 --- @alias blink.cmp.FuzzyImplementationType
---- | 'prefer_rust_with_warning' (Recommended) If available, use the Rust implementation, automatically downloading prebuilt binaries on supported systems. Fallback to the Lua implementation when not available, emitting a warning message.
---- | 'prefer_rust' If available, use the Rust implementation, automatically downloading prebuilt binaries on supported systems. Fallback to the Lua implementation when not available.
---- | 'rust' Always use the Rust implementation, automatically downloading prebuilt binaries on supported systems. Error if not available.
+--- | 'prefer_rust_with_warning' (Recommended) If available, use the Rust implementation. Fallback to the Lua implementation when not available, emitting a warning message.
+--- | 'prefer_rust' If available, use the Rust implementation. Fallback to the Lua implementation when not available.
+--- | 'rust' Always use the Rust implementation. Error if not available.
 --- | 'lua' Always use the Lua implementation
 
 --- @alias blink.cmp.SortFunction fun(a: blink.cmp.CompletionItem, b: blink.cmp.CompletionItem): boolean | nil
@@ -17,8 +17,8 @@
 local config = require('blink.lib.config')
 return {
   implementation = {
-    'rust',
-    config.types.enum({ 'rust', 'lua' }),
+    'prefer_rust_with_warning',
+    config.types.enum({ 'prefer_rust_with_warning', 'prefer_rust', 'rust', 'lua' }),
   },
   max_typos = {
     function(keyword) return math.floor(#keyword / 4) end,

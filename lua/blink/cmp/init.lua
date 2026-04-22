@@ -5,6 +5,7 @@ end
 if vim.fn.has('nvim-0.12') == 0 then error('blink.cmp v2 requires nvim 0.12+, consider pinning to v1') end
 
 local lib = require('blink.lib')
+local logger = require('blink.cmp.logger')
 local config = require('blink.cmp.config')
 
 --- @class blink.cmp.API
@@ -43,32 +44,125 @@ function cmp.setup(opts)
   if has_setup then return end
   has_setup = true
 
+  -- configuration
   opts = lib.tbl.copy(opts or {})
   if opts.cmdline then
-    local enabled = opts.cmdline.enabled
-    local keymap = opts.cmdline.keymap
-    opts.cmdline.enabled = nil
-    opts.cmdline.keymap = nil
-    config(opts.cmdline, { mode = 'cmdline' })
-    opts.cmdline = { enabled = enabled, keymap = keymap }
+    config(lib.tbl.omit(opts.cmdline, { 'enabled', 'keymap' }), { mode = 'cmdline' })
+    opts.cmdline = lib.tbl.pick(opts.cmdline, { 'enabled', 'keymap' })
   end
   if opts.term then
-    local enabled = opts.term.enabled
-    local keymap = opts.term.keymap
-    opts.term.enabled = nil
-    opts.term.keymap = nil
-    config(opts.term, { mode = 'terminal' })
-    opts.term = { enabled = enabled, keymap = keymap }
+    config(lib.tbl.omit(opts.term, { 'enabled', 'keymap' }), { mode = 'terminal' })
+    opts.term = lib.tbl.pick(opts.term, { 'enabled', 'keymap' })
   end
   config(opts)
 
-  require('blink.cmp.fuzzy').set_implementation(config.fuzzy.implementation)
+  -- setup native library
+  if config.fuzzy.implementation ~= 'lua' then
+    if not cmp.library_available() then
+      if config.fuzzy.implementation == 'prefer_rust_with_warning' then
+        logger:notify(vim.log.levels.WARN, 'Rust fuzzy matcher not available, falling back to Lua implementation.')
+        logger:notify(vim.log.levels.WARN, {
+          { 'V2 uses a new build/download system for the native library. Please add ' },
+          { " build = function() require('blink.cmp').build():wait(60000) end ", 'DiagnosticVirtualTextInfo' },
+          { ' to you lazy.nvim config. See ' },
+          { ' :h blink-cmp-installation ', 'DiagnosticVirtualTextInfo' },
+          { ' for more information.' },
+        })
+      elseif config.fuzzy.implementation == 'rust' then
+        error('Rust fuzzy matcher not available')
+      end
+    else
+      require('blink.cmp.fuzzy').set_implementation('rust')
+    end
+  end
 
-  -- setup highlights, keymap, completion, and signature help
+  -- setup rest of plugin
   require('blink.cmp.highlights').setup()
   require('blink.cmp.keymap').setup()
   require('blink.cmp.completion').setup()
   require('blink.cmp.signature').setup()
+end
+
+-------- Native Library --------
+
+function cmp.library_available()
+  local git_commit = lib.native.try_git_commit(debug.getinfo(1, 'S').source:sub(2))
+  return lib.native.resolve('blink_cmp_fuzzy', git_commit) ~= nil
+end
+
+--- Builds the precompiled library if it's not already available
+--- @param opts? { force?: boolean, dev?: boolean }
+--- @return blink.lib.Task
+function cmp.build(opts)
+  return lib.task
+    .resolve()
+    :map(function()
+      opts = opts or {}
+      if not opts.force and cmp.library_available() then return end
+
+      logger:notify(vim.log.levels.INFO, 'Building blink.cmp native library...')
+
+      local platform = lib.native.platform()
+      local repo_root = lib.native.git_repo_root(debug.getinfo(1, 'S').source:sub(2))
+      if repo_root == nil then error('Missing git repo root, did you install via a package manager?') end
+
+      return lib.native.exec_async(repo_root, { 'cargo', 'build', '--release' }, logger, callback):map(function(system)
+        -- TODO: move non-lib prefix for windows msvc
+        lib.native.mv(
+          repo_root .. '/target/release/libblink_cmp_fuzzy' .. platform.lib_extension,
+          lib.native.library_path(
+            'blink_cmp_fuzzy',
+              -- store without hash for dev builds
+            not opts.dev and lib.native.git_commit(debug.getinfo(1, 'S').source:sub(2)) or nil
+          )
+        )
+        if not lib.native.load('blink_cmp_fuzzy', lib.native.git_commit(debug.getinfo(1, 'S').source:sub(2))) then
+          error('Failed to load built blink.cmp native library')
+        end
+        logger:notify(vim.log.levels.INFO, 'Successfully loaded built blink.cmp fuzzy matcher library')
+      end)
+    end)
+    :catch(function(err)
+      logger:notify(vim.log.levels.ERROR, 'Failed to build blink.cmp fuzzy matcher library: ' .. err)
+      error(err)
+    end)
+end
+
+--- Downloads the precompiled library if it's not already available
+--- @param opts? { force?: boolean }
+--- @return blink.lib.Task
+function cmp.download(opts)
+  return lib.task
+    .new(function(resolve, reject)
+      opts = opts or {}
+      if not opts.force and cmp.library_available() then return resolve() end
+
+      logger:notify(vim.log.levels.INFO, 'Downloading blink.cmp precompiled library')
+
+      local git_tag = lib.native.git_tag(debug.getinfo(1, 'S').source:sub(2))
+      if git_tag == nil then error('Missing git tag, have you pinned the version?') end
+
+      local platform = lib.native.platform()
+      if platform.triple == nil then error('Unknown platform: ' .. platform.triple) end
+
+      local url = 'https://github.com/saghen/blink.cmp/releases/download/'
+        .. git_tag
+        .. '/'
+        .. platform.triple
+        .. platform.lib_extension
+      local git_commit = lib.native.git_commit(debug.getinfo(1, 'S').source:sub(2))
+      local library_path = lib.native.library_path('blink_cmp_fuzzy', git_commit)
+      return lib.native.download_async(url, library_path, callback):map(function()
+        if not lib.native.load('blink_cmp_fuzzy', lib.native.git_commit(debug.getinfo(1, 'S').source:sub(2))) then
+          error('Failed to load downloaded blink.cmp precompiled library')
+        end
+        logger:notify(vim.log.levels.INFO, 'Successfully loaded downloaded blink.cmp precompiled library')
+      end)
+    end)
+    :catch(function(err)
+      logger:notify(vim.log.levels.ERROR, 'Failed to download blink.cmp precompiled library: ' .. err)
+      error(err)
+    end)
 end
 
 ------- Public API -------
