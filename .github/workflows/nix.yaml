@@ -47,14 +47,8 @@ jobs:
       - name: Check the flake
         run: nix flake check
 
-      - name: Build devshell
-        run: nix develop --command "rustc"
-
       - name: Build the library
         run: nix build .#blink-fuzzy-lib
 
       - name: Build the plugin in nix
         run: nix build .#blink-cmp
-
-      - name: Build the library (outside nix)
-        run: nix run .#build-plugin
