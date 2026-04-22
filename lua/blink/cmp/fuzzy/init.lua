@@ -56,19 +56,20 @@ function fuzzy.access(item)
     encode = vim.mpack.encode
   end
 
-  vim.uv
-    .new_work(function(itm, cpath)
-      local decode
-      if jit and package.preload['string.buffer'] then
-        decode = require('string.buffer').decode
-      else
-        decode = vim.mpack.decode
-      end
-
-      package.cpath = cpath
-      require('blink.cmp.fuzzy.rust').access(decode(itm))
-    end, function() end)
-    :queue(encode(trimmed_item), package.cpath)
+  -- TODO: fails to load in uv thread
+  -- vim.uv
+  --   .new_work(function(itm, cpath)
+  --     local decode
+  --     if jit and package.preload['string.buffer'] then
+  --       decode = require('string.buffer').decode
+  --     else
+  --       decode = vim.mpack.decode
+  --     end
+  --
+  --     package.cpath = cpath
+  --     require('blink.cmp.fuzzy.rust').access(decode(itm))
+  --   end, function() end)
+  --   :queue(encode(trimmed_item), package.cpath)
 end
 
 ---@param lines string

@@ -42,21 +42,23 @@ function parser.run_sync(text) return task.resolve(fuzzy.get_words(text)) end
 --- @param text string
 --- @return blink.lib.Task
 function parser.run_async_rust(text)
-  return task.new(function(resolve)
-    local worker = uv.new_work(
-      -- must use rust module directly since the normal one requires the config which isn't present
-      function(text, cpath)
-        package.cpath = cpath
-        ---@diagnostic disable-next-line: redundant-return-value
-        return table.concat(require('blink.cmp.fuzzy.rust').get_words(text), '\n')
-      end,
-      ---@param words string
-      function(words)
-        vim.schedule(function() resolve(vim.split(words, '\n')) end)
-      end
-    )
-    worker:queue(text, package.cpath)
-  end)
+  return parser.run_sync(text)
+  -- TODO: fails to load in uv thread
+  -- return task.new(function(resolve)
+  --   local worker = uv.new_work(
+  --     -- must use rust module directly since the normal one requires the config which isn't present
+  --     function(text, cpath)
+  --       package.cpath = cpath
+  --       ---@diagnostic disable-next-line: redundant-return-value
+  --       return table.concat(require('blink.cmp.fuzzy.rust').get_words(text), '\n')
+  --     end,
+  --     ---@param words string
+  --     function(words)
+  --       vim.schedule(function() resolve(vim.split(words, '\n')) end)
+  --     end
+  --   )
+  --   worker:queue(text, package.cpath)
+  -- end)
 end
 
 --- @param text string
