@@ -218,7 +218,7 @@ completion.menu.draw = {
   -- Gap between columns
   gap = 1,
   -- Whether components of the column are allowed to overlap
-  overlap_coponents = false,
+  overlap_components = false,
   -- Priority of the cursorline highlight, setting this to 0 will render it below other highlights
   cursorline_priority = 10000,
   -- Appends an indicator to snippets label
