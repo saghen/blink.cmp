@@ -62,7 +62,7 @@ return {
     -- Appends an indicator to snippets label, `'~'` by default
     snippet_indicator = { '~', 'string' },
     -- Use treesitter to highlight the label text of completions from these sources
-    treesitter = { {}, config.types.list(config.types.enum({ 'lua', 'markdown' })) },
+    treesitter = { {}, config.types.list('string') },
     -- Components to render, grouped by column
     columns = {
       { { 'kind_icon' }, { 'label', 'label_description', gap = 1 } },

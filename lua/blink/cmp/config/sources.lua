@@ -41,9 +41,27 @@
 --- @field override? blink.cmp.SourceOverride Override the source's functions
 
 local config = require('blink.lib.config')
+
+local source_list_per_filetype = config.types.validator(
+  '{ inherit_defaults?: boolean, [number]: string }',
+  function(val)
+    if type(val) ~= 'table' then return false end
+    for k, v in pairs(val) do
+      if k == 'inherit_defaults' then
+        if type(v) ~= 'boolean' then return false, '.inherit_defaults: expected boolean, got ' .. type(v) end
+      elseif type(k) == 'number' then
+        if type(v) ~= 'string' then return false, '[' .. k .. ']: expected string, got ' .. type(v) end
+      else
+        return false, ': unexpected key ' .. tostring(k)
+      end
+    end
+    return true
+  end
+)
+
 return {
   default = { { 'lsp', 'path', 'snippets', 'buffer' }, config.types.list('string') },
-  per_filetype = { {}, config.types.map('string', config.types.list('string')) },
+  per_filetype = { {}, config.types.map('string', source_list_per_filetype) },
 
   transform_items = { function(_, items) return items end, 'function' },
   min_keyword_length = { 0, { 'number', 'function' } },
