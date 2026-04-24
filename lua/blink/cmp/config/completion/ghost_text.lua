@@ -8,7 +8,7 @@
 
 local config = require('blink.lib.config')
 return {
-  enabled = { false, 'boolean' },
+  enabled = { false, { 'boolean', 'function' } },
   show_with_selection = { true, 'boolean' },
   show_without_selection = { false, 'boolean' },
   show_with_menu = { true, 'boolean' },
