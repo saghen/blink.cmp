@@ -153,7 +153,7 @@ function cmp.download(opts)
         .. platform.lib_extension
       local git_commit = lib.native.git_commit(filename)
       local library_path = lib.native.library_path('blink_cmp_fuzzy', git_commit)
-      return lib.native.download_async(url, library_path, callback):map(function()
+      return lib.native.download_async(url, library_path):map(function()
         if not lib.native.load('blink_cmp_fuzzy', lib.native.git_commit(filename)) then
           error('Failed to load downloaded blink.cmp precompiled library')
         end
