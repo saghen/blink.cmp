@@ -139,7 +139,8 @@ function cmp.download(opts)
 
       logger:notify(vim.log.levels.INFO, 'Downloading blink.cmp precompiled library')
 
-      local git_tag = lib.native.git_tag(debug.getinfo(1, 'S').source:sub(2), opts.match)
+      local filename = debug.getinfo(1, 'S').source:sub(2)
+      local git_tag = lib.native.git_tag(filename, opts.match)
       if git_tag == nil then error('Missing git tag, have you pinned the version?') end
 
       local platform = lib.native.platform()
@@ -150,10 +151,10 @@ function cmp.download(opts)
         .. '/'
         .. platform.triple
         .. platform.lib_extension
-      local git_commit = lib.native.git_commit(debug.getinfo(1, 'S').source:sub(2))
+      local git_commit = lib.native.git_commit(filename)
       local library_path = lib.native.library_path('blink_cmp_fuzzy', git_commit)
       return lib.native.download_async(url, library_path, callback):map(function()
-        if not lib.native.load('blink_cmp_fuzzy', lib.native.git_commit(debug.getinfo(1, 'S').source:sub(2))) then
+        if not lib.native.load('blink_cmp_fuzzy', lib.native.git_commit(filename)) then
           error('Failed to load downloaded blink.cmp precompiled library')
         end
         logger:notify(vim.log.levels.INFO, 'Successfully loaded downloaded blink.cmp precompiled library')
