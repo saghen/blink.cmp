@@ -129,7 +129,7 @@ function cmp.build(opts)
 end
 
 --- Downloads the precompiled library if it's not already available
---- @param opts? { force?: boolean }
+--- @param opts? { force?: boolean, match?: string }
 --- @return blink.lib.Task
 function cmp.download(opts)
   return lib.task
@@ -139,7 +139,7 @@ function cmp.download(opts)
 
       logger:notify(vim.log.levels.INFO, 'Downloading blink.cmp precompiled library')
 
-      local git_tag = lib.native.git_tag(debug.getinfo(1, 'S').source:sub(2))
+      local git_tag = lib.native.git_tag(debug.getinfo(1, 'S').source:sub(2), opts.match)
       if git_tag == nil then error('Missing git tag, have you pinned the version?') end
 
       local platform = lib.native.platform()
