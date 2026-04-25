@@ -60,7 +60,7 @@ local source_list_per_filetype = config.types.validator(
 )
 
 return {
-  default = { { 'lsp', 'path', 'snippets', 'buffer' }, config.types.list('string') },
+  default = { { 'lsp', 'path', 'snippets', 'buffer' }, { config.types.list('string'), 'function' } },
   per_filetype = { {}, config.types.map('string', source_list_per_filetype) },
 
   transform_items = { function(_, items) return items end, 'function' },
