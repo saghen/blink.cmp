@@ -4,12 +4,22 @@ local log_file = require('blink.cmp.fuzzy.build.log')
 
 local build = {}
 
---- Gets the path to the blink.cmp root directory (parent of lua/)
+local project_root
+
+--- Gets the absolute blink.cmp project root path
 --- @return string
 local function get_project_root()
+  if project_root then return project_root end
+
   local current_file = debug.getinfo(1, 'S').source:sub(2)
-  -- Go up from lua/blink.cmp/fuzzy/build/init.lua to the project root
-  return vim.fn.fnamemodify(current_file, ':p:h:h:h:h:h:h')
+
+  local root = current_file:match('(.*/blink%.cmp)/')
+  if not root then root = vim.fs.root(current_file, { 'Cargo.toml', '.git' }) end
+  if not root then error(('Could not determine blink.cmp root from %s'):format(current_file)) end
+
+  project_root = root
+
+  return root
 end
 
 --- @param cmd string[]
