@@ -2,81 +2,89 @@
   description = "Performant, batteries-included completion plugin for Neovim";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    flake-parts.url = "github:hercules-ci/flake-parts";
+    nixpkgs.url = "https://channels.nixos.org/nixos-unstable/nixexprs.tar.xz";
 
     blink-lib.url = "github:saghen/blink.lib";
     blink-lib.inputs.nixpkgs.follows = "nixpkgs";
-    blink-lib.inputs.flake-parts.follows = "flake-parts";
   };
 
-  outputs =
-    inputs@{ flake-parts, nixpkgs, ... }:
-    flake-parts.lib.mkFlake { inherit inputs; } {
-      systems = [
-        "x86_64-linux"
-        "x86_64-darwin"
-        "aarch64-linux"
-        "aarch64-darwin"
-      ];
+  outputs = {
+    nixpkgs,
+    blink-lib,
+    self,
+    ...
+  }: let
+    inherit (nixpkgs) lib;
+    inherit (lib.attrsets) genAttrs mapAttrs' nameValuePair;
+    inherit (lib.fileset) fileFilter toSource unions;
+    inherit (lib.lists) optional;
 
-      perSystem =
-        {
-          self',
-          inputs',
-          pkgs,
-          lib,
-          ...
-        }:
-        {
-          packages =
-            let
-              fs = lib.fileset;
-              nixFs = fs.fileFilter (file: file.hasExt == "nix") ./.;
-              rustFs = fs.unions [
-                (fs.fileFilter (file: lib.hasPrefix "Cargo" file.name) ./.)
-                (fs.fileFilter (file: file.hasExt "rs") ./.)
-                ./.cargo
-              ];
-              nvimFs = fs.difference ./. (
-                fs.unions [
-                  nixFs
-                  rustFs
-                  ./doc
-                  ./repro.lua
-                ]
-              );
-              version = "1.10.0";
-            in
-            {
-              blink-fuzzy-lib = pkgs.rustPlatform.buildRustPackage {
-                pname = "blink-fuzzy-lib";
-                inherit version;
-                src = fs.toSource {
-                  root = ./.;
-                  fileset = rustFs;
-                };
-                cargoLock.lockFile = ./Cargo.lock;
-                buildInputs = with pkgs; lib.optionals stdenv.hostPlatform.isAarch64 [ rust-jemalloc-sys ];
-                nativeBuildInputs = with pkgs; [ git ];
-              };
+    systems = ["x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin"];
+    forAllSystems = genAttrs systems;
+    nixpkgsFor = forAllSystems (system:
+      import nixpkgs {
+        inherit system;
+        overlays = [blink-lib.overlays.default];
+      });
 
-              blink-cmp = pkgs.vimUtils.buildVimPlugin {
-                pname = "blink.cmp";
-                inherit version;
-                src = fs.toSource {
-                  root = ./.;
-                  fileset = nvimFs;
-                };
-                dependencies = [ inputs'.blink-lib.packages.blink-lib ];
-                preInstall = ''
-                  mkdir -p lib
-                  ln -s ${self'.packages.blink-fuzzy-lib}/lib/libblink_cmp_fuzzy.* lib/
-                '';
-              };
-
-              default = self'.packages.blink-cmp;
-            };
+    version = "1.10.2";
+    blink-cmp-package = {
+      git,
+      rust-jemalloc-sys,
+      rustPlatform,
+      stdenv,
+      vimPlugins,
+      vimUtils,
+    }:
+      vimUtils.buildVimPlugin {
+        pname = "blink.cmp";
+        inherit version;
+        src = toSource {
+          root = ./.;
+          fileset = unions [
+            (fileFilter (file: file.hasExt "lua") ./lua)
+            ./doc/blink-cmp.txt
+          ];
         };
+
+        dependencies = [
+          (vimPlugins.blink-lib or (throw "vimPlugins.blink-lib not found; did you include its overlay?"))
+        ];
+
+        preInstall = ''
+          mkdir -p lib
+          ln -s $fuzzy_lib/lib/libblink_cmp_fuzzy.* lib/
+        '';
+
+        env.fuzzy_lib = rustPlatform.buildRustPackage {
+          pname = "blink-fuzzy-lib";
+          inherit version;
+          src = toSource {
+            root = ./.;
+            fileset = unions [
+              (fileFilter (file: file.hasExt "rs") ./.)
+              ./Cargo.toml
+              ./Cargo.lock
+              ./.cargo
+            ];
+          };
+          cargoLock.lockFile = ./Cargo.lock;
+          buildInputs = optional stdenv.hostPlatform.isAarch64 rust-jemalloc-sys;
+          nativeBuildInputs = [git];
+        };
+      };
+  in {
+    packages = forAllSystems (system: rec {
+      blink-cmp = nixpkgsFor.${system}.callPackage blink-cmp-package {};
+      default = blink-cmp;
+    });
+
+    overlays.default = final: prev: {
+      vimPlugins = prev.vimPlugins.extend (_: _: {
+        blink-cmp = final.callPackage blink-cmp-package {};
+      });
     };
+
+    checks = forAllSystems (system: mapAttrs' (n: nameValuePair "package-${n}") (removeAttrs self.packages.${system} ["default"]));
+  };
 }
