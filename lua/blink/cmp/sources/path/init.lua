@@ -50,6 +50,8 @@ function path:get_completions(context, callback)
   local lib = require('blink.cmp.sources.path.lib')
 
   local dirname = lib.dirname(self.opts, context)
+  if not dirname then dirname = lib.dirname_relaxed(self.opts, context) end
+  if not dirname and context.trigger and context.trigger.kind == 'manual' then dirname = self.opts.get_cwd(context) end
   if not dirname then return callback({ is_incomplete_forward = false, is_incomplete_backward = false, items = {} }) end
 
   local include_hidden = self.opts.show_hidden_files_by_default
