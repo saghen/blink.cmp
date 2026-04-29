@@ -2,80 +2,40 @@
   "nodes": {
     "blink-lib": {
       "inputs": {
-        "flake-parts": [
-          "flake-parts"
-        ],
         "nixpkgs": [
           "nixpkgs"
         ]
       },
       "locked": {
-        "lastModified": 1776816558,
-        "narHash": "sha256-JDIe7FqcIDhApKWE3o19vNe1OrEprtqnLPWUaeBoidU=",
-        "owner": "saghen",
-        "repo": "blink.lib",
-        "rev": "b7c3a6cd97c9dd83e774308891643ae6f7ea2de8",
-        "type": "github"
+        "lastModified": 1777404682,
+        "narHash": "sha256-LF4CWNrq24OlhIiGuwH7DK6t/mwzm01LnalbAe1yspk=",
+        "rev": "110381103119180c6d419029e57bbf1bcc151de4",
+        "revCount": 57,
+        "type": "git",
+        "url": "file:///home/stefan/.local/share/snv/site/pack/dev/opt/blink.lib.dev"
       },
       "original": {
         "owner": "saghen",
         "repo": "blink.lib",
-        "type": "github"
-      }
-    },
-    "flake-parts": {
-      "inputs": {
-        "nixpkgs-lib": "nixpkgs-lib"
-      },
-      "locked": {
-        "lastModified": 1775087534,
-        "narHash": "sha256-91qqW8lhL7TLwgQWijoGBbiD4t7/q75KTi8NxjVmSmA=",
-        "owner": "hercules-ci",
-        "repo": "flake-parts",
-        "rev": "3107b77cd68437b9a76194f0f7f9c55f2329ca5b",
-        "type": "github"
-      },
-      "original": {
-        "owner": "hercules-ci",
-        "repo": "flake-parts",
         "type": "github"
       }
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1776329215,
-        "narHash": "sha256-a8BYi3mzoJ/AcJP8UldOx8emoPRLeWqALZWu4ZvjPXw=",
-        "owner": "nixos",
-        "repo": "nixpkgs",
-        "rev": "b86751bc4085f48661017fa226dee99fab6c651b",
-        "type": "github"
+        "lastModified": 1777268161,
+        "narHash": "sha256-e1tDUQMbFCxCnke314UpghgRqg3FJLtcXFfq/WTRLYI=",
+        "rev": "1c3fe55ad329cbcb28471bb30f05c9827f724c76",
+        "type": "tarball",
+        "url": "https://releases.nixos.org/nixos/unstable/nixos-26.05pre987561.1c3fe55ad329/nixexprs.tar.xz"
       },
       "original": {
-        "owner": "nixos",
-        "ref": "nixpkgs-unstable",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
-    "nixpkgs-lib": {
-      "locked": {
-        "lastModified": 1774748309,
-        "narHash": "sha256-+U7gF3qxzwD5TZuANzZPeJTZRHS29OFQgkQ2kiTJBIQ=",
-        "owner": "nix-community",
-        "repo": "nixpkgs.lib",
-        "rev": "333c4e0545a6da976206c74db8773a1645b5870a",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-community",
-        "repo": "nixpkgs.lib",
-        "type": "github"
+        "type": "tarball",
+        "url": "https://channels.nixos.org/nixos-unstable/nixexprs.tar.xz"
       }
     },
     "root": {
       "inputs": {
         "blink-lib": "blink-lib",
-        "flake-parts": "flake-parts",
         "nixpkgs": "nixpkgs"
       }
     }
