@@ -40,7 +40,25 @@ function Source:enabled()
   return not vim.tbl_contains({ nil, '' }, self.opts.complete_func()) and nvim.get_mode().mode == 'i'
 end
 
----Invoke an complete_func handling `v:lua.*`
+---@param func string
+---@return string
+local function resolve_script_local_function(func)
+  local local_name = func:match('^s:(.+)$') or func:match('^<SID>(.+)$')
+  if not local_name then return func end
+
+  local option_info = vim.api.nvim_get_option_info2('omnifunc', { buf = 0 })
+  if option_info.last_set_sid <= 0 then return func end
+
+  local script_info = vim.fn.getscriptinfo({ sid = option_info.last_set_sid })[1]
+  if not script_info.functions then return func end
+
+  local resolved_name = ('<SNR>%d_%s'):format(option_info.last_set_sid, local_name)
+  if vim.tbl_contains(script_info.functions, resolved_name) then return resolved_name end
+
+  return func
+end
+
+---Invoke an complete_func handling `v:lua.*` and script-local Vimscript.
 ---@return (table<{ words: blink.cmp.CompleteFuncWords, refresh: string }> | blink.cmp.CompleteFuncWords) | integer
 ---@overload fun(func: string, findstart: 1, base: ''): integer
 ---@overload fun(func: string, findstart: 0, base: string): table<{ words: blink.cmp.CompleteFuncWords, refresh: string }> | blink.cmp.CompleteFuncWords
@@ -54,6 +72,7 @@ local function invoke_complete_func(func, findstart, base)
     if match then
       return vim.fn.luaeval(string.format('%s(_A[1], _A[2], _A[3])', match), args)
     else
+      func = resolve_script_local_function(func)
       return nvim.call_function(func, args)
     end
   end)
