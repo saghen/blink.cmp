@@ -10,11 +10,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1776816558,
-        "narHash": "sha256-JDIe7FqcIDhApKWE3o19vNe1OrEprtqnLPWUaeBoidU=",
+        "lastModified": 1777065460,
+        "narHash": "sha256-Wr7r7445c2bjuG8tjrHR6kCBh7xsk/0hQ4HW2yW3YeA=",
         "owner": "saghen",
         "repo": "blink.lib",
-        "rev": "b7c3a6cd97c9dd83e774308891643ae6f7ea2de8",
+        "rev": "dda2666685a5ac3598166577d2e34f1fff6b1637",
         "type": "github"
       },
       "original": {
@@ -43,11 +43,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1776329215,
-        "narHash": "sha256-a8BYi3mzoJ/AcJP8UldOx8emoPRLeWqALZWu4ZvjPXw=",
+        "lastModified": 1777425547,
+        "narHash": "sha256-d57AbflkNfZNoFaZDzssEq1RfPoM9dLtOGI2O+N/68Q=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "b86751bc4085f48661017fa226dee99fab6c651b",
+        "rev": "ebc08544afa77957cc348ba72dc490ec73b87f68",
         "type": "github"
       },
       "original": {
