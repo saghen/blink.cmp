@@ -80,15 +80,15 @@ function keymap.get_mappings(keymap_config, mode)
 
   -- Inherit preset from default, if needed
   if mappings.preset == 'inherit' and mode ~= 'default' then
-    mappings = vim.tbl_deep_extend('force', config.keymap, mappings)
+    mappings.keys = vim.tbl_deep_extend('force', config.keymap.keys, mappings.keys or {})
     mappings.preset = config.keymap.preset
   end
 
   -- Remove unused keys, but keep keys set to false or empty tables (to disable them)
   if mode ~= 'default' then
-    for key, commands in pairs(mappings) do
+    for key, commands in pairs(mappings.keys) do
       if key ~= 'preset' and commands ~= false and #commands ~= 0 and not apply.has_insert_command(commands) then
-        mappings[key] = nil
+        mappings.keys[key] = nil
       end
     end
   end
@@ -98,15 +98,15 @@ function keymap.get_mappings(keymap_config, mode)
     local preset_keymap = presets.get(mappings.preset)
     -- Remove 'preset' key from opts to prevent it from being treated as a keymap
     mappings.preset = nil
-    mappings = utils.merge_mappings(preset_keymap, mappings)
+    mappings.keys = utils.merge_mappings(preset_keymap, mappings.keys)
   end
 
   -- Remove keys explicitly disabled by user (set to false or no commands)
   for key, commands in pairs(mappings) do
-    if commands == false or #commands == 0 then mappings[key] = nil end
+    if commands == false or #commands == 0 then mappings.keys[key] = nil end
   end
 
-  return mappings --[[@as table<string, blink.cmp.KeymapCommand[]>]]
+  return mappings.keys --[[@as table<string, blink.cmp.KeymapCommand[]>]]
 end
 
 function keymap.setup()

@@ -30,6 +30,26 @@ require('blink.cmp').download({ force = true, tags = '*' }):wait(60000)
 
 #### Keymap
 
+- Added nested `keymap.keys` to list all your custom keymaps:
+
+```lua
+-- BEFORE
+keymap = {
+    preset = 'default'
+    ['<C-e>'] = { 'show', 'hide'},
+    -- ...
+}
+
+-- AFTER
+keymap = {
+    preset = 'default'
+    keys = {
+        ['<C-e>'] = { 'show', 'hide'},
+        -- ...
+    },
+}
+```
+
 - Keymaps are now buffer-local for all modes
 
 #### Sources

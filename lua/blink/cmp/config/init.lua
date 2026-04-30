@@ -7,13 +7,21 @@
 --- @field signature blink.cmp.SignatureConfig
 --- @field snippets blink.cmp.SnippetsConfig
 --- @field appearance blink.cmp.AppearanceConfig
---- @field cmdline table TODO:
---- @field term table TODO:
+--- @field cmdline blink.cmp.CmdlineConfig
+--- @field term blink.cmp.TermConfig
+
+--- @class blink.cmp.CmdlineConfig
+--- @field enabled boolean
+--- @field keymap blink.cmp.KeymapConfig
+
+--- @class blink.cmp.TermConfig
+--- @field enabled boolean
+--- @field keymap blink.cmp.KeymapConfig
 
 --- @type blink.cmp.ConfigStrict
 local config = require('blink.lib.config').new({
   enabled = { true, { 'boolean', 'function' } },
-  keymap = require('blink.cmp.config.keymap'),
+  keymap = require('blink.cmp.config.keymap').get('default'),
   completion = require('blink.cmp.config.completion'),
   fuzzy = require('blink.cmp.config.fuzzy'),
   sources = require('blink.cmp.config.sources'),
@@ -24,11 +32,11 @@ local config = require('blink.lib.config').new({
   -- mode specific configs
   cmdline = {
     enabled = { true, 'boolean' },
-    keymap = { { preset = 'cmdline' }, 'table' },
+    keymap = require('blink.cmp.config.keymap').get('cmdline'),
   },
   term = {
     enabled = { true, 'boolean' },
-    keymap = { { preset = 'default' }, 'table' },
+    keymap = require('blink.cmp.config.keymap').get('inherit'),
   },
 }, { global_key = 'blink_cmp', validate = false })
 

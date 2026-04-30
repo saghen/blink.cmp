@@ -34,7 +34,9 @@ Special presets:
 ```lua
 keymap = {
   preset = 'none',
-  ['<C-Space>'] = { 'show' }, -- Only one command defined!
+  keys = {
+    ['<C-Space>'] = { 'show' }, -- Only one command defined!
+  }
 },
 ```
 
@@ -43,7 +45,9 @@ keymap = {
 ```lua
 keymap = {
   preset = 'default',
-  ['<C-Space>'] = { 'show' },
+  keys = {
+    ['<C-Space>'] = { 'show' },
+  },
 },
 cmdline = {
     keymap = {
@@ -115,39 +119,40 @@ Example with conditional logic:
  ```lua
 keymap = {
   preset = 'default',
+  keys = {
+    -- Single command
+    ['<C-n>'] = { 'select_next' },
 
-  -- Single command
-  ['<C-n>'] = { 'select_next' },
+    -- Chained commands
+    ['<C-p>'] = { 'select_prev', 'fallback' },
 
-  -- Chained commands
-  ['<C-p>'] = { 'select_prev', 'fallback' },
+    -- Multi-key sequences
+    ['<C-x><C-o>'] = { 'show', 'fallback' },
+    ['jk'] = { 'hide' },
 
-  -- Multi-key sequences
-  ['<C-x><C-o>'] = { 'show', 'fallback' },
-  ['jk'] = { 'hide' },
+    -- Key equivalences (for terminals that support them)
+    ['<C-i>'] = { 'accept', 'snippet_forward', 'fallback' },
+    ['<Tab>'] = { 'select_next', 'fallback' },
 
-  -- Key equivalences (for terminals that support them)
-  ['<C-i>'] = { 'accept', 'snippet_forward', 'fallback' },
-  ['<Tab>'] = { 'select_next', 'fallback' },
+    -- Override preset key
+    ['<C-y>'] = { 'select_and_accept' },
 
-  -- Override preset key
-  ['<C-y>'] = { 'select_and_accept' },
+    -- Disable preset key
+    ['<C-e>'] = false, -- or {}
 
-  -- Disable preset key
-  ['<C-e>'] = false, -- or {}
+    -- Function calling blink.cmp method
+    ['<C-Space>'] = { function(cmp) return cmp.show() end },
+    ['<C-Space>'] = { 'show' }, -- This is equivalent as above
 
-  -- Function calling blink.cmp method
-  ['<C-Space>'] = { function(cmp) return cmp.show() end },
-  ['<C-Space>'] = { 'show' }, -- This is equivalent as above
+    -- Actions with parameters require functions
+    ['<C-space>S'] = { function(cmp) return cmp.show({ providers = { 'snippets' } }) end },
 
-  -- Actions with parameters require functions
-  ['<C-space>S'] = { function(cmp) return cmp.show({ providers = { 'snippets' } }) end },
-
-  -- String returns - feedkeys() with 't' flag (remap enabled)
-  -- User mappings take precedence over built-in behavior
-  ['<C-n>'] = { 'select_next' },
-  -- Here, <C-n> triggers 'select_next' command defined above
-  ['<C-j>'] = { function(cmp) return '<C-n>' end },
+    -- String returns - feedkeys() with 't' flag (remap enabled)
+    -- User mappings take precedence over built-in behavior
+    ['<C-n>'] = { 'select_next' },
+    -- Here, <C-n> triggers 'select_next' command defined above
+    ['<C-j>'] = { function(cmp) return '<C-n>' end },
+  }
 }
  ```
 
