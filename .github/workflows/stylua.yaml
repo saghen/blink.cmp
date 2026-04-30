@@ -25,12 +25,12 @@ jobs:
     name: Check lua files using Stylua
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
 
       - name: Stylua Check Repo
-        uses: JohnnyMorganz/stylua-action@v4
+        uses: JohnnyMorganz/stylua-action@479972f01e665acfcba96ada452c36608bdbbb5e # v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           version: latest
