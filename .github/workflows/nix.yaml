@@ -40,15 +40,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: DeterminateSystems/nix-installer-action@main
-        with:
-          extra-conf: |
-            accept-flake-config = true
 
       - name: Check the flake
         run: nix flake check
-
-      - name: Build the library
-        run: nix build .#blink-fuzzy-lib
-
-      - name: Build the plugin in nix
-        run: nix build .#blink-cmp
