@@ -33,8 +33,8 @@ builtin.lazy.CLIPBOARD = cached(
 )
 
 local function buf_to_ws_part()
-  local LSP_WORSKPACE_PARTS = 'LSP_WORSKPACE_PARTS'
-  local ok, ws_parts = pcall(nvim.buf_get_var, 0, LSP_WORSKPACE_PARTS)
+  local LSP_WORKSPACE_PARTS = 'LSP_WORKSPACE_PARTS'
+  local ok, ws_parts = pcall(nvim.buf_get_var, 0, LSP_WORKSPACE_PARTS)
   if not ok then
     local file_path = vim.fn.expand('%:p')
 
@@ -46,7 +46,7 @@ local function buf_to_ws_part()
     end
     -- If it can't be extracted from lsp, then we use the file path
     if not ok and not ws_parts then ws_parts = { vim.fn.expand('%:p:h'), vim.fn.expand('%:p:t') } end
-    nvim.buf_set_var(0, LSP_WORSKPACE_PARTS, ws_parts)
+    nvim.buf_set_var(0, LSP_WORKSPACE_PARTS, ws_parts)
   end
   return ws_parts
 end
