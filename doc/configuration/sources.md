@@ -106,12 +106,14 @@ Here is a non-exhaustive list of third-party plugins providing additional comple
 - [blink-cmp-dat-word](https://github.com/xieyonn/blink-cmp-dat-word) by `xieyonn`: Word
 - [blink-cmp-dictionary](https://github.com/Kaiser-Yang/blink-cmp-dictionary) by `Kaiser-Yang`: Word
 - [blink-cmp-env](https://github.com/bydlw98/blink-cmp-env) by `bydlw98`: Environment variables
+- [blink-cmp-emoji](https://github.com/timrydefalk/blink-cmp-emoji) by `timrydefalk`: Unicode Emoji v17.0 glyphs sans Zero Width Joiner
 - [blink-cmp-ghostty](https://github.com/barrettruth/blink-cmp-ghostty) by `barrettruth`: [Ghostty](https://ghostty.org/) terminal
 - [blink-cmp-git](https://github.com/Kaiser-Yang/blink-cmp-git) by `Kaiser-Yang`: Git commits
 - [blink-cmp-im](https://github.com/yehuohan/blink-cmp-im) by `yehuohan`: Input Method
 - [blink-cmp-kitty](https://github.com/garyhurtz/blink_cmp_kitty) by `garyhurtz`: [Kitty](https://sw.kovidgoyal.net/kitty) terminal
 - [blink-cmp-latex](https://github.com/erooke/blink-cmp-latex) by `erooke`: Unicode symbols via latex macros
 - [blink-cmp-luasnip-choice](https://github.com/becknik/blink-cmp-luasnip-choice) by `becknik`: [LuaSnip](https://github.com/L3MON4D3/LuaSnip) choice node
+- [blink-cmp-nerdfont](https://github.com/timrydefalk/blink-cmp-nerdfont) by `timrydefalk`: Nerdfont glyphs
 - [blink-cmp-npm](https://github.com/alexandre-abrioux/blink-cmp-npm.nvim) by `alexandre-abrioux`: NPM package names and versions
 - [blink-cmp-register](https://github.com/phanen/blink-cmp-register) by `phanen`: Registers
 - [blink-cmp-rg](https://github.com/niuiic/blink-cmp-rg.nvim) by `niuiic`: Ripgrep
