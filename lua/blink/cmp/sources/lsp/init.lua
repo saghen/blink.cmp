@@ -82,6 +82,15 @@ function lsp:resolve(item, callback)
     return
   end
 
+  -- Force-flush any queued `textDocument/didChange` notifications before sending
+  -- the resolve. Buffer modifications made just before accept (notably reverting
+  -- an `auto_insert` preview in `list.undo_preview()`) sit in Neovim's debounced
+  -- change tracker for up to `flags.debounce_text_changes` ms, and a server that
+  -- recomputes `textEdit` during resolve (most notably rust-analyzer) will then
+  -- return ranges that reference text the buffer no longer contains, deleting
+  -- trailing characters when the edit is applied. See #1736.
+  pcall(function() require('vim.lsp._changetracking').flush(client) end)
+
   -- strip blink specific fields to avoid decoding errors on some LSPs
   item = require('blink.cmp.sources.lib.utils').blink_item_to_lsp_item(item)
 
