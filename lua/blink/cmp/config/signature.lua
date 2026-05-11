@@ -28,7 +28,7 @@
 
 local config = require('blink.lib.config')
 return {
-  enabled = { true, 'boolean' },
+  enabled = { false, 'boolean' },
   -- TODO: rename as per completion.trigger
   trigger = {
     enabled = { true, 'boolean' },
