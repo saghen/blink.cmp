@@ -26,7 +26,7 @@ return {
   show_on_backspace_after_insert_enter = { true, 'boolean' },
   show_on_trigger_character = { true, 'boolean' },
   show_on_insert = { false, 'boolean' },
-  show_on_blocked_trigger_characters = { { ' ', '\n', '\t' }, config.types.list('string') },
+  show_on_blocked_trigger_characters = { { ' ', '\n', '\t' }, { config.types.list('string'), 'function' } },
   show_on_accept_on_trigger_character = { true, 'boolean' },
   show_on_insert_on_trigger_character = { true, 'boolean' },
   show_on_x_blocked_trigger_characters = { { "'", '"', '(', '{', '[' }, config.types.list('string') },
