@@ -129,24 +129,29 @@ jobs:
           sync_files: true  # Sync files between runner/VM in both directions
           run: |
             sudo pkg_add git rust
-            echo "### OS infos"
+            echo "::group::OS infos"
             uname -a
+            echo "::endgroup::"
+            echo "::group::Rust infos"
             git config --global --add safe.directory .
-            echo "### Rust infos"
             rustc -vV
             cargo -vV
-            echo "### Build fuzzy matcher with rustc"
+            echo "::endgroup::"
+            echo "::group::Build fuzzy matcher with rustc"
             cargo build --release
             printf "\n### ls -l target/release/\n"
             ls -l target/release/
+            echo "::endgroup::"
 
       - name: Infos on runner after build
         run: |
-          echo "### target/release/ files on runner"
+          echo "::group::target/release/ files on runner"
           ls -l target/release/
           file target/release/libblink_cmp_fuzzy.so
-          echo "### Copy file for artifact"
+          echo "::endgroup::"
+          echo "::group::Copy file for artifact"
           cp -v target/release/libblink_cmp_fuzzy.so "${{ matrix.target }}.so"
+          echo "::endgroup::"
 
       - name: Upload artifacts for OpenBSD/${{ matrix.arch }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
