@@ -112,12 +112,19 @@ function cmp.build(opts)
       if repo_root == nil then error('Missing git repo root, did you install via a package manager?') end
 
       return lib.native.exec_async(repo_root, { 'cargo', 'build', '--release' }, logger):map(function(_system)
-        -- Rust cdylib output naming: every platform produces `lib<name><ext>`
-        -- *except* Windows-MSVC which produces `<name>.dll` with no prefix.
-        -- See https://doc.rust-lang.org/reference/linkage.html
-        local cargo_lib_prefix = platform.os == 'windows' and '' or 'lib'
+        -- Rust cdylib on Windows-MSVC produces `<name>.dll` (no `lib` prefix);
+        -- other targets produce `lib<name><ext>`. Try both, move whichever cargo produced.
+        local src
+        for _, name in ipairs({ 'libblink_cmp_fuzzy', 'blink_cmp_fuzzy' }) do
+          local candidate = repo_root .. '/target/release/' .. name .. platform.lib_extension
+          if vim.uv.fs_stat(candidate) then
+            src = candidate
+            break
+          end
+        end
+        if not src then error('Built cdylib not found in target/release/') end
         lib.native.mv(
-          repo_root .. '/target/release/' .. cargo_lib_prefix .. 'blink_cmp_fuzzy' .. platform.lib_extension,
+          src,
           lib.native.library_path(
             'blink_cmp_fuzzy',
               -- store without hash for dev builds
