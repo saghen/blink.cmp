@@ -150,7 +150,7 @@ function utils.get_completions(pattern, type, completion_type)
     if vim.fn.has('win32') == 1 then
       separator = ';'
       -- Remove System32 folder on native Windows
-      filter_fn = function(part) return not part:lower():match('^[a-z]:\\windows\\system32$') end
+      filter_fn = function(part) return not part:lower():match('^[a-z]:[/\\]windows[/\\]system32[/\\]?$') end
     elseif vim.fn.has('wsl') == 1 then
       separator = ':'
       -- Remove all Windows filesystem mounts on WSL
