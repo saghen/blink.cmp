@@ -31,7 +31,7 @@ return {
   scrollbar = { true, 'boolean' },
   -- which directions to show the window,
   -- falling back to the next direction when there's not enough space
-  direction_priority = { { 's', 'n' }, config.types.list(config.types.enum({ 'n', 's' })) },
+  direction_priority = { { 's', 'n' }, { config.types.list(config.types.enum({ 'n', 's' })), 'function' } },
   -- Whether to automatically show the window when new completion items are available
   auto_show = { true, { 'boolean', 'function' } },
   -- Delay before showing the completion menu
