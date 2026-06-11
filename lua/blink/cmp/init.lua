@@ -94,6 +94,11 @@ end
 
 -------- Native Library --------
 
+function cmp.get_repo_root()
+  assert(native.repo_root, 'Could not determine project root, is the plugin inside a git repository?')
+  return native.repo_root
+end
+
 function cmp.library_available() return native:library_available() end
 
 --- Builds the native library if it's not already available

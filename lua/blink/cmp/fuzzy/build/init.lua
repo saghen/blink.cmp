@@ -1,16 +1,9 @@
 local task = require('blink.lib.task')
 local logger = require('blink.cmp.logger')
 local log_file = require('blink.cmp.fuzzy.build.log')
+local project_root = require('blink.cmp').get_repo_root()
 
 local build = {}
-
---- Gets the path to the blink.cmp root directory (parent of lua/)
---- @return string
-local function get_project_root()
-  local current_file = debug.getinfo(1, 'S').source:sub(2)
-  -- Go up from lua/blink.cmp/fuzzy/build/init.lua to the project root
-  return vim.fn.fnamemodify(current_file, ':p:h:h:h:h:h:h')
-end
 
 --- @param cmd string[]
 --- @return blink.lib.Task<vim.SystemCompleted>
@@ -19,7 +12,7 @@ local async_system = function(cmd, opts)
     local proc = vim.system(
       cmd,
       vim.tbl_extend('force', {
-        cwd = get_project_root(),
+        cwd = project_root,
         text = true,
       }, opts or {}),
       vim.schedule_wrap(function(out)
@@ -41,7 +34,7 @@ function build.build()
   logger:notify(vim.log.levels.INFO, 'Building fuzzy matching library from source...')
 
   local log = log_file.create()
-  log.write('Working Directory: ' .. get_project_root())
+  log.write('Working Directory: ' .. project_root)
 
   local cmd = { 'cargo', 'build', '--release' }
   log.write('Command: ' .. table.concat(cmd, ' ') .. '\n')
