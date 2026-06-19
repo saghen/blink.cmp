@@ -11,6 +11,7 @@ function signature.setup()
     local context = event.context
     sources.cancel_signature_help()
     sources.get_signature_help(context):map(function(signature_helps)
+      ---@cast signature_helps lsp.SignatureHelp[]
       -- TODO: pick intelligently
       local signature_help = signature_helps[1]
       if signature_help ~= nil and trigger.context ~= nil and trigger.context.id == context.id then

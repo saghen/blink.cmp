@@ -18,12 +18,12 @@
 --- @field per_filetype table<string, blink.cmp.SourceListPerFiletype>
 ---
 --- @field transform_items fun(ctx: blink.cmp.Context, items: blink.cmp.CompletionItem[]): blink.cmp.CompletionItem[] Function to transform the items before they're returned
---- @field min_keyword_length number | fun(ctx: blink.cmp.Context): number Minimum number of characters in the keyword to trigger
+--- @field min_keyword_length integer | fun(ctx: blink.cmp.Context): integer Minimum number of characters in the keyword to trigger
 ---
 --- @field providers table<string, blink.cmp.SourceProviderConfig>
 
 --- @alias blink.cmp.SourceList string[] | fun(): string[]
---- @alias blink.cmp.SourceListPerFiletype { inherit_defaults?: boolean, [number]: string } | fun(): ({ inherit_defaults?: boolean, [number]: string })
+--- @alias blink.cmp.SourceListPerFiletype { inherit_defaults?: boolean, [integer]: string } | fun(): ({ inherit_defaults?: boolean, [integer]: string })
 
 --- @class blink.cmp.SourceProviderConfig
 --- @field module string
@@ -31,19 +31,19 @@
 --- @field enabled? boolean | fun(): boolean Whether or not to enable the provider
 --- @field opts? table
 --- @field async? boolean | fun(ctx: blink.cmp.Context): boolean Whether we should show the completions before this provider returns, without waiting for it
---- @field timeout_ms? number | fun(ctx: blink.cmp.Context): number How long to wait for the provider to return before showing completions and treating it as asynchronous
+--- @field timeout_ms? integer | fun(ctx: blink.cmp.Context): integer How long to wait for the provider to return before showing completions and treating it as asynchronous
 --- @field transform_items? fun(ctx: blink.cmp.Context, items: blink.cmp.CompletionItem[]): blink.cmp.CompletionItem[] Function to transform the items before they're returned
 --- @field should_show_items? boolean | fun(ctx: blink.cmp.Context, items: blink.cmp.CompletionItem[]): boolean Whether or not to show the items
---- @field max_items? number | fun(ctx: blink.cmp.Context, items: blink.cmp.CompletionItem[]): number Maximum number of items to display in the menu
---- @field min_keyword_length? number | fun(ctx: blink.cmp.Context): number Minimum number of characters in the keyword to trigger the provider
+--- @field max_items? integer | fun(ctx: blink.cmp.Context, items: blink.cmp.CompletionItem[]): integer Maximum number of items to display in the menu
+--- @field min_keyword_length? integer | fun(ctx: blink.cmp.Context): integer Minimum number of characters in the keyword to trigger the provider
 --- @field fallbacks? string[] | fun(ctx: blink.cmp.Context, enabled_sources: string[]): string[] If this provider returns 0 items, it will fallback to these providers
---- @field score_offset? number | fun(ctx: blink.cmp.Context, enabled_sources: string[]): number Boost/penalize the score of the items
+--- @field score_offset? integer | fun(ctx: blink.cmp.Context, enabled_sources: string[]): integer Boost/penalize the score of the items
 --- @field override? blink.cmp.SourceOverride Override the source's functions
 
 local config = require('blink.lib.config')
 
 local source_list_per_filetype = config.types.validator(
-  '{ inherit_defaults?: boolean, [number]: string }',
+  '{ inherit_defaults?: boolean, [integer]: string }',
   function(val)
     if type(val) ~= 'table' then return false end
     for k, v in pairs(val) do

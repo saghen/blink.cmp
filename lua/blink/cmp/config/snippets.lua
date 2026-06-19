@@ -1,9 +1,9 @@
 --- @class (exact) blink.cmp.SnippetsConfig
 --- @field preset 'default' | 'luasnip' | 'mini_snippets' | 'vsnip'
 --- @field expand fun(snippet: string) Function to use when expanding LSP provided snippets
---- @field active fun(filter?: { direction?: number }): boolean Function to use when checking if a snippet is active
---- @field jump fun(direction: number): boolean Function to use when jumping between tab stops in a snippet, where direction can be negative or positive
---- @field score_offset number Offset to the score of all snippet items
+--- @field active fun(filter?: { direction?: integer }): boolean Function to use when checking if a snippet is active
+--- @field jump fun(direction: integer): boolean Function to use when jumping between tab stops in a snippet, where direction can be negative or positive
+--- @field score_offset integer Offset to the score of all snippet items
 
 --- @param handlers table<'default' | 'luasnip' | 'mini_snippets' | 'vsnip', fun(...): any>
 local function by_preset(handlers)

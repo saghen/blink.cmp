@@ -4,9 +4,9 @@
 --- @field name string
 --- @field config blink.cmp.SourceProviderConfigWrapper
 --- @field module blink.cmp.Source
---- @field list blink.cmp.SourceProviderList | nil
---- @field resolve_cache_context_id number | nil
---- @field resolve_cache table<blink.cmp.CompletionItem, blink.lib.Task>
+--- @field list? blink.cmp.SourceProviderList
+--- @field resolve_cache_context_id? integer
+--- @field resolve_cache table<blink.cmp.CompletionItem, blink.lib.Task<blink.cmp.CompletionItem?>>
 ---
 --- @field new fun(id: string, config: blink.cmp.SourceProviderConfig): blink.cmp.SourceProvider
 --- @field enabled fun(self: blink.cmp.SourceProvider): boolean
@@ -14,11 +14,11 @@
 --- @field get_completions fun(self: blink.cmp.SourceProvider, context: blink.cmp.Context, on_items: fun(items: blink.cmp.CompletionItem[], is_cached: boolean))
 --- @field should_show_items fun(self: blink.cmp.SourceProvider, context: blink.cmp.Context, items: blink.cmp.CompletionItem[]): boolean
 --- @field transform_items fun(self: blink.cmp.SourceProvider, context: blink.cmp.Context, items: blink.cmp.CompletionItem[]): blink.cmp.CompletionItem[]
---- @field resolve fun(self: blink.cmp.SourceProvider, context: blink.cmp.Context, item: blink.cmp.CompletionItem): blink.lib.Task
---- @field execute fun(self: blink.cmp.SourceProvider, context: blink.cmp.Context, item: blink.cmp.CompletionItem, default_implementation: fun(context?: blink.cmp.Context, item?: blink.cmp.CompletionItem)): blink.lib.Task
+--- @field resolve fun(self: blink.cmp.SourceProvider, context: blink.cmp.Context, item: blink.cmp.CompletionItem): blink.lib.Task<blink.cmp.CompletionItem?>
+--- @field execute fun(self: blink.cmp.SourceProvider, context: blink.cmp.Context, item: blink.cmp.CompletionItem, default_implementation: fun(context?: blink.cmp.Context, item?: blink.cmp.CompletionItem)): blink.lib.Task<nil>
 --- @field get_signature_help_trigger_characters fun(self: blink.cmp.SourceProvider): { trigger_characters: string[], retrigger_characters: string[] }
---- @field get_signature_help fun(self: blink.cmp.SourceProvider, context: blink.cmp.SignatureHelpContext): blink.lib.Task
---- @field reload (fun(self: blink.cmp.SourceProvider): nil) | nil
+--- @field get_signature_help fun(self: blink.cmp.SourceProvider, context: blink.cmp.SignatureHelpContext): blink.lib.Task<lsp.SignatureHelp?>
+--- @field reload fun(self: blink.cmp.SourceProvider)
 
 --- @type blink.cmp.SourceProvider
 --- @diagnostic disable-next-line: missing-fields
@@ -51,7 +51,7 @@ function source:enabled()
   -- Skip during fast events, many implementations use Vim APIs
   -- (nvim_get_current_buf, win_gettype, etc.) which are forbidden and crash with E5560.
   -- This is re-evaluated safely in the scheduled completion phase.
-  if vim.in_fast_event() then return false end
+  if vim.in_fast_event() == true then return false end
 
   -- user defined
   local user_enabled = self.config.enabled
@@ -89,8 +89,13 @@ function source:get_completions(context, on_items)
   -- The TriggerForIncompleteCompletions kind is handled by the source provider itself
   local source_context = lib.tbl.copy(context)
   source_context.trigger = trigger_character
-      and { kind = vim.lsp.protocol.CompletionTriggerKind.TriggerCharacter, character = context.trigger.character }
-    or { kind = vim.lsp.protocol.CompletionTriggerKind.Invoked }
+      and {
+        kind = vim.lsp.protocol.CompletionTriggerKind.TriggerCharacter,
+        character = context.trigger.character,
+      } --[[@as blink.cmp.ContextTrigger]]
+    or {
+      kind = vim.lsp.protocol.CompletionTriggerKind.Invoked,
+    } --[[@as blink.cmp.ContextTrigger]]
 
   local async_initial_items = self.list ~= nil and self.list.context.id == context.id and self.list.items or {}
   if self.list ~= nil then self.list:destroy() end
@@ -158,13 +163,14 @@ function source:resolve(context, item)
 
       return self.module:resolve(item, function(resolved_item)
         -- HACK: it's out of spec to update keys not in resolveSupport.properties but some LSPs do it anyway
-        local merged_item = vim.tbl_deep_extend('force', item, resolved_item or {})
+        local merged_item = vim.tbl_deep_extend('force', item, resolved_item or {} --[[@as blink.cmp.CompletionItem]])
         local transformed_item = self:transform_items(context, { merged_item })[1] or merged_item
         vim.schedule(function() resolve(transformed_item) end)
       end)
     end)
   end
-  return self.resolve_cache[item]
+
+  return self.resolve_cache[item] --[[@as blink.lib.Task<blink.cmp.CompletionItem>]]
 end
 
 --- Execute ---
@@ -175,7 +181,7 @@ function source:execute(context, item, default_implementation)
     return task.resolve()
   end
 
-  return task.new(function(resolve) return self.module:execute(context, item, resolve, default_implementation) end)
+  return task.new(function(resolve) return self.module:execute(context, item, resolve, default_implementation) end) --[[@as blink.lib.Task<nil>]]
 end
 
 --- Signature help ---

@@ -7,7 +7,7 @@
 --- @field buffer_events blink.cmp.BufferEvents
 --- @field cmdline_events blink.cmp.CmdlineEvents
 --- @field term_events blink.cmp.TermEvents
---- @field current_context_id number
+--- @field current_context_id integer
 --- @field context? blink.cmp.Context
 --- @field show_emitter blink.cmp.EventEmitter<{ context: blink.cmp.Context }>
 --- @field hide_emitter blink.cmp.EventEmitter<{}>
@@ -19,8 +19,8 @@
 --- @field show_if_on_trigger_character fun(opts?: { is_accept?: boolean })
 --- @field show fun(opts?: blink.cmp.CompletionTriggerShowOptions): blink.cmp.Context?
 --- @field hide fun()
---- @field within_query_bounds fun(cursor: number[]): boolean
---- @field get_bounds fun(regex: vim.regex, line: string, cursor: number[]): blink.cmp.ContextBounds
+--- @field within_query_bounds fun(cursor: blink.cmp.CursorPos): boolean
+--- @field get_bounds fun(regex: vim.regex, line: string, cursor: blink.cmp.CursorPos): blink.cmp.ContextBounds
 
 --- @class blink.cmp.CompletionTriggerShowOptions
 --- @field trigger_kind blink.cmp.CompletionTriggerKind
@@ -28,7 +28,7 @@
 --- @field force? boolean
 --- @field send_upstream? boolean
 --- @field providers? string[]
---- @field initial_selected_item_idx? number
+--- @field initial_selected_item_idx? integer
 
 local root_config = require('blink.cmp.config')
 local config = root_config.completion.trigger
@@ -182,10 +182,7 @@ function trigger.activate()
   end
 end
 
-function trigger.resubscribe()
-  ---@diagnostic disable-next-line: missing-fields
-  trigger.buffer_events:resubscribe({ on_char_added = on_char_added })
-end
+function trigger.resubscribe() trigger.buffer_events:resubscribe({ on_char_added = on_char_added }) end
 
 function trigger.is_trigger_character(char, is_show_on_x)
   local sources = require('blink.cmp.sources.lib')
@@ -242,7 +239,7 @@ end
 function trigger.show(opts)
   if vim.fn.pumvisible() == 1 or not require('blink.cmp').is_enabled() then return trigger.hide() end
 
-  opts = opts or {}
+  opts = opts or {} --[[@as blink.cmp.CompletionTriggerShowOptions]]
 
   -- already triggered at this position, ignore
   local mode = context.get_mode()

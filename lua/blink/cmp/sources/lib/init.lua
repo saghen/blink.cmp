@@ -3,8 +3,8 @@ local task = require('blink.lib.task')
 local config = require('blink.cmp.config')
 
 --- @class blink.cmp.Sources
---- @field completions_queue blink.cmp.SourcesQueue | nil
---- @field current_signature_help blink.lib.Task | nil
+--- @field completions_queue? blink.cmp.SourcesQueue
+--- @field current_signature_help? blink.lib.Task<lsp.SignatureHelp?>
 --- @field providers table<string, blink.cmp.SourceProvider>
 --- @field per_filetype_provider_ids table<string, string[]>
 --- @field completions_emitter blink.cmp.EventEmitter<blink.cmp.SourceCompletionsEvent>
@@ -16,16 +16,16 @@ local config = require('blink.cmp.config')
 --- @field get_trigger_characters fun(mode: blink.cmp.Mode): string[]
 --- @field add_filetype_provider_id fun(filetype: string, provider_id: string)
 ---
---- @field emit_completions fun(context: blink.cmp.Context, responses: table<string, blink.cmp.CompletionResponse>)
+--- @field emit_completions fun(context: blink.cmp.Context, responses: table<string, blink.cmp.CompletionItem[]>)
 --- @field request_completions fun(context: blink.cmp.Context)
 --- @field cancel_completions fun()
 --- @field apply_max_items_for_completions fun(context: blink.cmp.Context, items: blink.cmp.CompletionItem[]): blink.cmp.CompletionItem[]
 --- @field listen_on_completions fun(callback: fun(context: blink.cmp.Context, items: blink.cmp.CompletionItem[]))
---- @field resolve fun(context: blink.cmp.Context, item: blink.cmp.CompletionItem): blink.lib.Task
---- @field execute fun(context: blink.cmp.Context, item: blink.cmp.CompletionItem, default_implementation: fun(context?: blink.cmp.Context, item?: blink.cmp.CompletionItem)): blink.lib.Task
+--- @field resolve fun(context: blink.cmp.Context, item: blink.cmp.CompletionItem): blink.lib.Task<blink.cmp.CompletionItem>
+--- @field execute fun(context: blink.cmp.Context, item: blink.cmp.CompletionItem, default_implementation: fun(context?: blink.cmp.Context, item?: blink.cmp.CompletionItem)): blink.lib.Task<blink.cmp.CompletionItem?>
 ---
 --- @field get_signature_help_trigger_characters fun(mode: blink.cmp.Mode): { trigger_characters: string[], retrigger_characters: string[] }
---- @field get_signature_help fun(context: blink.cmp.SignatureHelpContext): blink.lib.Task
+--- @field get_signature_help fun(context: blink.cmp.SignatureHelpContext): blink.lib.Task<lsp.SignatureHelp?>
 --- @field cancel_signature_help fun()
 ---
 --- @field reload fun(provider?: string)
@@ -151,12 +151,9 @@ function sources.request_completions(context)
     if sources.completions_queue ~= nil then sources.completions_queue:destroy() end
     sources.completions_queue = require('blink.cmp.sources.lib.queue').new(context, sources.emit_completions)
   -- send cached completions if they exist to immediately trigger updates
-  elseif sources.completions_queue:get_cached_completions() ~= nil then
-    sources.emit_completions(
-      context,
-      --- @diagnostic disable-next-line: param-type-mismatch
-      sources.completions_queue:get_cached_completions()
-    )
+  else
+    local cached_completions = sources.completions_queue:get_cached_completions()
+    if cached_completions then sources.emit_completions(context, cached_completions) end
   end
 
   sources.completions_queue:get_completions(context)
@@ -172,18 +169,19 @@ end
 --- Limits the number of items per source as configured
 function sources.apply_max_items_for_completions(context, items)
   -- get the configured max items for each source
-  local total_items_for_sources = {}
-  local max_items_for_sources = {}
+  local total_items_for_sources = {} ---@type table<string, integer>
+  local max_items_for_sources = {} ---@type table<string, integer>
   for id, source in pairs(sources.providers) do
+    assert(type(source.config.max_items) == 'function')
     max_items_for_sources[id] = source.config.max_items(context, items)
     total_items_for_sources[id] = 0
   end
 
   -- no max items configured, return as-is
-  if #vim.tbl_keys(max_items_for_sources) == 0 then return items end
+  if vim.tbl_count(max_items_for_sources) == 0 then return items end
 
   -- apply max items
-  local filtered_items = {}
+  local filtered_items = {} ---@type blink.cmp.CompletionItem[]
   for _, item in ipairs(items) do
     local max_items = max_items_for_sources[item.source_id]
     total_items_for_sources[item.source_id] = total_items_for_sources[item.source_id] + 1
@@ -206,17 +204,18 @@ function sources.resolve(context, item)
     end
   end
   if item_source == nil then
-    return task.new(function(resolve) resolve(item) end)
+    return task.new(function(resolve) resolve(item) end) --[[@as blink.lib.Task<blink.cmp.CompletionItem>]]
   end
 
   return item_source
     :resolve(context, item)
-    :catch(function(err) vim.print('failed to resolve item with error: ' .. err) end)
+    :catch(function(err) vim.print('failed to resolve item with error: ' .. err) end) --[[@as blink.lib.Task<blink.cmp.CompletionItem>]]
 end
 
 --- Execute ---
 
 function sources.execute(context, item, default_implementation)
+  ---@type blink.cmp.SourceProvider?
   local item_source = nil
   for _, source in pairs(sources.providers) do
     if source.id == item.source_id then
@@ -224,13 +223,13 @@ function sources.execute(context, item, default_implementation)
       break
     end
   end
-  if item_source == nil then
+  if not item_source then
     return task.new(function(resolve) resolve() end)
   end
 
   return item_source
     :execute(context, item, default_implementation)
-    :catch(function(err) vim.print('failed to execute item with error: ' .. err) end)
+    :catch(function(err) vim.print('failed to execute item with error: ' .. err) end) --[[@as blink.lib.Task<blink.cmp.CompletionItem>]]
 end
 
 --- Signature help ---
@@ -239,7 +238,7 @@ function sources.get_signature_help_trigger_characters(mode)
   local trigger_characters = {}
   local retrigger_characters = {}
 
-  -- todo: should this be all sources? or should it follow fallbacks?
+  -- TODO: should this be all sources? or should it follow fallbacks?
   for _, source in pairs(sources.get_enabled_providers(mode)) do
     local res = source:get_signature_help_trigger_characters()
     vim.list_extend(trigger_characters, res.trigger_characters)
@@ -256,7 +255,8 @@ function sources.get_signature_help(context)
 
   sources.current_signature_help = task.all(tasks):map(function(signature_helps)
     return vim.tbl_filter(function(signature_help) return signature_help ~= nil end, signature_helps)
-  end)
+  end) --[[@as blink.lib.Task<lsp.SignatureHelp?>]]
+
   return sources.current_signature_help
 end
 
@@ -272,7 +272,7 @@ end
 --- For external integrations to force reloading the source
 function sources.reload(provider)
   -- Reload specific provider
-  if provider ~= nil then
+  if provider then
     assert(type(provider) == 'string', 'Expected string for provider')
     assert(
       sources.providers[provider] ~= nil or config.sources.providers[provider] ~= nil,
@@ -294,12 +294,12 @@ function sources.get_lsp_capabilities(override, include_nvim_defaults)
       completion = {
         completionItem = {
           snippetSupport = true,
-          commitCharactersSupport = false, -- todo:
+          commitCharactersSupport = false, -- TODO:
           documentationFormat = { 'markdown', 'plaintext' },
           deprecatedSupport = true,
-          preselectSupport = false, -- todo:
+          preselectSupport = false, -- TODO:
           tagSupport = { valueSet = { 1 } }, -- deprecated
-          insertReplaceSupport = true, -- todo:
+          insertReplaceSupport = true, -- TODO:
           resolveSupport = {
             properties = {
               'documentation',
@@ -307,11 +307,11 @@ function sources.get_lsp_capabilities(override, include_nvim_defaults)
               'additionalTextEdits',
               'command',
               'data',
-              -- todo: support more properties? should test if it improves latency
+              -- TODO: support more properties? should test if it improves latency
             },
           },
           insertTextModeSupport = {
-            -- todo: support adjustIndentation
+            -- TODO: support adjustIndentation
             valueSet = { 1 }, -- asIs
           },
           labelDetailsSupport = true,

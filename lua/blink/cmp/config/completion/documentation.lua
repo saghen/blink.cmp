@@ -1,19 +1,19 @@
 --- @class (exact) blink.cmp.CompletionDocumentationConfig
 --- @field auto_show boolean Controls whether the documentation window will automatically show when selecting a completion item
---- @field auto_show_delay_ms number Delay before showing the documentation window
---- @field update_delay_ms number Delay before updating the documentation window when selecting a new item, while an existing item is still visible
+--- @field auto_show_delay_ms integer Delay before showing the documentation window
+--- @field update_delay_ms integer Delay before updating the documentation window when selecting a new item, while an existing item is still visible
 --- @field treesitter_highlighting boolean Whether to use treesitter highlighting, disable if you run into performance issues
 --- @field draw fun(opts: blink.cmp.CompletionDocumentationDrawOpts): nil Renders the item in the documentation window, by default using an internal treesitter based implementation
 --- @field window blink.cmp.CompletionDocumentationWindowConfig
 
 --- @class (exact) blink.cmp.CompletionDocumentationWindowConfig
---- @field min_width number
---- @field max_width number
---- @field max_height number
---- @field desired_min_width number
---- @field desired_min_height number
+--- @field min_width integer
+--- @field max_width integer
+--- @field max_height integer
+--- @field desired_min_width integer
+--- @field desired_min_height integer
 --- @field border blink.cmp.WindowBorder
---- @field winblend number
+--- @field winblend integer
 --- @field winhighlight string
 --- @field scrollbar boolean Note that the gutter will be disabled when border ~= 'none'
 --- @field direction_priority blink.cmp.CompletionDocumentationDirectionPriorityConfig Which directions to show the window, for each of the possible menu window directions, falling back to the next direction when there's not enough space

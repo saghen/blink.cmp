@@ -1,5 +1,5 @@
 --- @class (exact) blink.cmp.CompletionListConfig
---- @field max_items number Maximum number of items to display
+--- @field max_items integer Maximum number of items to display
 --- @field selection blink.cmp.CompletionListSelectionConfig
 --- @field cycle blink.cmp.CompletionListCycleConfig
 

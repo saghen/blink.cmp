@@ -1,8 +1,9 @@
 local nvim = require('blink.lib.nvim')
 
 local recency = {
+  --- @type boolean?
   is_tracking = false,
-  --- @type table<number, number>
+  --- @type table<integer, integer>
   bufs = {},
 }
 

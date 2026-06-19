@@ -24,7 +24,7 @@ function fuzzy.get_words(text)
 
   while #text > 0 do
     local match_start, match_end = words_regex:match_str(text)
-    if match_start == nil then break end
+    if not match_start or not match_end then break end
 
     if match_end - match_start > 2 then
       local word = text:sub(match_start + 1, match_end)

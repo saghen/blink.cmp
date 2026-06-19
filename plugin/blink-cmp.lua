@@ -14,9 +14,10 @@ vim.api.nvim_create_user_command('BlinkCmp', function(cmd)
   local subcmd_name = cmd.fargs[1]
   local subcmd = subcommands[subcmd_name]
 
-  if subcmd then
+  if type(subcmd) == 'function' then
     subcmd()
   else
-    vim.notify("[blink.cmp] invalid subcommand '" .. tostring(subcmd_name) .. "'", vim.log.levels.ERROR)
+    local logger = require('blink.cmp.logger')
+    logger:notify(vim.log.levels.ERROR, "Invalid subcommand '" .. tostring(subcmd_name) .. "'")
   end
 end, { nargs = 1, complete = function() return vim.tbl_keys(subcommands) end, desc = 'blink.cmp' })

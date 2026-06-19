@@ -2,8 +2,9 @@
 --- @field win blink.cmp.Window
 --- @field items blink.cmp.CompletionItem[]
 --- @field renderer blink.cmp.Renderer
---- @field selected_item_idx? number
+--- @field selected_item_idx? integer
 --- @field context blink.cmp.Context?
+--- @field auto_show blink.cmp.CompletionMenuAutoShow
 --- @field open_emitter blink.cmp.EventEmitter<{}>
 --- @field close_emitter blink.cmp.EventEmitter<{}>
 --- @field position_update_emitter blink.cmp.EventEmitter<{}>
@@ -12,7 +13,7 @@
 --- @field open_loading fun(context: blink.cmp.Context)
 --- @field open fun()
 --- @field close fun()
---- @field set_selected_item_idx fun(idx?: number)
+--- @field set_selected_item_idx fun(idx?: integer)
 ---
 --- @field queue_auto_show fun(context: blink.cmp.Context, items: blink.cmp.CompletionItem[])
 --- @field force_auto_show fun()
@@ -20,6 +21,12 @@
 ---
 --- @field update_position fun()
 --- @field redraw_if_needed fun()
+
+--- @class blink.cmp.CompletionMenuAutoShow
+--- @field enabled boolean | fun(context: blink.cmp.Context, items: blink.cmp.CompletionItem[]): boolean
+--- @field delay_ms integer | fun(context: blink.cmp.Context, items: blink.cmp.CompletionItem[]): integer
+--- @field timer uv.uv_timer_t
+--- @field timer_key string
 
 local lib = require('blink.lib')
 local nvim = require('blink.lib.nvim')
@@ -119,7 +126,9 @@ function menu.open()
 
   menu.win:open()
   menu.win:set_option_value('cursorline', menu.selected_item_idx ~= nil)
-  if menu.selected_item_idx ~= nil then nvim.win_set_cursor(menu.win:get_win(), { menu.selected_item_idx, 0 }) end
+
+  local menu_winnr = assert(menu.win:get_win())
+  if menu.selected_item_idx ~= nil then nvim.win_set_cursor(menu_winnr, { menu.selected_item_idx, 0 }) end
 
   menu.open_emitter:emit()
 end
@@ -148,10 +157,23 @@ end
 ---------------
 
 function menu.queue_auto_show(context, items)
-  if not menu.auto_show.enabled(context, items) then return end
+  local is_auto_show_enabled
+  if type(menu.auto_show.enabled) == 'function' then
+    is_auto_show_enabled = menu.auto_show.enabled(context, items)
+  else
+    is_auto_show_enabled = menu.auto_show.enabled
+  end
+  if not is_auto_show_enabled then return end
 
   -- getting completions can take a while, so we factor in how long it's been since the context was created
-  local delay_ms = math.max(0, menu.auto_show.delay_ms(context, items) - (vim.uv.now() - context.timestamp))
+  local auto_show_delay_ms
+  if type(menu.auto_show.delay_ms) == 'function' then
+    auto_show_delay_ms = menu.auto_show.delay_ms(context, items)
+  else
+    auto_show_delay_ms = menu.auto_show.delay_ms
+  end
+  local delay_ms = math.max(0, auto_show_delay_ms - (vim.uv.now() - context.timestamp))
+  ---@cast delay_ms integer
 
   -- no delay, show immediately
   -- only start a new timer if the cursor has moved or the id has changed.

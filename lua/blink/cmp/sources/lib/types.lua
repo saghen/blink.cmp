@@ -1,6 +1,6 @@
 --- @class blink.cmp.CompletionTriggerContext
 --- @field kind number
---- @field character string | nil
+--- @field character? string
 
 --- @class blink.cmp.CompletionResponse
 --- @field is_incomplete_forward boolean
@@ -15,7 +15,7 @@
 --- @field should_show_items? fun(self: blink.cmp.Source, context: blink.cmp.Context, items: blink.cmp.CompletionItem[]): boolean
 --- @field resolve? fun(self: blink.cmp.Source, item: blink.cmp.CompletionItem, callback: fun(resolved_item?: lsp.CompletionItem)): ((fun(): nil) | nil)
 --- @field execute? fun(self: blink.cmp.Source, context: blink.cmp.Context, item: blink.cmp.CompletionItem, callback: fun(), default_implementation: fun(context?: blink.cmp.Context, item?: blink.cmp.CompletionItem)): ((fun(): nil) | nil)
---- @field get_signature_help_trigger_characters? fun(self: blink.cmp.Source): string[]
+--- @field get_signature_help_trigger_characters? fun(self: blink.cmp.Source): { trigger_characters: string[], retrigger_characters: string[] }
 --- @field get_signature_help? fun(self: blink.cmp.Source, context: blink.cmp.SignatureHelpContext, callback: fun(signature_help: lsp.SignatureHelp | nil)): (fun(): nil) | nil
 --- @field reload? fun(self: blink.cmp.Source): nil
 

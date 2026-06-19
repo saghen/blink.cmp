@@ -1,16 +1,17 @@
 --- @class blink.cmp.CompletionDocumentationWindow
 --- @field win blink.cmp.Window
---- @field last_context_id? number
---- @field auto_show_timer uv.uv_timer_t?
+--- @field last_context_id? integer
+--- @field auto_show_timer uv.uv_timer_t
 --- @field shown_item? blink.cmp.CompletionItem
 ---
 --- @field auto_show_item fun(context: blink.cmp.Context, item: blink.cmp.CompletionItem)
 --- @field show_item fun(context: blink.cmp.Context, item: blink.cmp.CompletionItem)
 --- @field update_position fun()
---- @field scroll_up fun(amount: number): boolean
---- @field scroll_down fun(amount: number): boolean
+--- @field scroll_up fun(amount: integer): boolean
+--- @field scroll_down fun(amount: integer): boolean
 --- @field close fun()
 
+local lib = require('blink.lib')
 local nvim = require('blink.lib.nvim')
 local config = require('blink.cmp.config').completion.documentation
 local win_config = config.window
@@ -37,7 +38,7 @@ local docs = {
     scrolloff = 0,
   }),
   last_context_id = nil,
-  auto_show_timer = vim.uv.new_timer(),
+  auto_show_timer = lib.timer.new(),
 }
 
 menu.position_update_emitter:on(function() docs.update_position() end)
@@ -64,45 +65,46 @@ function docs.show_item(context, item)
   -- TODO: only resolve if documentation does not exist
   sources
     .resolve(context, item)
-    ---@param item blink.cmp.CompletionItem
-    :map(function(item)
-      local valid_documentation = type(item.documentation) == 'table' or type(item.documentation) == 'string'
-      local valid_detail = type(item.detail) == 'string'
+    :map(function(resolved_item)
+      ---@cast resolved_item blink.cmp.CompletionItem
+      local valid_documentation = type(resolved_item.documentation) == 'table'
+        or type(resolved_item.documentation) == 'string'
+      local valid_detail = type(resolved_item.detail) == 'string'
 
       if not valid_documentation and not valid_detail then
         docs.close()
         return
       end
 
-      if docs.shown_item ~= item then
+      if docs.shown_item ~= resolved_item then
         local docs_buf = docs.win:get_buf()
         --- @type blink.cmp.RenderDetailAndDocumentationOpts
         local default_render_opts = {
           bufnr = docs_buf,
-          detail = item.detail,
-          documentation = item.documentation,
-          max_width = docs.win.config.max_width,
+          detail = resolved_item.detail,
+          documentation = resolved_item.documentation,
+          max_width = docs.win.config.max_width or docs.win:get_content_width(),
           use_treesitter_highlighting = config and config.treesitter_highlighting,
         }
-        local default_impl = function(opts)
-          require('blink.cmp.lib.window.docs').render_detail_and_documentation(
-            vim.tbl_extend('force', default_render_opts, opts or {})
-          )
-        end
-
         -- allow the provider to override the drawing optionally
         -- TODO: should the default_implementation be the configured draw function instead of the built-in?
-        local draw = type(item.documentation) == 'table' and item.documentation.draw or config.draw
+        local draw = type(resolved_item.documentation) == 'table' and resolved_item.documentation.draw or config.draw
+
         nvim.set_option_value('modifiable', true, { buf = docs_buf })
         draw({
-          item = item,
+          item = resolved_item,
           window = docs.win,
           config = config,
-          default_implementation = default_impl,
+          default_implementation = function(opts)
+            opts = opts or {}
+            ---@type blink.cmp.RenderDetailAndDocumentationOpts
+            opts = vim.tbl_extend('force', default_render_opts, opts)
+            require('blink.cmp.lib.window.docs').render_detail_and_documentation(opts)
+          end,
         })
         nvim.set_option_value('modifiable', false, { buf = docs_buf })
       end
-      docs.shown_item = item
+      docs.shown_item = resolved_item
 
       if menu.win:get_win() then
         docs.win:open()
@@ -110,11 +112,11 @@ function docs.show_item(context, item)
         docs.update_position()
       end
     end)
-    :catch(function(err) logger:notify(vim.log.levels.ERROR, err) end)
+    :catch(function(err) logger:notify(vim.log.levels.ERROR, tostring(err)) end)
 end
 
 -- TODO: compensate for wrapped lines
---- @param amount number
+--- @param amount integer
 --- @return boolean
 function docs.scroll_up(amount)
   local winnr = docs.win:get_win()
@@ -128,7 +130,7 @@ function docs.scroll_up(amount)
 end
 
 -- TODO: compensate for wrapped lines
---- @param amount number
+--- @param amount integer
 --- @return boolean
 function docs.scroll_down(amount)
   local winnr = docs.win:get_win()
@@ -151,6 +153,8 @@ function docs.update_position()
   if not menu_winnr then return end
 
   local menu_win_config = nvim.win_get_config(menu_winnr)
+  assert(menu_win_config.row)
+
   local menu_win_height = menu.win:get_height()
   local menu_border_size = menu.win:get_border_size()
   local cursor_win_row = vim.fn.winline()
@@ -216,7 +220,7 @@ function docs.update_position()
   }
 
   local position = positions[pos.direction]
-  if position then
+  if position ~= nil then
     docs.win:set_win_config({ relative = 'win', win = menu_winnr, row = position.row, col = position.col })
   end
 end

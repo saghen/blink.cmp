@@ -20,7 +20,7 @@ end
 
 --- Sets the text width to the given width
 --- @param text string
---- @param width number
+--- @param width integer
 --- @param component blink.cmp.DrawComponent
 --- @return string text
 function text_lib.set_width(text, width, component)
@@ -36,7 +36,7 @@ end
 
 --- Truncates the text to the given width
 --- @param text string
---- @param target_width number
+--- @param target_width integer
 --- @param ellipsis? boolean
 --- @return string truncated_text
 function text_lib.truncate(text, target_width, ellipsis)
@@ -52,8 +52,9 @@ function text_lib.truncate(text, target_width, ellipsis)
 end
 
 --- Distributes a total amount of  spaces over a given number of fields
---- @param total number
---- @param count number
+--- @param total integer
+--- @param count integer
+--- @return {[integer]: integer}
 function text_lib.distr_spaces(total, count)
   if count == 0 then return {} end
   local base = math.floor(total / count)
@@ -67,7 +68,7 @@ end
 
 --- Pads the text to the given width
 --- @param text string
---- @param target_width number
+--- @param target_width integer
 --- @return string padded_text The amount of padding added to the left and the padded text
 function text_lib.pad(text, target_width)
   local text_width = nvim.strwidth(text)
