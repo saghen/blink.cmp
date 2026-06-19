@@ -4,31 +4,31 @@ local nvim = require('blink.lib.nvim')
 
 --- @class blink.cmp.ContextBounds
 --- @field line string
---- @field line_number number
---- @field start_col number
---- @field length number
+--- @field line_number integer
+--- @field start_col integer
+--- @field length integer
 
 --- @class blink.cmp.Context
 --- @field mode blink.cmp.Mode
---- @field id number
---- @field bufnr number
---- @field cursor number[]
+--- @field id integer
+--- @field bufnr integer
+--- @field cursor blink.cmp.CursorPos
 --- @field line string
 --- @field term blink.cmp.ContextTerm
 --- @field bounds blink.cmp.ContextBounds
 --- @field trigger blink.cmp.ContextTrigger
 --- @field providers string[]
---- @field initial_selected_item_idx? number
---- @field timestamp number
+--- @field initial_selected_item_idx? integer
+--- @field timestamp integer
 ---
 --- @field new fun(opts: blink.cmp.ContextOpts): blink.cmp.Context
 --- @field get_keyword fun(): string
---- @field within_query_bounds fun(self: blink.cmp.Context, cursor: number[], include_start_bound?: boolean): boolean
+--- @field within_query_bounds fun(self: blink.cmp.Context, cursor: blink.cmp.CursorPos, include_start_bound?: boolean): boolean
 ---
 --- @field get_mode fun(): blink.cmp.Mode
---- @field get_cursor fun(): number[]
---- @field set_cursor fun(cursor: number[])
---- @field get_line fun(num?: number): string
+--- @field get_cursor fun(): blink.cmp.CursorPos
+--- @field set_cursor fun(cursor: blink.cmp.CursorPos)
+--- @field get_line fun(num?: integer): string
 --- @field get_bounds fun(range: blink.cmp.CompletionKeywordRange): blink.cmp.ContextBounds
 --- @field get_term_command fun(): blink.cmp.ContextTermCommand?
 
@@ -44,16 +44,16 @@ local nvim = require('blink.lib.nvim')
 --- @class blink.cmp.ContextTermCommand
 --- @field found_escape_code boolean Whether the FTCS_COMMAND_START escape sequence was found when querying for the command on the current line. This will always be false when the cursor isn't in a prompt, such as when a command is running.
 --- @field text string The command in the current line, without the shell prompt if found_escape_code = true, up to the cursor. Note that for multiline commands, it will always provide you with the content of the last line. This is because there is no way to distinguish the starting point of a single line command from a multiline one using terminal escape sequences
---- @field start_col number 0-indexed column of the command in the current line, or 0 if the terminal or shell does not support the FTCS_COMMAND_START escape sequence
+--- @field start_col integer 0-indexed column of the command in the current line, or 0 if the terminal or shell does not support the FTCS_COMMAND_START escape sequence
 
 --- @class blink.cmp.ContextOpts
---- @field id number
+--- @field id integer
 --- @field providers string[]
 --- @field initial_trigger_kind blink.cmp.CompletionTriggerKind
 --- @field initial_trigger_character? string
 --- @field trigger_kind blink.cmp.CompletionTriggerKind
 --- @field trigger_character? string
---- @field initial_selected_item_idx? number
+--- @field initial_selected_item_idx? integer
 
 --- @type blink.cmp.Context
 --- @diagnostic disable-next-line: missing-fields
@@ -89,10 +89,8 @@ function context.get_keyword()
   return string.sub(context.get_line(), range.start_col, range.start_col + range.length - 1)
 end
 
---- @param cursor number[]
---- Whether to include the start boundary as inside of the query
---- E.g. start_col = 1 (one indexed), cursor[2] = 0 (zero indexed) would be considered within the query bounds with this flag enabled.
---- @param include_start_bound? boolean
+--- @param cursor blink.cmp.CursorPos
+--- @param include_start_bound? boolean Whether to include the start boundary as inside of the query. E.g. start_col = 1 (one indexed), cursor[2] = 0 (zero indexed) would be considered within the query bounds with this flag enabled.
 --- @return boolean
 function context:within_query_bounds(cursor, include_start_bound)
   local row, col = cursor[1], cursor[2]
@@ -125,7 +123,10 @@ end
 
 function context.set_cursor(cursor)
   local mode = context.get_mode()
-  if vim.tbl_contains({ 'default', 'term', 'cmdwin' }, mode) then return nvim.win_set_cursor(0, cursor) end
+  if vim.tbl_contains({ 'default', 'term', 'cmdwin' }, mode) then
+    nvim.win_set_cursor(0, cursor)
+    return
+  end
 
   assert(mode == 'cmdline', 'Unsupported mode for setting cursor: ' .. mode)
   assert(cursor[1] == 1, 'Cursor must be on the first line in cmdline mode')
@@ -143,7 +144,7 @@ function context.get_line(num)
 
   -- This method works for normal buffers and the terminal prompt
   if num == nil then num = context.get_cursor()[1] - 1 end
-  return nvim.buf_get_lines(0, num, num + 1, false)[1]
+  return nvim.buf_get_lines(0, num, num + 1, false)[1] or ''
 end
 
 --- Gets characters around the cursor and returns the range, 0-indexed
@@ -191,6 +192,7 @@ function context.get_term_command()
 
   local command_start_mark = extmarks[1]
   local command_start_col = command_start_mark[3] + 1
+
   return {
     found_escape_code = true,
     text = string.sub(line, command_start_col, string.len(line)),

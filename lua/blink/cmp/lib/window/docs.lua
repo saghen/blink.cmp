@@ -5,17 +5,17 @@ local highlight_ns = require('blink.cmp.config').appearance.highlight_ns
 local docs = {}
 
 --- @class blink.cmp.RenderDetailAndDocumentationOpts
---- @field bufnr number
+--- @field bufnr integer
 --- @field detail? string|string[]
 --- @field documentation? lsp.MarkupContent | string
---- @field max_width number
+--- @field max_width integer
 --- @field use_treesitter_highlighting boolean?
 
 --- @class blink.cmp.RenderDetailAndDocumentationOptsPartial
---- @field bufnr? number
+--- @field bufnr? integer
 --- @field detail? string
 --- @field documentation? lsp.MarkupContent | string
---- @field max_width? number
+--- @field max_width? integer
 --- @field use_treesitter_highlighting boolean?
 
 --- @param opts blink.cmp.RenderDetailAndDocumentationOpts

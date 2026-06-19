@@ -23,10 +23,10 @@ local nvim = require('blink.lib.nvim')
 --- @field show_in_snippet boolean
 
 --- @class blink.cmp.BufferEventsListener
---- @field on_char_added fun(char: string, is_ignored: boolean)
---- @field on_cursor_moved fun(event: 'CursorMoved' | 'InsertEnter', is_ignored: boolean, is_backspace: boolean, last_event: 'accept'|'enter'|nil)
---- @field on_insert_leave fun()
---- @field on_complete_changed fun()
+--- @field on_char_added? fun(char: string, is_ignored: boolean)
+--- @field on_cursor_moved? fun(event: 'CursorMoved' | 'InsertEnter', is_ignored: boolean, is_backspace: boolean, last_event: 'accept'|'enter'|nil)
+--- @field on_insert_leave? fun()
+--- @field on_complete_changed? fun()
 
 --- @type blink.cmp.BufferEvents
 local buffer_events = {}

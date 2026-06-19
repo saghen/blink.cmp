@@ -2,11 +2,11 @@ local tailwind = {}
 
 local kinds = require('blink.cmp.types').CompletionItemKind
 
---- @param response blink.cmp.CompletionResponse | nil
---- @param icon string
---- @return blink.cmp.CompletionResponse | nil
+--- @param response? blink.cmp.CompletionResponse
+--- @param icon? string
+--- @return blink.cmp.CompletionResponse?
 function tailwind.process_response(response, icon)
-  if not response then return response end
+  if not response or not icon then return response end
 
   local items = response.items
   if not items then return response end

@@ -4,10 +4,12 @@
 
 --- @class blink.cmp.LSPCache
 local cache = {
-  --- @type table<number, blink.cmp.LSPCacheEntry>
+  --- @type table<integer, blink.cmp.LSPCacheEntry>
   entries = {},
 }
 
+---@param context blink.cmp.Context
+---@param client vim.lsp.Client
 function cache.get(context, client)
   local entry = cache.entries[client.id]
   if entry == nil then return end

@@ -12,6 +12,8 @@ local registry = {
 }
 
 local utils = require('blink.cmp.sources.snippets.utils')
+
+---@type blink.cmp.SnippetsOpts
 local default_config = {
   friendly_snippets = true,
   search_paths = { vim.fn.stdpath('config') .. '/snippets' },
@@ -127,7 +129,6 @@ function registry:snippet_to_completion_item(snippet, context)
     end
   end
 
-  ---@type blink.cmp.CompletionItem
   return {
     kind = require('blink.cmp.types').CompletionItemKind.Snippet,
     label = snippet.prefix,
@@ -143,7 +144,7 @@ function registry:snippet_to_completion_item(snippet, context)
       },
       newText = new_text,
     },
-  }
+  } --[[@as blink.cmp.CompletionItem]]
 end
 
 --- @param snippet string
@@ -173,7 +174,7 @@ function registry:expand_vars(snippet, cache_key)
 
       if eager_vars[data.name] then
         replacement = eager_vars[data.name]
-      elseif lazy_vars[data.name] then
+      elseif lazy_vars[data.name] ~= nil then
         replacement = lazy_vars[data.name](cache_key, { clipboard_register = self.config.clipboard_register })
       end
 

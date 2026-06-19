@@ -15,11 +15,13 @@ local fuzzy = {
 --- @param implementation 'lua' | 'rust'
 function fuzzy.set_implementation(implementation)
   assert(implementation == 'lua' or implementation == 'rust', 'Invalid fuzzy implementation: ' .. implementation)
+
   fuzzy.implementation_type = implementation
   fuzzy.implementation = require('blink.cmp.fuzzy.' .. implementation)
 end
 
 function fuzzy.init_db()
+  ---@diagnostic disable-next-line: unnecessary-if
   if fuzzy.has_init_db then return end
 
   fuzzy.implementation.init_db(config.fuzzy.frecency.path)
@@ -37,26 +39,26 @@ function fuzzy.access(item)
 
   fuzzy.init_db()
 
-  -- send only the properties we need for LspItem
-  local trimmed_item = {
-    label = lib.is_not_nil(item.label) and item.label or nil,
-    filterText = lib.is_not_nil(item.filterText) and item.filterText or nil,
-    sortText = lib.is_not_nil(item.sortText) and item.sortText or nil,
-    insertText = lib.is_not_nil(item.insertText) and item.insertText or nil,
-    kind = lib.is_not_nil(item.kind) and item.kind or nil,
-    score_offset = lib.is_not_nil(item.score_offset) and item.score_offset or nil,
-    source_id = lib.is_not_nil(item.source_id) and item.source_id or nil,
-  }
-
-  -- writing to the db takes ~10ms, so schedule writes in another thread
-  local encode
-  if jit and package.preload['string.buffer'] then
-    encode = require('string.buffer').encode
-  else
-    encode = vim.mpack.encode
-  end
-
   -- TODO: fails to load in uv thread
+  -- send only the properties we need for LspItem
+  -- local trimmed_item = {
+  --   label = lib.is_not_nil(item.label) and item.label or nil,
+  --   filterText = lib.is_not_nil(item.filterText) and item.filterText or nil,
+  --   sortText = lib.is_not_nil(item.sortText) and item.sortText or nil,
+  --   insertText = lib.is_not_nil(item.insertText) and item.insertText or nil,
+  --   kind = lib.is_not_nil(item.kind) and item.kind or nil,
+  --   score_offset = lib.is_not_nil(item.score_offset) and item.score_offset or nil,
+  --   source_id = lib.is_not_nil(item.source_id) and item.source_id or nil,
+  -- }
+  --
+  -- -- writing to the db takes ~10ms, so schedule writes in another thread
+  -- local encode
+  -- if jit and package.preload['string.buffer'] then
+  --   encode = require('string.buffer').encode
+  -- else
+  --   encode = vim.mpack.encode
+  -- end
+
   -- vim.uv
   --   .new_work(function(itm, cpath)
   --     local decode
@@ -76,7 +78,7 @@ end
 function fuzzy.get_words(lines) return fuzzy.implementation.get_words(lines) end
 
 --- @param line string
---- @param cursor_col number
+--- @param cursor_col integer
 --- @param haystack string[]
 --- @param range blink.cmp.CompletionKeywordRange
 function fuzzy.fuzzy_matched_indices(line, cursor_col, haystack, range)
@@ -84,7 +86,7 @@ function fuzzy.fuzzy_matched_indices(line, cursor_col, haystack, range)
 end
 
 --- @param line string
---- @param cursor_col number
+--- @param cursor_col integer
 --- @param haystacks_by_provider table<string, blink.cmp.CompletionItem[]>
 --- @param range blink.cmp.CompletionKeywordRange
 --- @return blink.cmp.CompletionItem[]
@@ -120,7 +122,7 @@ function fuzzy.fuzzy(line, cursor_col, haystacks_by_provider, range)
 
   local max_typos = type(config.fuzzy.max_typos) == 'function' and config.fuzzy.max_typos(keyword)
     or config.fuzzy.max_typos
-  --- @cast max_typos number
+  --- @cast max_typos integer
 
   -- perform fuzzy search
   local provider_ids = vim.tbl_keys(haystacks_by_provider)
@@ -154,7 +156,7 @@ end
 --- @param line string
 --- @param col number
 --- @param range? blink.cmp.CompletionKeywordRange
---- @return number, number
+--- @return integer, integer
 function fuzzy.get_keyword_range(line, col, range)
   return fuzzy.implementation.get_keyword_range(line, col, range == 'full')
 end
@@ -169,9 +171,9 @@ end
 
 --- @param item blink.cmp.CompletionItem
 --- @param line string
---- @param col number
+--- @param col integer
 --- @param range blink.cmp.CompletionKeywordRange
---- @return number, number
+--- @return integer, integer
 function fuzzy.guess_edit_range(item, line, col, range)
   return fuzzy.implementation.guess_edit_range(item, line, col, range == 'full')
 end

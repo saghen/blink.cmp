@@ -6,7 +6,7 @@ local nvim = require('blink.lib.nvim')
 --- @field enable_gutter boolean
 --- @field thumb_win? number
 --- @field gutter_win? number
---- @field buf? number
+--- @field buf? integer
 ---
 --- @field new fun(opts: blink.cmp.ScrollbarConfig): blink.cmp.ScrollbarWin
 --- @field is_visible fun(self: blink.cmp.ScrollbarWin): boolean

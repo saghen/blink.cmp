@@ -1,20 +1,31 @@
 local lib = require('blink.lib')
 local task = require('blink.lib.task')
-local utils = require('blink.cmp.lib.utils')
 local cache = require('blink.cmp.sources.lsp.cache')
 
 local CompletionTriggerKind = vim.lsp.protocol.CompletionTriggerKind
+---@type table<string, boolean>
+local known_defaults = {
+  commitCharacters = true,
+  insertTextFormat = true,
+  insertTextMode = true,
+  data = true,
+}
+
 --- @param context blink.cmp.Context
 --- @param client vim.lsp.Client
---- @return blink.lib.Task
+--- @return blink.lib.Task<{ err: lsp.ResponseError?, result: lsp.CompletionList? }>
 local function request(context, client)
   return task.new(function(resolve)
     local params = vim.lsp.util.make_position_params(0, client.offset_encoding)
+    ---@diagnostic disable-next-line: inject-field
     params.context = {
       triggerKind = context.trigger.kind == 'trigger_character' and CompletionTriggerKind.TriggerCharacter
         or CompletionTriggerKind.Invoked,
     }
-    if context.trigger.kind == 'trigger_character' then params.context.triggerCharacter = context.trigger.character end
+    if context.trigger.kind == 'trigger_character' then
+      ---@diagnostic disable-next-line: undefined-field
+      params.context.triggerCharacter = context.trigger.character
+    end
 
     local _, request_id = client:request(
       'textDocument/completion',
@@ -24,15 +35,9 @@ local function request(context, client)
     return function()
       if request_id ~= nil then client:cancel_request(request_id) end
     end
-  end)
+  end) --[[@as blink.lib.Task<{ err: lsp.ResponseError?, result: lsp.CompletionList? }>]]
 end
 
-local known_defaults = {
-  'commitCharacters',
-  'insertTextFormat',
-  'insertTextMode',
-  'data',
-}
 --- @param context blink.cmp.Context
 --- @param client vim.lsp.Client
 --- @param res lsp.CompletionList
@@ -41,6 +46,7 @@ local function process_response(context, client, res)
   local items = res.items or res
   local default_edit_range = res.itemDefaults and res.itemDefaults.editRange
   for _, item in ipairs(items) do
+    ---@cast item blink.cmp.CompletionItem
     item.client_id = client.id
     item.client_name = client.name
     -- we must set the cursor column because this will be cached and used later
@@ -48,18 +54,19 @@ local function process_response(context, client, res)
     item.cursor_column = context.cursor[2]
 
     -- score offset for deprecated items
-    -- todo: make configurable
+    -- TODO: make configurable
     if
       (lib.is_not_nil(item.deprecated) and item.deprecated)
-      or (lib.is_not_nil(item.tags) and vim.tbl_contains(item.tags, 1))
+      or (lib.is_not_nil(item.tags) and vim.tbl_contains(item.tags or {}, 1))
     then
       item.score_offset = -2
     end
 
     -- set defaults
     for key, value in pairs(res.itemDefaults or {}) do
-      if vim.tbl_contains(known_defaults, key) then item[key] = item[key] or value end
+      if known_defaults[key] then item[key] = item[key] or value end
     end
+
     if default_edit_range and item.textEdit == nil then
       local new_text = item.textEditText or item.insertText or item.label
       if default_edit_range.replace ~= nil then
@@ -67,12 +74,12 @@ local function process_response(context, client, res)
           replace = default_edit_range.replace,
           insert = default_edit_range.insert,
           newText = new_text,
-        }
+        } --[[@as lsp.InsertReplaceEdit]]
       else
         item.textEdit = {
           range = res.itemDefaults.editRange,
           newText = new_text,
-        }
+        } --[[@as lsp.TextEdit]]
       end
     end
   end
@@ -89,7 +96,7 @@ local completion = {}
 --- @param context blink.cmp.Context
 --- @param client vim.lsp.Client
 --- @param opts blink.cmp.LSPSourceOpts
---- @return blink.lib.Task
+--- @return blink.lib.Task<blink.cmp.CompletionResponse>
 function completion.get_completion_for_client(context, client, opts)
   -- We have multiple clients and some may return isIncomplete = false while others return isIncomplete = true
   -- If any are marked as incomplete, we must tell blink.cmp, but this will cause a fetch on every keystroke
@@ -98,8 +105,10 @@ function completion.get_completion_for_client(context, client, opts)
   if cache_entry ~= nil then return task.resolve(cache_entry) end
 
   return request(context, client):map(function(res)
+    ---@cast res { err: lsp.ResponseError?, result: lsp.CompletionList? }
+
     if res.err or res.result == nil then
-      return { is_incomplete_forward = true, is_incomplete_backward = true, items = {} }
+      return { is_incomplete_forward = true, is_incomplete_backward = true, items = {} } --[[@as blink.cmp.CompletionResponse]]
     end
 
     local response = process_response(context, client, res.result)
@@ -117,7 +126,7 @@ function completion.get_completion_for_client(context, client, opts)
     cache.set(context, client, response)
 
     return response
-  end)
+  end) --[[@as blink.lib.Task<blink.cmp.CompletionResponse>]]
 end
 
 return completion

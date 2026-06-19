@@ -33,7 +33,7 @@ function lsp:get_trigger_characters()
   local trigger_characters = {}
 
   for _, client in pairs(clients) do
-    local completion_provider = client.server_capabilities.completionProvider
+    local completion_provider = client.server_capabilities and client.server_capabilities.completionProvider
     if completion_provider and completion_provider.triggerCharacters then
       for _, trigger_character in pairs(completion_provider.triggerCharacters) do
         table.insert(trigger_characters, trigger_character)
@@ -46,10 +46,10 @@ end
 
 function lsp:get_completions(context, callback)
   local completion_lib = require('blink.cmp.sources.lsp.completion')
-  local clients = vim.tbl_filter(
-    function(client) return client.server_capabilities and client.server_capabilities.completionProvider end,
-    vim.lsp.get_clients({ bufnr = 0, method = 'textDocument/completion' })
-  )
+  local clients = vim.tbl_filter(function(client)
+    local caps = client.server_capabilities
+    return caps ~= nil and caps.completionProvider ~= nil
+  end, vim.lsp.get_clients({ bufnr = 0, method = 'textDocument/completion' }))
 
   -- TODO: implement a timeout before returning the menu as-is. In the future, it would be neat
   -- to detect slow LSPs and consistently run them async
@@ -76,8 +76,18 @@ end
 --- Resolve ---
 
 function lsp:resolve(item, callback)
+  if not item.client_id then
+    callback(item)
+    return
+  end
+
   local client = vim.lsp.get_client_by_id(item.client_id)
-  if client == nil or not client.server_capabilities.completionProvider.resolveProvider then
+  if
+    not client
+    or not client.server_capabilities
+    or not client.server_capabilities.completionProvider
+    or not client.server_capabilities.completionProvider.resolveProvider
+  then
     callback(item)
     return
   end
@@ -122,7 +132,7 @@ function lsp:get_signature_help_trigger_characters()
   local retrigger_characters = {}
 
   for _, client in pairs(clients) do
-    local signature_help_provider = client.server_capabilities.signatureHelpProvider
+    local signature_help_provider = client.server_capabilities and client.server_capabilities.signatureHelpProvider
     if signature_help_provider and signature_help_provider.triggerCharacters then
       for _, trigger_character in pairs(signature_help_provider.triggerCharacters) do
         table.insert(trigger_characters, trigger_character)
@@ -150,6 +160,8 @@ function lsp:get_signature_help(context, callback)
   local offset_encoding = first_client and first_client.offset_encoding or 'utf-16'
 
   local params = vim.lsp.util.make_position_params(nil, offset_encoding)
+
+  ---@diagnostic disable-next-line: inject-field
   params.context = {
     triggerKind = context.trigger.kind,
     triggerCharacter = context.trigger.character,
@@ -178,12 +190,16 @@ end
 function lsp:execute(ctx, item, callback, default_implementation)
   default_implementation()
 
-  local client = vim.lsp.get_client_by_id(item.client_id)
-  if client and lib.is_not_nil(item.command) then
-    client:exec_cmd(item.command, { bufnr = ctx.bufnr }, function() callback() end)
-  else
-    callback()
+  if item.client_id then
+    local client = vim.lsp.get_client_by_id(item.client_id)
+    local cmd = item.command
+    if client and lib.is_not_nil(cmd) then
+      client:exec_cmd(cmd, { bufnr = ctx.bufnr }, function() callback() end)
+      return
+    end
   end
+
+  callback()
 end
 
 return lsp

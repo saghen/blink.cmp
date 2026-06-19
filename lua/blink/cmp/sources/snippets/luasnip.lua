@@ -1,3 +1,6 @@
+-- FIXME: Some annotations are based on an ummerged PR: https://github.com/L3MON4D3/LuaSnip/pull/1396
+---@diagnostic disable: undefined-field
+
 ---@type LuaSnip.API
 local luasnip
 local cmp = require('blink.cmp')
@@ -60,7 +63,12 @@ local function choice_callback(snippet, events)
           -- FIXME: Defer showing the completion menu when jumping to the next choice node.
           -- This is needed if the previous node is also a choice node. Possible race condition?
           -- e.g., previous node (menu shown) -> jump -> (menu hidden) -> next node (menu shown)
-          vim.defer_fn(function() cmp.show({ initial_selected_item_idx = index, providers = { 'snippets' } }) end, 50)
+          vim.defer_fn(function()
+            cmp.show({
+              initial_selected_item_idx = index,
+              providers = { 'snippets' },
+            } --[[@as blink.cmp.ShowOpts]])
+          end, 50)
         end,
         [events.change_choice] = function()
           -- Auto-jump after accepting the choice value
@@ -68,7 +76,7 @@ local function choice_callback(snippet, events)
         end,
         [events.leave] = function(n)
           --[[@cast n LuaSnip.ChoiceNode]]
-          n:set_text(n.active_choice.static_text)
+          if n.active_choice then n:set_text(n.active_choice.static_text) end
         end,
       }
     end
@@ -149,8 +157,6 @@ end
 
 function source:enabled() return self.has_loaded end
 
----@param ctx blink.cmp.Context
----@param callback fun(result?: blink.cmp.CompletionResponse)
 function source:get_completions(ctx, callback)
   --- @type blink.cmp.CompletionItem[]
   local items = {}
@@ -262,8 +268,6 @@ function source:get_completions(ctx, callback)
   })
 end
 
----@param item blink.cmp.CompletionItem
----@param callback fun(resolved_item?: lsp.CompletionItem)
 function source:resolve(item, callback)
   local snip = luasnip.get_id_snippet(item.data.snip_id)
 
@@ -284,8 +288,6 @@ function source:resolve(item, callback)
   callback(resolved_item)
 end
 
----@param ctx blink.cmp.Context
----@param item blink.cmp.CompletionItem
 function source:execute(ctx, item)
   if item.data.choice_index then
     luasnip.set_choice(item.data.choice_index)
@@ -298,7 +300,7 @@ function source:execute(ctx, item)
   if snip.regTrig then
     local docTrig = snip.docTrig
     snip = snip:get_pattern_expand_helper()
-    if docTrig then add_luasnip_callback(snip, events.pre_expand, function(s) regex_callback(s, docTrig) end) end
+    if docTrig ~= nil then add_luasnip_callback(snip, events.pre_expand, function(s) regex_callback(s, docTrig) end) end
   else
     add_luasnip_callback(snip, events.pre_expand, function(s) choice_callback(s, events) end)
   end

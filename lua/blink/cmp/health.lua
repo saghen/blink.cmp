@@ -67,7 +67,10 @@ function health.report_sources_list(header, provider_ids)
   vim.health.start(header)
   local all_providers = require('blink.cmp.sources.lib').get_all_providers()
   for _, provider_id in ipairs(provider_ids) do
-    vim.health.info(('%s (%s)'):format(provider_id, all_providers[provider_id].config.module))
+    ---@type blink.cmp.SourceProvider
+    ---@diagnostic disable-next-line: undefined-field
+    local source_provider = all_providers[provider_id]
+    vim.health.info(('%s (%s)'):format(provider_id, source_provider.config.module))
   end
 end
 

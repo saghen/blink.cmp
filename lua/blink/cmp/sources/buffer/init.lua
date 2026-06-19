@@ -1,4 +1,4 @@
--- todo: nvim-cmp only updates the lines that got changed which is better
+-- TODO: nvim-cmp only updates the lines that got changed which is better
 -- but this is *speeeeeed* and simple. should add the better way
 -- but ensure it doesn't add too much complexity
 
@@ -127,7 +127,7 @@ end
 
 --- @param bufnr integer
 --- @param exclude_word_under_cursor boolean
---- @return blink.lib.Task
+--- @return blink.lib.Task<string[]>
 function buffer:get_buf_items(bufnr, exclude_word_under_cursor)
   local changedtick
 
@@ -155,7 +155,6 @@ function buffer:get_buf_items(bufnr, exclude_word_under_cursor)
   return parser.get_buf_words(bufnr, exclude_word_under_cursor, self.opts):map(store_in_cache)
 end
 
---- @return boolean
 function buffer:enabled() return not cmdline_utils.is_command_line() or self:is_search_context() end
 
 function buffer:get_completions(_, callback)
@@ -193,7 +192,6 @@ function buffer:get_completions(_, callback)
 
     if self.opts.use_cache then self.cache:cleanup(selected_bufnrs) end
 
-    ---@diagnostic disable-next-line: missing-return
     callback({ is_incomplete_forward = false, is_incomplete_backward = false, items = items })
   end)
 end

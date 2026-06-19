@@ -1,6 +1,5 @@
 local task = require('blink.lib.task')
 local fuzzy = require('blink.cmp.fuzzy')
-local uv = vim.uv
 
 local parser = {}
 
@@ -15,6 +14,7 @@ function parser.get_buf_text(bufnr, exclude_word_under_cursor)
   -- exclude word under the cursor for the current buffer
   local line_number, column = unpack(vim.api.nvim_win_get_cursor(0))
   local line = lines[line_number]
+  assert(line, 'buffer source: Unable to find the line ' .. line_number)
 
   local start_col = column
   while start_col > 1 do
@@ -36,11 +36,11 @@ function parser.get_buf_text(bufnr, exclude_word_under_cursor)
 end
 
 --- @param text string
---- @return blink.lib.Task
+--- @return blink.lib.Task<string[]>
 function parser.run_sync(text) return task.resolve(fuzzy.get_words(text)) end
 
 --- @param text string
---- @return blink.lib.Task
+--- @return blink.lib.Task<string[]>
 function parser.run_async_rust(text)
   return parser.run_sync(text)
   -- TODO: fails to load in uv thread
@@ -62,7 +62,7 @@ function parser.run_async_rust(text)
 end
 
 --- @param text string
---- @return blink.lib.Task
+--- @return blink.lib.Task<string[]>
 function parser.run_async_lua(text)
   local min_chunk_size = 2000 -- Min chunk size in bytes
   local max_chunk_size = 4000 -- Max chunk size in bytes
@@ -70,6 +70,7 @@ function parser.run_async_lua(text)
 
   local cancelled = false
   local pos = 1
+  ---@type string[]
   local all_words = {}
 
   return task

@@ -27,16 +27,22 @@ builtin.lazy.TM_FILENAME = cached(function() return vim.fn.expand('%:t') end)
 builtin.lazy.TM_FILENAME_BASE = cached(function() return vim.fn.expand('%:t:s?\\.[^\\.]\\+$??') end)
 builtin.lazy.TM_DIRECTORY = cached(function() return vim.fn.expand('%:p:h') end)
 builtin.lazy.TM_FILEPATH = cached(function() return vim.fn.expand('%:p') end)
-builtin.lazy.TM_SELECTED_TEXT = cached(function() return vim.fn.trim(vim.fn.getreg(vim.v.register, true), '\n', 2) end)
+builtin.lazy.TM_SELECTED_TEXT = cached(function()
+  return vim.fn.trim(vim.fn.getreg(vim.v.register) --[[@as string]], '\n', 2)
+end)
 builtin.lazy.CLIPBOARD = cached(
-  function(opts) return vim.fn.getreg(opts.clipboard_register or vim.v.register, true) end
+  ---@param opts blink.cmp.SnippetsOpts
+  ---@return string
+  function(opts)
+    return vim.fn.getreg(opts.clipboard_register or vim.v.register) --[[@as string]]
+  end
 )
 
 local function buf_to_ws_part()
   local LSP_WORKSPACE_PARTS = 'LSP_WORKSPACE_PARTS'
   local ok, ws_parts = pcall(nvim.buf_get_var, 0, LSP_WORKSPACE_PARTS)
   if not ok then
-    local file_path = vim.fn.expand('%:p')
+    local file_path = vim.fn.expand('%:p') --[[@as string]]
 
     for _, ws in pairs(vim.lsp.buf.list_workspace_folders()) do
       if file_path:find(ws, 1, true) == 1 then

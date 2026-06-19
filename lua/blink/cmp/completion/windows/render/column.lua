@@ -1,16 +1,16 @@
 --- @class blink.cmp.DrawColumn
 --- @field component_names string[]
 --- @field components blink.cmp.DrawComponent[]
---- @field gap number
+--- @field gap integer
 --- @field overlap_components boolean
 --- @field lines string[][]
---- @field width number
+--- @field width integer
 --- @field ctxs blink.cmp.DrawItemContext[]
 ---
---- @field new fun(component_names: string[], components: blink.cmp.DrawComponent[], gap: number, overlap_components: boolean): blink.cmp.DrawColumn
+--- @field new fun(component_names: string[], components: blink.cmp.DrawComponent[], gap: integer, overlap_components: boolean): blink.cmp.DrawColumn
 --- @field render fun(self: blink.cmp.DrawColumn,context: blink.cmp.Context, ctxs: blink.cmp.DrawItemContext[])
---- @field get_line_text fun(self: blink.cmp.DrawColumn, line_idx: number): string
---- @field get_line_highlights fun(self: blink.cmp.DrawColumn, line_idx: number): blink.cmp.DrawHighlight[]
+--- @field get_line_text fun(self: blink.cmp.DrawColumn, line_idx: integer): string
+--- @field get_line_highlights fun(self: blink.cmp.DrawColumn, line_idx: integer): blink.cmp.DrawHighlight[]
 
 local text_lib = require('blink.cmp.completion.windows.render.text')
 
@@ -34,13 +34,14 @@ function column:render(context, ctxs)
   --- render text and get the max widths of each component
   --- @type string[][]
   local lines = {}
+  --- @type integer[]
   local max_component_widths = {}
   local column_width = 0
   for _, ctx in ipairs(ctxs) do
     --- @type string[]
     local line = {}
     for component_idx, component in ipairs(self.components) do
-      local text = text_lib.apply_component_width(context, component.text(ctx) or '', component)
+      local text = text_lib.apply_component_width(context, component.text and component.text(ctx) or '', component)
       table.insert(line, text)
       max_component_widths[component_idx] =
         math.max(max_component_widths[component_idx] or 0, vim.api.nvim_strwidth(text))
@@ -86,8 +87,8 @@ function column:render(context, ctxs)
 end
 
 function column:get_line_text(line_idx)
+  local line = assert(self.lines[line_idx])
   local text = ''
-  local line = self.lines[line_idx]
   for _, component in ipairs(line) do
     if #component > 0 then text = text .. component .. string.rep(' ', self.gap) end
   end
@@ -95,12 +96,14 @@ function column:get_line_text(line_idx)
 end
 
 function column:get_line_highlights(line_idx)
-  local ctx = self.ctxs[line_idx]
+  local ctx = assert(self.ctxs[line_idx])
   local offset = 0
+  ---@type blink.cmp.DrawHighlight[]
   local highlights = {}
 
   for component_idx, component in ipairs(self.components) do
-    local text = self.lines[line_idx][component_idx]
+    local line = assert(self.lines[line_idx])
+    local text = line[component_idx] or ''
     if #text > 0 then
       local column_highlights = type(component.highlight) == 'function' and component.highlight(ctx, text)
         or component.highlight
@@ -116,9 +119,8 @@ function column:get_line_highlights(line_idx)
             math.min(math.max(start_col, offset), offset + #text),
             math.min(math.max(end_col, offset), offset + #text),
             group = highlight.group,
-            params = highlight.params,
             priority = highlight.priority,
-          })
+          } --[[@as blink.cmp.DrawHighlight]])
         end
       end
 

@@ -1,7 +1,7 @@
 local nvim = require('blink.lib.nvim')
 
 --- @param item blink.cmp.CompletionItem
---- @return { text_edit: lsp.TextEdit, cursor?: integer[] } undo_text_edit, integer[]? undo_cursor_pos The text edit to apply and the original cursor
+--- @return lsp.TextEdit, blink.cmp.CursorPos?
 local function preview(item)
   local text_edits_lib = require('blink.cmp.lib.text_edits')
   local text_edit = text_edits_lib.get_from_item(item)

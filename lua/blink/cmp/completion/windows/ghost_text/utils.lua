@@ -1,3 +1,5 @@
+---@diagnostic disable: unresolved-require
+
 local nvim = require('blink.lib.nvim')
 
 local utils = {}
@@ -34,7 +36,9 @@ end
 function utils.get_offset()
   if utils.is_cmdline() then
     if not utils.is_noice() then return 0 end
-    return require('noice.ui.cmdline').position.cursor - (vim.fn.getcmdpos() - 1)
+    ---@type integer
+    local cursor_pos = require('noice.ui.cmdline').position.cursor
+    return cursor_pos - (vim.fn.getcmdpos() - 1)
   end
   return 0
 end
