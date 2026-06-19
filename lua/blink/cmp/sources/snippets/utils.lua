@@ -19,7 +19,8 @@ function utils.parse_json_with_error_msg(path, json)
   return parsed
 end
 
----@type fun(path: string): string|nil
+---@param path string
+---@return string?
 function utils.read_file(path)
   local file = io.open(path, 'r')
   if not file then return nil end
@@ -28,7 +29,8 @@ function utils.read_file(path)
   return content
 end
 
----@type fun(input: string): vim.snippet.Node<vim.snippet.SnippetData>|nil
+---@param input string
+---@return vim.snippet.Node<vim.snippet.SnippetData>?
 function utils.safe_parse(input)
   if utils.parse_cache[input] then return utils.parse_cache[input] end
 
@@ -39,7 +41,9 @@ function utils.safe_parse(input)
   return parsed
 end
 
----@type fun(snippet: blink.cmp.Snippet, fallback: string): table
+---@param snippet blink.cmp.Snippet
+---@param fallback string
+---@return table
 function utils.read_snippet(snippet, fallback)
   local snippets = {}
   local prefix = snippet.prefix or fallback
@@ -66,9 +70,9 @@ function utils.read_snippet(snippet, fallback)
   return snippets
 end
 
--- Add the current line's indentation to all but the first line of
--- the provided text
+-- Add the current line's indentation to all but the first line of the provided text
 ---@param text string
+---@return string
 function utils.add_current_line_indentation(text)
   local base_indent = vim.api.nvim_get_current_line():match('^%s*') or ''
   local snippet_lines = vim.split(text, '\n', { plain = true })
@@ -89,27 +93,6 @@ function utils.add_current_line_indentation(text)
   end
 
   return table.concat(lines, '\n')
-end
-
-function utils.get_tab_stops(snippet)
-  local expanded_snippet = require('blink.cmp.sources.snippets.utils').safe_parse(snippet)
-  if not expanded_snippet then return end
-
-  local tabstops = {}
-  local grammar = require('vim.lsp._snippet_grammar')
-  local line = 1
-  local character = 1
-  for _, child in ipairs(expanded_snippet.data.children) do
-    local lines = tostring(child) == '' and {} or vim.split(tostring(child), '\n')
-    line = line + math.max(#lines - 1, 0)
-    character = #lines == 0 and character or #lines > 1 and #lines[#lines] or (character + #lines[#lines])
-    if child.type == grammar.NodeType.Placeholder or child.type == grammar.NodeType.Tabstop then
-      table.insert(tabstops, { index = child.data.tabstop, line = line, character = character })
-    end
-  end
-
-  table.sort(tabstops, function(a, b) return a.index < b.index end)
-  return tabstops
 end
 
 return utils

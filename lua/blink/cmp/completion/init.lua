@@ -1,3 +1,4 @@
+local lib = require('blink.lib')
 local config = require('blink.cmp.config')
 local completion = {}
 
@@ -64,7 +65,7 @@ function completion.setup()
   if config.completion.menu.enabled then
     local menu = function() return require('blink.cmp.completion.windows.menu') end
 
-    local loading_timer = vim.uv.new_timer()
+    local loading_timer = lib.timer.new()
     trigger.show_emitter:on(function(event)
       if event.context.trigger.kind ~= 'manual' then return end
       loading_timer:start(500, 0, vim.schedule_wrap(function() menu().open_loading(event.context) end))
@@ -81,7 +82,9 @@ function completion.setup()
 
     list.select_emitter:on(function(event)
       menu().set_selected_item_idx(event.idx)
-      require('blink.cmp.completion.windows.documentation').auto_show_item(event.context, event.item)
+      local item = event.item or list.items[1]
+      if item == nil then return end
+      require('blink.cmp.completion.windows.documentation').auto_show_item(event.context, item)
     end)
   end
 
@@ -102,7 +105,7 @@ function completion.setup()
     -- when selection.preselect == false, we still want to prefetch the first item
     local item = event.item or list.items[1]
     if item == nil then return end
-    require('blink.cmp.completion.prefetch')(event.context, event.item)
+    require('blink.cmp.completion.prefetch')(event.context, item)
   end)
 end
 

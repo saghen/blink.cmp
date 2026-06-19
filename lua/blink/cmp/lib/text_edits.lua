@@ -109,7 +109,7 @@ end
 --- Grabbed from vim.lsp.utils. Converts an offset_encoding to byte offset
 --- @param position lsp.Position
 --- @param offset_encoding? 'utf-8'|'utf-16'|'utf-32'
---- @return number
+--- @return integer
 local function get_line_byte_from_position(position, offset_encoding)
   local bufnr = nvim.get_current_buf()
   local col = position.character
@@ -162,8 +162,8 @@ end
 --- from when the items were fetched versus the current.
 --- HACK: is there a better way?
 --- @param text_edit lsp.TextEdit
---- @param old_cursor_col number Position of the cursor when the text edit was created
---- @param new_cursor_col number New position of the cursor
+--- @param old_cursor_col integer Position of the cursor when the text edit was created
+--- @param new_cursor_col integer New position of the cursor
 --- @return lsp.TextEdit
 function text_edits.compensate_for_cursor_movement(text_edit, old_cursor_col, new_cursor_col)
   text_edit = vim.deepcopy(text_edit)
@@ -179,8 +179,12 @@ function text_edits.offset_encoding_from_item(item)
   return client ~= nil and client.offset_encoding or 'utf-8'
 end
 
+--- @param text_edit lsp.TextEdit
+--- @param offset_encoding "utf-8"|"utf-16"|"utf-32"
+--- @return lsp.TextEdit
 function text_edits.to_utf_8(text_edit, offset_encoding)
   if offset_encoding == 'utf-8' then return text_edit end
+
   text_edit = vim.deepcopy(text_edit)
   text_edit.range.start.character = get_line_byte_from_position(text_edit.range.start, offset_encoding)
   text_edit.range['end'].character = get_line_byte_from_position(text_edit.range['end'], offset_encoding)
@@ -188,12 +192,13 @@ function text_edits.to_utf_8(text_edit, offset_encoding)
 end
 
 --- Uses the keyword_regex to guess the text edit ranges
+--- TODO: Doesn't work when the item contains characters not included in the context regex
 --- @param item blink.cmp.CompletionItem
---- TODO: doesnt work when the item contains characters not included in the context regex
+--- @return lsp.TextEdit
 function text_edits.guess(item)
   local word = (lib.is_not_nil(item.insertText) and item.insertText)
     or (lib.is_not_nil(item.label) and item.label)
-    or nil
+    or ''
 
   local start_col, end_col = require('blink.cmp.fuzzy').guess_edit_range(
     item,
@@ -239,12 +244,13 @@ end
 --- This means that the end position will be the range _before_ applying the edit.
 --- This function gets the end position of the range _after_ applying the edit.
 --- This may be used for placing the cursor after applying the edit.
+--- Returns (1, 0) indexed line and column
 ---
 --- TODO: write tests cases, there are many uncommon cases it doesn't handle
 ---
 --- @param text_edit lsp.TextEdit
 --- @param additional_text_edits lsp.TextEdit[]
---- @return number[] (1, 0) indexed line and column
+--- @return blink.cmp.CursorPos
 function text_edits.get_apply_end_position(text_edit, additional_text_edits)
   -- Calculate the end position of the range, ignoring the additional text edits
   local lines = vim.split(text_edit.newText, '\n')
@@ -326,6 +332,7 @@ nvim.set_keymap('v', dot_repeat_hack_name, '', opts)
 nvim.set_keymap('c', dot_repeat_hack_name, '', opts)
 nvim.set_keymap('t', dot_repeat_hack_name, '', opts)
 
+---@type integer?
 local dot_repeat_buffer = nil
 local function get_dot_repeat_buffer()
   if dot_repeat_buffer == nil or not nvim.buf_is_valid(dot_repeat_buffer) then
@@ -379,7 +386,7 @@ function text_edits.write_to_dot_repeat(text_edit)
       local saved_completeopt = vim.opt.completeopt
       local saved_shortmess = vim.o.shortmess
       vim.opt.completeopt = ''
-      if not vim.o.shortmess:match('c') then vim.o.shortmess = vim.o.shortmess .. 'c' end
+      if not saved_shortmess:match('c') then vim.o.shortmess = vim.o.shortmess .. 'c' end
       vim.fn.complete(1, { '_' .. chars_to_insert })
       vim.opt.completeopt = saved_completeopt
       vim.o.shortmess = saved_shortmess
@@ -395,7 +402,7 @@ function text_edits.write_to_dot_repeat(text_edit)
 end
 
 --- Moves the cursor while preserving dot repeat
---- @param amount number Number of characters to move the cursor by, can be negative to move left
+--- @param amount integer Number of characters to move the cursor by, can be negative to move left
 function text_edits.move_cursor_in_dot_repeat(amount)
   if amount == 0 then return end
 

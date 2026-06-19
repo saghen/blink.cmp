@@ -1,17 +1,17 @@
 --- @class (exact) blink.cmp.CompletionMenuConfig
 --- @field enabled boolean
---- @field min_width number
---- @field max_height number
+--- @field min_width integer
+--- @field max_height integer
 --- @field border blink.cmp.WindowBorder
---- @field winblend number
+--- @field winblend integer
 --- @field winhighlight string
---- @field scrolloff number Keep the cursor X lines away from the top/bottom of the window
+--- @field scrolloff integer Keep the cursor X lines away from the top/bottom of the window
 --- @field scrollbar boolean Note that the gutter will be disabled when border ~= 'none'
 --- @field direction_priority ("n" | "s")[]| fun(): ("n" | "s")[] Which directions to show the window, or a function returning such a table, falling back to the next direction when there's not enough space
 --- @field order blink.cmp.CompletionMenuOrderConfig TODO: implement
 --- @field auto_show boolean | fun(ctx: blink.cmp.Context, items: blink.cmp.CompletionItem[]): boolean Whether to automatically show the window when new completion items are available
---- @field auto_show_delay_ms number | fun(ctx: blink.cmp.Context, items: blink.cmp.CompletionItem[]): number Delay before showing the completion menu
---- @field cmdline_position fun(): number[] Screen coordinates (0-indexed) of the command line
+--- @field auto_show_delay_ms integer | fun(ctx: blink.cmp.Context, items: blink.cmp.CompletionItem[]): integer Delay before showing the completion menu
+--- @field cmdline_position fun(): { [1]: integer, [2]: integer } Screen coordinates (0-indexed) of the command line
 --- @field draw blink.cmp.Draw Controls how the completion items are rendered on the popup window
 
 local config = require('blink.lib.config')

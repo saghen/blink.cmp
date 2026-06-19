@@ -9,7 +9,8 @@ end
 function priority.visible()
   local visible = {}
   for _, win in ipairs(nvim.list_wins()) do
-    visible[nvim.win_get_buf(win)] = true
+    local bufnr = nvim.win_get_buf(win)
+    visible[bufnr] = true
   end
   return function(bufnr) return visible[bufnr] and 0 or 1 end
 end
@@ -27,7 +28,7 @@ end
 function priority.comparator(order, buf_sizes)
   local value_fns = {}
   for _, key in ipairs(order) do
-    if priority[key] then table.insert(value_fns, priority[key](buf_sizes)) end
+    if priority[key] ~= nil then table.insert(value_fns, priority[key](buf_sizes)) end
   end
 
   return function(a, b)

@@ -1,5 +1,5 @@
 --- @class (exact) blink.cmp.AppearanceConfig
---- @field highlight_ns number
+--- @field highlight_ns integer
 --- @field use_nvim_cmp_as_default boolean Sets the fallback highlight groups to nvim-cmp's highlight groups. Useful for when your theme doesn't support blink.cmp, will be removed in a future release.
 --- @field nerd_font_variant 'mono' | 'normal' Set to 'mono' for 'Nerd Font Mono' or 'normal' for 'Nerd Font'. Adjusts spacing to ensure icons are aligned
 --- @field kind_icons table<string, string>

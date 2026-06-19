@@ -22,18 +22,13 @@ function cmdline.new()
   self.offset = -1
   self.ctype = ''
   self.items = {}
-  return self --[[@as blink.cmp.Source]]
+  return self
 end
 
----@return boolean
 function cmdline:enabled() return vim.bo.ft == 'vim' or utils.is_command_line({ ':', '@' }) end
 
----@return string[]
 function cmdline:get_trigger_characters() return { ' ', '.', '#', '&', '-', '=', '/', ':', '!', '%', '~' } end
 
----@param context blink.cmp.Context
----@param callback fun(result?: blink.cmp.CompletionResponse)
----@return fun()
 function cmdline:get_completions(context, callback)
   local completion_type = utils.get_completion_type(context)
 
@@ -306,7 +301,7 @@ function cmdline:get_completions(context, callback)
               start = { line = line_pos, character = start_pos },
               ['end'] = { line = line_pos, character = replace_end_pos },
             },
-          },
+          } --[[@as lsp.InsertReplaceEdit]],
           kind = require('blink.cmp.types').CompletionItemKind.Property,
         }
         items[#items + 1] = item

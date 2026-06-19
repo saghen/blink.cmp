@@ -4,15 +4,17 @@ local apply = require('blink.cmp.keymap.apply')
 local presets = require('blink.cmp.keymap.presets')
 local utils = require('blink.cmp.keymap.utils')
 
+--- @alias blink.cmp.KeymapList table<string, blink.cmp.KeymapCommand[] | false>
+---
 --- @class blink.cmp.KeymapContext
 --- @field vim_mode string Vim's current mode (e.g. 'i', 'c', 't')
 --- @field blink_mode blink.cmp.Mode The corresponding blink mode
---- @field bufnr number Buffer number (0 for global cmdline)
+--- @field bufnr integer Buffer number (0 for global cmdline)
 --- @field bufkey string Unique identifier for buffer keymaps
 
 local keymap = {
   bufkey_prefix = 'blink_cmp_keymap_',
-  ---@type table<blink.cmp.Mode, table<string, blink.cmp.KeymapCommand[]>>
+  ---@type table<blink.cmp.Mode, blink.cmp.KeymapList>
   mappings = { default = {}, cmdline = {}, term = {} },
   ---@type table<string, blink.cmp.Mode>
   mode_map = { i = 'default', s = 'default', c = 'cmdline', t = 'term' },
@@ -35,7 +37,7 @@ end
 
 --- Collect buffer keymaps and reapply any missing blink.cmp keymaps
 --- @param ctx blink.cmp.KeymapContext
---- @param expected_mappings table<string, blink.cmp.KeymapCommand[]>
+--- @param expected_mappings blink.cmp.KeymapList
 local function repair_mappings(ctx, expected_mappings)
   local expected_hash = vim.b[ctx.bufnr][ctx.bufkey .. '_hash']
   local current_hash = utils.hash_keymaps(ctx.bufnr, ctx.vim_mode)
@@ -43,7 +45,7 @@ local function repair_mappings(ctx, expected_mappings)
 
   local existing_mappings = {}
   for _, map in ipairs(nvim.buf_get_keymap(ctx.bufnr, ctx.vim_mode)) do
-    if utils.is_blink_keymap(map) then existing_mappings[utils.normalize_lhs(map.lhs)] = true end
+    if utils.is_blink_keymap(map) then existing_mappings[utils.normalize_lhs(assert(map.lhs))] = true end
   end
 
   local missing_mappings = {}
@@ -59,13 +61,13 @@ function keymap.ensure_mappings()
   local ctx = get_keymap_context()
   if not ctx then return end
 
-  ---@type table<string, blink.cmp.KeymapCommand[]>
+  ---@type blink.cmp.KeymapList
   local expected_mappings = vim.b[ctx.bufnr][ctx.bufkey]
   -- If already defined, check and reapply any missing keymaps.
-  if expected_mappings then return repair_mappings(ctx, expected_mappings) end
+  if expected_mappings ~= nil then return repair_mappings(ctx, expected_mappings) end
 
   local mappings = keymap.mappings[ctx.blink_mode]
-  if mappings then
+  if mappings ~= nil then
     apply.keymaps(ctx.blink_mode, mappings)
     vim.b[ctx.bufnr][ctx.bufkey] = mappings
     vim.b[ctx.bufnr][ctx.bufkey .. '_hash'] = utils.hash_keymaps(ctx.bufnr, ctx.vim_mode)
@@ -74,13 +76,16 @@ end
 
 --- @param keymap_config blink.cmp.KeymapConfig
 --- @param mode blink.cmp.Mode
---- @return table<string, blink.cmp.KeymapCommand[]>
+--- @return blink.cmp.KeymapList
 function keymap.get_mappings(keymap_config, mode)
   local mappings = vim.deepcopy(keymap_config)
 
   -- Inherit preset from default, if needed
   if mappings.preset == 'inherit' and mode ~= 'default' then
+    ---@diagnostic disable-next-line: undefined-field
+    ---@type blink.cmp.ConfigStrict
     local snapshot = config.snapshot()
+
     mappings = vim.tbl_deep_extend('force', snapshot.keymap, mappings)
     mappings.preset = snapshot.keymap.preset
   end
@@ -94,29 +99,35 @@ function keymap.get_mappings(keymap_config, mode)
     end
   end
 
+  local keymaps = mappings
+  ---@cast keymaps blink.cmp.KeymapList
+
   -- Handle preset
   if mappings.preset then
     local preset_keymap = presets.get(mappings.preset)
     -- Remove 'preset' key from opts to prevent it from being treated as a keymap
-    mappings.preset = nil
-    mappings = utils.merge_mappings(preset_keymap, mappings)
+    keymaps.preset = nil
+    keymaps = utils.merge_mappings(preset_keymap, keymaps)
   end
 
   -- Remove keys explicitly disabled by user (set to false or no commands)
-  for key, commands in pairs(mappings) do
-    if commands == false or #commands == 0 then mappings[key] = nil end
+  for key, commands in pairs(keymaps) do
+    if commands == false or #commands == 0 then keymaps[key] = nil end
   end
 
-  return mappings --[[@as table<string, blink.cmp.KeymapCommand[]>]]
+  return keymaps
 end
 
 function keymap.setup()
-  local config = config.snapshot()
+  ---@diagnostic disable-next-line: undefined-field
+  ---@type blink.cmp.ConfigStrict
+  local cfg = config.snapshot()
+
   -- Load keymaps per mode
   keymap.mappings = {
-    default = keymap.get_mappings(config.keymap, 'default'),
-    cmdline = keymap.get_mappings(config.cmdline.keymap, 'cmdline'),
-    term = keymap.get_mappings(config.term.keymap, 'term'),
+    default = keymap.get_mappings(cfg.keymap, 'default'),
+    cmdline = keymap.get_mappings(cfg.cmdline.keymap, 'cmdline'),
+    term = keymap.get_mappings(cfg.term.keymap, 'term'),
   }
 
   -- Ensure blink.cmp keymaps are (still) applied

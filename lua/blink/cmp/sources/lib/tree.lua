@@ -7,7 +7,7 @@
 --- @class blink.cmp.SourceTree
 --- @field nodes blink.cmp.SourceTreeNode[]
 --- @field new fun(context: blink.cmp.Context): blink.cmp.SourceTree
---- @field get_completions fun(self: blink.cmp.SourceTree, context: blink.cmp.Context, on_items_by_provider: fun(items_by_provider: table<string, blink.cmp.CompletionItem[]>)): blink.lib.Task
+--- @field get_completions fun(self: blink.cmp.SourceTree, context: blink.cmp.Context, on_items_by_provider: fun(items_by_provider: table<string, blink.cmp.CompletionItem[]>)): blink.lib.Task<nil>
 --- @field emit_completions fun(self: blink.cmp.SourceTree, items_by_provider: table<string, blink.cmp.CompletionItem[]>, on_items_by_provider: fun(items_by_provider: table<string, blink.cmp.CompletionItem[]>)): nil
 --- @field get_top_level_nodes fun(self: blink.cmp.SourceTree): blink.cmp.SourceTreeNode[]
 --- @field detect_cycle fun(node: blink.cmp.SourceTreeNode, visited?: table<string, boolean>, path?: table<string, boolean>): boolean
@@ -92,17 +92,20 @@ function tree:get_completions(context, on_items_by_provider)
     :map(function()
       should_push_upstream = true
 
-      -- if atleast one of the results wasn't cached, emit the results
+      -- if at least one of the results wasn't cached, emit the results
       if not is_all_cached then self:emit_completions(items_by_provider, on_items_by_provider) end
     end)
-    :catch(function(err) vim.print('failed to get completions with error: ' .. err) end)
+    :catch(function(err) vim.print('failed to get completions with error: ' .. err) end) --[[@as blink.lib.Task<nil>]]
 end
 
 function tree:emit_completions(items_by_provider, on_items_by_provider)
   local nodes_falling_back = {}
   local final_items_by_provider = {}
 
+  ---@type fun(node: blink.cmp.SourceTreeNode)?
   local add_node_items
+
+  ---@param node blink.cmp.SourceTreeNode
   add_node_items = function(node)
     for _, dependency in ipairs(node.dependencies) do
       if not nodes_falling_back[dependency.id] then return end
@@ -113,7 +116,7 @@ function tree:emit_completions(items_by_provider, on_items_by_provider)
     else
       nodes_falling_back[node.id] = true
       for _, dependent in ipairs(node.dependents) do
-        add_node_items(dependent)
+        assert(add_node_items)(dependent)
       end
     end
   end

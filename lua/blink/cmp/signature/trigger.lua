@@ -7,16 +7,16 @@
 local nvim = require('blink.lib.nvim')
 
 --- @class blink.cmp.SignatureHelpContext
---- @field id number
---- @field bufnr number
---- @field cursor number[]
+--- @field id integer
+--- @field bufnr integer
+--- @field cursor blink.cmp.CursorPos
 --- @field line string
 --- @field is_retrigger boolean
 --- @field active_signature_help lsp.SignatureHelp | nil
 --- @field trigger { kind: lsp.SignatureHelpTriggerKind, character?: string }
 
 --- @class blink.cmp.SignatureTrigger
---- @field current_context_id number
+--- @field current_context_id integer
 --- @field context? blink.cmp.SignatureHelpContext
 --- @field show_emitter blink.cmp.EventEmitter<{ context: blink.cmp.SignatureHelpContext }>
 --- @field hide_emitter blink.cmp.EventEmitter<{}>
@@ -25,9 +25,13 @@ local nvim = require('blink.lib.nvim')
 --- @field activate fun()
 --- @field is_trigger_character fun(char: string, is_retrigger?: boolean): boolean
 --- @field show_if_on_trigger_character fun()
---- @field show fun(opts?: { trigger_character: string, force?: boolean })
+--- @field show fun(opts?: blink.cmp.SignatureTriggerShowOpts)
 --- @field hide fun()
 --- @field set_active_signature_help fun(signature_help: lsp.SignatureHelp)
+
+--- @class blink.cmp.SignatureTriggerShowOpts
+--- @field trigger_character? string
+--- @field force? boolean
 
 local root_config = require('blink.cmp.config')
 local config = require('blink.cmp.config').signature.trigger
@@ -144,7 +148,7 @@ function trigger.show(opts)
     },
     is_retrigger = trigger.context ~= nil,
     active_signature_help = trigger.context and trigger.context.active_signature_help or nil,
-  }
+  } --[[@as blink.cmp.SignatureHelpContext]]
 
   trigger.show_emitter:emit({ context = trigger.context })
 end

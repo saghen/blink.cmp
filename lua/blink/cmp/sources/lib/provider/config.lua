@@ -5,15 +5,16 @@
 --- @field module string
 --- @field enabled boolean | fun(): boolean
 --- @field async fun(ctx: blink.cmp.Context): boolean
---- @field timeout_ms fun(ctx: blink.cmp.Context): number
+--- @field timeout_ms fun(ctx: blink.cmp.Context): integer
 --- @field transform_items fun(ctx: blink.cmp.Context, items: blink.cmp.CompletionItem[]): blink.cmp.CompletionItem[]
 --- @field should_show_items fun(ctx: blink.cmp.Context, items: blink.cmp.CompletionItem[]): boolean
---- @field max_items? fun(ctx: blink.cmp.Context, items: blink.cmp.CompletionItem[]): number
---- @field min_keyword_length fun(ctx: blink.cmp.Context): number
+--- @field max_items? fun(ctx: blink.cmp.Context, items: blink.cmp.CompletionItem[]): integer
+--- @field min_keyword_length fun(ctx: blink.cmp.Context): integer
 --- @field fallbacks fun(ctx: blink.cmp.Context): string[]
---- @field score_offset fun(ctx: blink.cmp.Context): number
+--- @field score_offset fun(ctx: blink.cmp.Context): integer
 
---- @class blink.cmp.SourceProviderConfigWrapper
+--- @type blink.cmp.SourceProviderConfigWrapper
+---@diagnostic disable-next-line: missing-fields
 local wrapper = {}
 
 function wrapper.new(config)
@@ -28,8 +29,6 @@ function wrapper.new(config)
   end
 
   local self = setmetatable({}, { __index = config })
-  ---@cast self blink.cmp.SourceProviderConfigWrapper
-
   self.name = config.name
   self.module = config.module
   self.enabled = config.enabled
