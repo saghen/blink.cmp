@@ -241,11 +241,27 @@ function menu.update_position()
     local cursor_row, cursor_col = unpack(context.get_cursor())
 
     -- use virtcol to avoid misalignment on multibyte characters
-    local virt_cursor_col = vim.fn.virtcol({ cursor_row, cursor_col })
-    local col = vim.fn.virtcol({ cursor_row, context.bounds.start_col - 1 })
-      - alignment_start_col
-      - virt_cursor_col
-      - border_size.left
+    local virt_col_offset = 0
+
+    -- false iff virtualedit is enabled & cursor is in virtual space. Completion can only be triggered
+    -- via show() in this situation (insertion leaves virtual space), and the cursor must either be in
+    -- a tab or beyond the end of line. So it is safe to leave the offset at zero.
+    if vim.fn.getcurpos()[4] == 0 then
+      -- virtualedit changes the behavior of vim.fn.virtcol in a way that makes it impossible to
+      -- return the *last* virtual column of a tab character. Rather than implementing an elaborate
+      -- alternative handler via vim.fn.strdisplaywidth et al., it is easier to temporarily
+      -- disable virtualedit.
+      local old_ve = vim.wo.virtualedit
+      vim.wo.virtualedit = 'none'
+
+      local virt_cursor_col = vim.fn.virtcol({ cursor_row, cursor_col })
+      local virt_start_col = vim.fn.virtcol({ cursor_row, context.bounds.start_col - 1 })
+      virt_col_offset = virt_start_col - virt_cursor_col
+
+      vim.wo.virtualedit = old_ve
+    end
+
+    local col = virt_col_offset - alignment_start_col - border_size.left
 
     if config.draw.align_to == 'cursor' then col = 0 end
 
