@@ -124,35 +124,42 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Build on OpenBSD/${{ matrix.arch }}
-        uses: cross-platform-actions/action@233156312992f3f169d8d0c633c21d12a5d30455 # v1.0.0
+      - name: Start OpenBSD/${{ matrix.arch }} VM
+        uses: cross-platform-actions/action@0c165ad7eb2d6a7e8552d6af5aad2bbedfc646b0 # v1.1.0
         with:
           operating_system: openbsd
           architecture: ${{ matrix.arch }}
           version: '7.8'
           memory: 4G
-          shell: sh
           sync_files: true  # Sync files between runner/VM in both directions
-          run: |
-            sudo pkg_add git rust
-            echo "### OS infos"
-            uname -a
-            git config --global --add safe.directory .
-            echo "### Rust infos"
-            rustc -vV
-            cargo -vV
-            echo "### Build fuzzy matcher with rustc"
-            cargo build --release
-            printf "\n### ls -l target/release/\n"
-            ls -l target/release/
+
+      - name: Build on OpenBSD/${{ matrix.arch }}
+        shell: cpa.sh {0}
+        run: |
+          sudo pkg_add git rust
+          echo "::group::OS infos"
+          uname -a
+          echo "::endgroup::"
+          echo "::group::Rust infos"
+          git config --global --add safe.directory .
+          rustc -vV
+          cargo -vV
+          echo "::endgroup::"
+          echo "::group::Build fuzzy matcher with rustc"
+          cargo build --release
+          printf "\n### ls -l target/release/\n"
+          ls -l target/release/
+          echo "::endgroup::"
 
       - name: Infos on runner after build
         run: |
-          echo "### target/release/ files on runner"
+          echo "::group::target/release/ files on runner"
           ls -l target/release/
           file target/release/libblink_cmp_fuzzy.so
-          echo "### Copy file for artifact"
+          echo "::endgroup::"
+          echo "::group::Copy file for artifact"
           cp -v target/release/libblink_cmp_fuzzy.so "${{ matrix.target }}.so"
+          echo "::endgroup::"
 
       - name: Upload artifacts for OpenBSD/${{ matrix.arch }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
