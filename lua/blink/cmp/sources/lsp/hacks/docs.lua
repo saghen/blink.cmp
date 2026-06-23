@@ -3,34 +3,36 @@ local docs = {}
 --- Gets the start and end row of the code block for the given row
 --- Or returns nil if there's no code block
 --- @param lines string[]
---- @param row number
---- @return number?, number?
+--- @param row integer
+--- @return integer?, integer?
 function docs.get_code_block_range(lines, row)
   if row < 1 or row > #lines then return end
+
+  ---@type integer?, integer?
+  local code_block_start, code_block_end
+
   -- get the start of the code block
-  local code_block_start = nil
   for i = 1, row do
     local line = lines[i]
-    if line:match('^%s*```') then
-      if code_block_start == nil then
-        code_block_start = i
-      else
+    if line and line:match('^%s*```') then
+      if code_block_start then
         code_block_start = nil
+      else
+        code_block_start = i
       end
     end
   end
-  if code_block_start == nil then return end
+  if not code_block_start then return end
 
   -- get the end of the code block
-  local code_block_end = nil
   for i = row, #lines do
     local line = lines[i]
-    if line:match('^%s*```') then
+    if line and line:match('^%s*```') then
       code_block_end = i
       break
     end
   end
-  if code_block_end == nil then return end
+  if not code_block_end then return end
 
   return code_block_start, code_block_end
 end
