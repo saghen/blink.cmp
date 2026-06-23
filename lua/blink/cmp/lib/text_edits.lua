@@ -69,6 +69,7 @@ end
 
 --- Gets the range for undoing an applied text edit
 --- @param text_edit lsp.TextEdit
+--- @return lsp.Range
 function text_edits.get_undo_range(text_edit)
   text_edit = vim.deepcopy(text_edit)
   local lines = vim.split(text_edit.newText, '\n')
@@ -119,6 +120,7 @@ local function get_line_byte_from_position(position, offset_encoding)
 
   local line = nvim.buf_get_lines(bufnr, position.line, position.line + 1, false)[1] or ''
   col = vim.str_byteindex(line, offset_encoding or 'utf-16', col, false) or 0
+
   return math.min(col, #line)
 end
 
@@ -180,9 +182,15 @@ function text_edits.compensate_for_cursor_movement(text_edit, old_cursor_col, ne
   return text_edit
 end
 
+--- @param item blink.cmp.CompletionItem
+--- @return "utf-8"|"utf-16"|"utf-32"
 function text_edits.offset_encoding_from_item(item)
-  local client = vim.lsp.get_client_by_id(item.client_id)
-  return client ~= nil and client.offset_encoding or 'utf-8'
+  if item.client_id then
+    local client = vim.lsp.get_client_by_id(item.client_id)
+    return client ~= nil and client.offset_encoding or 'utf-8'
+  end
+
+  return 'utf-8'
 end
 
 --- @param text_edit lsp.TextEdit
