@@ -1,4 +1,3 @@
-local lib = require('blink.lib')
 local nvim = require('blink.lib.nvim')
 local task = require('blink.lib.task')
 local config = require('blink.cmp.config').completion.accept.auto_brackets
@@ -11,7 +10,8 @@ local utils = require('blink.cmp.completion.brackets.utils')
 --- @field callback fun(added: boolean)
 
 local semantic = {
-  timer = lib.timer.new(),
+  --- @type uv.uv_timer_t
+  timer = assert(vim.uv.new_timer(), 'Failed to create timer for semantic token resolution'),
   --- @type blink.cmp.SemanticRequest?
   request = nil,
 }
