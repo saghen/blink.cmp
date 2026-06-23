@@ -127,29 +127,35 @@ end
 --- @param item blink.cmp.CompletionItem
 --- @return lsp.TextEdit
 function text_edits.get_from_item(item)
-  local text_edit = vim.deepcopy(item.textEdit)
-
   -- Guess the text edit if the item doesn't define it
-  if text_edit == nil then return text_edits.guess(item) end
+  if not item.textEdit then return text_edits.guess(item) end
+
+  local item_text_edit = vim.deepcopy(item.textEdit)
 
   -- FIXME: temporarily convert insertReplaceEdit to regular textEdit
-  if text_edit.range == nil then
-    if config.completion.keyword.range == 'full' and text_edit.replace ~= nil then
-      text_edit.range = text_edit.replace
+  local range ---@type lsp.Range
+  if item_text_edit.range == nil then
+    --- @cast item_text_edit lsp.InsertReplaceEdit
+    if config.completion.keyword.range == 'full' and item_text_edit.replace ~= nil then
+      range = item_text_edit.replace
     else
-      text_edit.range = text_edit.insert or text_edit.replace
+      range = item_text_edit.insert or item_text_edit.replace
     end
   end
-  text_edit.insert = nil
-  text_edit.replace = nil
-  --- @cast text_edit lsp.TextEdit
 
-  local offset_encoding = text_edits.offset_encoding_from_item(item)
+  ---@type lsp.TextEdit
+  local text_edit = {
+    newText = item_text_edit.newText,
+    range = range or item_text_edit.range,
+  }
+  assert(text_edit.range ~= nil, 'Invalid text edit: missing range')
+
   text_edit = text_edits.compensate_for_cursor_movement(text_edit, item.cursor_column, context.get_cursor()[2])
 
   -- convert the offset encoding to utf-8
   -- TODO: we have to do this last because it applies a max on the position based on the length of the line
   -- so it would break the offset code when removing characters at the end of the line
+  local offset_encoding = text_edits.offset_encoding_from_item(item)
   text_edit = text_edits.to_utf_8(text_edit, offset_encoding)
 
   text_edit.range = text_edits.clamp_range_to_bounds(text_edit.range)
