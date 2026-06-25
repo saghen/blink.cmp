@@ -6,7 +6,7 @@ local cache_size = 0
 local MAX_CACHE_SIZE = 1000
 
 --- @param ctx blink.cmp.DrawItemContext
---- @param opts? {offset?: number}
+--- @param opts? {offset?: integer}
 function treesitter.highlight(ctx, opts)
   local ret = cache[ctx.label]
   if not ret then

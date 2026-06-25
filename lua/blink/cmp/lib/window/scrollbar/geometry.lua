@@ -3,18 +3,18 @@
 local nvim = require('blink.lib.nvim')
 
 --- @class blink.cmp.ScrollbarGeometry
---- @field width number
---- @field height number
---- @field row number
---- @field col number
---- @field zindex number
+--- @field width integer
+--- @field height integer
+--- @field row integer
+--- @field col integer
+--- @field zindex integer
 --- @field relative string
---- @field win number
+--- @field win integer
 
 local M = {}
 
---- @param target_win number
---- @return number
+--- @param target_win integer
+--- @return integer
 local function get_win_buf_height(target_win)
   local buf = nvim.win_get_buf(target_win)
 
@@ -32,7 +32,7 @@ local function get_win_buf_height(target_win)
 end
 
 --- @param border string|string[]
---- @return number
+--- @return integer
 local function get_col_offset(border)
   -- we only need an extra offset when working with a padded window
   if type(border) == 'table' and border[1] == ' ' and border[4] == ' ' and border[7] == ' ' and border[8] == ' ' then
@@ -42,9 +42,9 @@ local function get_col_offset(border)
 end
 
 --- Gets the starting line, handling line wrapping if enabled
---- @param target_win number
---- @param width number
---- @return number
+--- @param target_win integer
+--- @param width integer
+--- @return integer
 local get_content_start_line = function(target_win, width)
   local start_line = math.max(1, vim.fn.line('w0', target_win))
   if not vim.wo[target_win].wrap then return start_line end
@@ -59,7 +59,7 @@ local get_content_start_line = function(target_win, width)
   return wrapped_start_line
 end
 
---- @param target_win number
+--- @param target_win integer
 --- @return { should_hide: boolean, thumb: blink.cmp.ScrollbarGeometry, gutter: blink.cmp.ScrollbarGeometry }
 function M.get_geometry(target_win)
   local config = nvim.win_get_config(target_win)

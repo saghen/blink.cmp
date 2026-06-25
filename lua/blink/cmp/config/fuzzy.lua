@@ -15,7 +15,7 @@
 --- | 'rust' Always use the Rust implementation. Error if not available.
 --- | 'lua' Always use the Lua implementation
 
---- @alias blink.cmp.SortFunction fun(a: blink.cmp.CompletionItem, b: blink.cmp.CompletionItem): boolean | nil
+--- @alias blink.cmp.SortFunction fun(a: blink.cmp.CompletionItem, b: blink.cmp.CompletionItem): boolean?
 --- @alias blink.cmp.Sort ("label" | "sort_text" | "kind" | "score" | "exact" | blink.cmp.SortFunction)
 
 local config = require('blink.lib.config')
