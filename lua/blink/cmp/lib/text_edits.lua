@@ -185,12 +185,10 @@ end
 --- @param item blink.cmp.CompletionItem
 --- @return "utf-8"|"utf-16"|"utf-32"
 function text_edits.offset_encoding_from_item(item)
-  if item.client_id then
-    local client = vim.lsp.get_client_by_id(item.client_id)
-    return client ~= nil and client.offset_encoding or 'utf-8'
-  end
+  if not item.client_id then return 'utf-8' end
 
-  return 'utf-8'
+  local client = vim.lsp.get_client_by_id(item.client_id)
+  return client ~= nil and client.offset_encoding or 'utf-8'
 end
 
 --- @param text_edit lsp.TextEdit
