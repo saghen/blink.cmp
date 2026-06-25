@@ -1,7 +1,7 @@
 local lua_ls = {}
 
---- @param response blink.cmp.CompletionResponse | nil
---- @return blink.cmp.CompletionResponse | nil
+--- @param response blink.cmp.CompletionResponse?
+--- @return blink.cmp.CompletionResponse?
 function lua_ls.process_response(response)
   if not response or not response.items then return response end
 

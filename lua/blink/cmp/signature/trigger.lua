@@ -12,7 +12,7 @@ local nvim = require('blink.lib.nvim')
 --- @field cursor blink.cmp.CursorPos
 --- @field line string
 --- @field is_retrigger boolean
---- @field active_signature_help lsp.SignatureHelp | nil
+--- @field active_signature_help lsp.SignatureHelp?
 --- @field trigger { kind: lsp.SignatureHelpTriggerKind, character?: string }
 
 --- @class blink.cmp.SignatureTrigger
@@ -42,7 +42,7 @@ local fuzzy = require('blink.cmp.fuzzy')
 --- @diagnostic disable-next-line: missing-fields
 local trigger = {
   current_context_id = -1,
-  --- @type blink.cmp.SignatureHelpContext | nil
+  --- @type blink.cmp.SignatureHelpContext?
   context = nil,
   show_emitter = require('blink.cmp.lib.event_emitter').new('signature_help_show'),
   hide_emitter = require('blink.cmp.lib.event_emitter').new('signature_help_hide'),
