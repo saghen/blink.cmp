@@ -92,7 +92,10 @@ function completion.setup()
   local ghost_text = function() return require('blink.cmp.completion.windows.ghost_text') end
 
   local menu = require('blink.cmp.completion.windows.menu')
-  menu.open_emitter:on(function() ghost_text().show_preview(menu.context, menu.items, menu.selected_item_idx) end)
+  menu.open_emitter:on(function()
+    assert(menu.context, 'A context is required to display the ghost text')
+    ghost_text().show_preview(menu.context, menu.items, menu.selected_item_idx)
+  end)
 
   list.show_emitter:on(function(event) ghost_text().show_preview(event.context, event.items, 1) end)
   list.select_emitter:on(function(event) ghost_text().show_preview(event.context, event.items, event.idx) end)
