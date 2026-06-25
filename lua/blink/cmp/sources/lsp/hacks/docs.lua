@@ -40,19 +40,19 @@ end
 --- Avoids showing the detail if it's part of the documentation
 --- or, if the detail is in a code block in the doc,
 --- extracts the code block into the detail
----@param detail string
----@param documentation string
----@return string, string
---- TODO: Also move the code block into detail if it's at the start of the doc
---- and we have no detail
+--- TODO: Also move the code block into detail if it's at the start of the doc and we have no detail
+--- @param detail string
+--- @param documentation string?
+--- @return string, string?
 function docs.extract_detail_from_doc(detail, documentation)
+  if not documentation then return detail, documentation end
+
   local detail_lines = docs.split_lines(detail)
   local doc_lines = docs.split_lines(documentation)
-
   local doc_str_detail_row = documentation:find(detail, 1, true)
 
-  -- didn't find the detail in the doc, so return as is
-  if doc_str_detail_row == nil or #detail == 0 or #documentation == 0 then return detail, documentation end
+  -- Nothing to extract. Detail or documentation is empty, or detail not found in documentation
+  if #detail == 0 or #documentation == 0 or not doc_str_detail_row then return detail, documentation end
 
   -- get the line of the match
   -- hack: surely there's a better way to do this but it's late
@@ -83,6 +83,8 @@ function docs.extract_detail_from_doc(detail, documentation)
   return table.concat(detail_lines, '\n'), table.concat(doc_lines, '\n')
 end
 
+--- @param text string
+--- @return string[]
 function docs.split_lines(text)
   local lines = {}
   for s in text:gmatch('[^\r\n]+') do
