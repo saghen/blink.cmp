@@ -11,6 +11,7 @@ local utils = require('blink.cmp.completion.brackets.utils')
 
 local semantic = {
   --- @type uv.uv_timer_t
+  --- FIXME: Figure out why lib.timer.new() causes a race condition
   timer = assert(vim.uv.new_timer(), 'Failed to create timer for semantic token resolution'),
   --- @type blink.cmp.SemanticRequest?
   request = nil,
