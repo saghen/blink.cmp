@@ -95,6 +95,7 @@ function lsp:resolve(item, callback)
   -- strip blink specific fields to avoid decoding errors on some LSPs
   item = require('blink.cmp.sources.lib.utils').blink_item_to_lsp_item(item)
 
+  --- @param resolved_item lsp.CompletionItem
   local success, request_id = client:request('completionItem/resolve', item, function(error, resolved_item)
     if error or resolved_item == nil then
       callback(item)
@@ -103,10 +104,15 @@ function lsp:resolve(item, callback)
 
     -- Snippet with no detail, fill in the detail with the snippet
     if resolved_item.detail == nil and resolved_item.insertTextFormat == vim.lsp.protocol.InsertTextFormat.Snippet then
-      local text_edit = require('blink.cmp.lib.text_edits').get_from_item(item)
-      local parsed_snippet = require('blink.cmp.sources.snippets.utils').safe_parse(text_edit.newText)
-      local snippet = parsed_snippet and tostring(parsed_snippet) or text_edit.newText
-      resolved_item.detail = snippet
+      -- Follows spec using textEdit.newText if available then insertText as fallback.
+      -- Deliberately excludes label, it's a display string, not governed by InsertTextFormat
+      local snippet_text = (resolved_item.textEdit and resolved_item.textEdit.newText)
+        or resolved_item.insertText
+        or item.insertText
+      if snippet_text ~= nil then
+        local parsed_snippet = require('blink.cmp.sources.snippets.utils').safe_parse(snippet_text)
+        resolved_item.detail = parsed_snippet and tostring(parsed_snippet) or snippet_text
+      end
     end
 
     -- Lua LSP returns the detail like `table` while the documentation contains the signature
