@@ -1,4 +1,6 @@
+local cmp = require('blink.cmp')
 local native = require('blink.lib.native')
-local project_root = require('blink.cmp').get_repo_root()
+local commit = native.try_git_commit(cmp.get_repo_root())
+local name = cmp.get_library_name()
 
-return native.load('blink_cmp_fuzzy', native.try_git_commit(project_root))
+return native.load(name, commit)
