@@ -33,45 +33,59 @@ function fuzzy.init_db()
   fuzzy.has_init_db = true
 end
 
+---Returns the library name and path
+---@return string, string
+function fuzzy.get_lib()
+  local cmp = require('blink.cmp')
+  local native = require('blink.lib.native')
+  local commit = native.try_git_commit(cmp.get_repo_root())
+  local name = cmp.get_library_name()
+
+  return name, native.resolve(name, commit)
+end
+
 ---@param item blink.cmp.CompletionItem
 function fuzzy.access(item)
   if fuzzy.implementation_type ~= 'rust' or not config.fuzzy.frecency.enabled then return end
 
   fuzzy.init_db()
 
-  -- TODO: fails to load in uv thread
   -- send only the properties we need for LspItem
-  -- local trimmed_item = {
-  --   label = lib.is_not_nil(item.label) and item.label or nil,
-  --   filterText = lib.is_not_nil(item.filterText) and item.filterText or nil,
-  --   sortText = lib.is_not_nil(item.sortText) and item.sortText or nil,
-  --   insertText = lib.is_not_nil(item.insertText) and item.insertText or nil,
-  --   kind = lib.is_not_nil(item.kind) and item.kind or nil,
-  --   score_offset = lib.is_not_nil(item.score_offset) and item.score_offset or nil,
-  --   source_id = lib.is_not_nil(item.source_id) and item.source_id or nil,
-  -- }
-  --
-  -- -- writing to the db takes ~10ms, so schedule writes in another thread
-  -- local encode
-  -- if jit and package.preload['string.buffer'] then
-  --   encode = require('string.buffer').encode
-  -- else
-  --   encode = vim.mpack.encode
-  -- end
+  local trimmed_item = {
+    label = lib.is_not_nil(item.label) and item.label or nil,
+    filterText = lib.is_not_nil(item.filterText) and item.filterText or nil,
+    sortText = lib.is_not_nil(item.sortText) and item.sortText or nil,
+    insertText = lib.is_not_nil(item.insertText) and item.insertText or nil,
+    kind = lib.is_not_nil(item.kind) and item.kind or nil,
+    score_offset = lib.is_not_nil(item.score_offset) and item.score_offset or nil,
+    source_id = lib.is_not_nil(item.source_id) and item.source_id or nil,
+  }
 
-  -- vim.uv
-  --   .new_work(function(itm, cpath)
-  --     local decode
-  --     if jit and package.preload['string.buffer'] then
-  --       decode = require('string.buffer').decode
-  --     else
-  --       decode = vim.mpack.decode
-  --     end
-  --
-  --     package.cpath = cpath
-  --     require('blink.cmp.fuzzy.rust').access(decode(itm))
-  --   end, function() end)
-  --   :queue(encode(trimmed_item), package.cpath)
+  -- writing to the db takes ~10ms, so schedule writes in another thread
+  local encode
+  if jit and package.preload['string.buffer'] then
+    encode = require('string.buffer').encode
+  else
+    encode = vim.mpack.encode
+  end
+
+  local lib_name, lib_path = require('blink.cmp.fuzzy').get_lib()
+  vim.uv
+    .new_work(function(itm, libname, libpath)
+      local decode
+      if jit and package.preload['string.buffer'] then
+        decode = require('string.buffer').decode
+      else
+        decode = vim.mpack.decode
+      end
+
+      local loader, err = package.loadlib(libpath, 'luaopen_' .. libname)
+      assert(loader, err)
+
+      local rust = loader()
+      rust.access(decode(itm))
+    end, function() end)
+    :queue(encode(trimmed_item), lib_name, lib_path)
 end
 
 ---@param lines string

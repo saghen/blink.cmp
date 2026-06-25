@@ -96,7 +96,7 @@ end
 -------- Native Library --------
 
 function cmp.get_repo_root() return native.repo_root end
-
+function cmp.get_library_name() return native.library_name end
 function cmp.library_available() return native:library_available() end
 
 --- Builds the native library if it's not already available
