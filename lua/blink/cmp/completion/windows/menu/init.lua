@@ -157,23 +157,14 @@ end
 ---------------
 
 function menu.queue_auto_show(context, items)
-  local is_auto_show_enabled
-  if type(menu.auto_show.enabled) == 'function' then
-    is_auto_show_enabled = menu.auto_show.enabled(context, items)
-  else
-    is_auto_show_enabled = menu.auto_show.enabled
-  end
+  assert(type(menu.auto_show.enabled) == 'function')
+  local is_auto_show_enabled = menu.auto_show.enabled(context, items)
   if not is_auto_show_enabled then return end
 
   -- getting completions can take a while, so we factor in how long it's been since the context was created
-  local auto_show_delay_ms
-  if type(menu.auto_show.delay_ms) == 'function' then
-    auto_show_delay_ms = menu.auto_show.delay_ms(context, items)
-  else
-    auto_show_delay_ms = menu.auto_show.delay_ms
-  end
+  assert(type(menu.auto_show.delay_ms) == 'function')
+  local auto_show_delay_ms = menu.auto_show.delay_ms(context, items)
   local delay_ms = math.max(0, auto_show_delay_ms - (vim.uv.now() - context.timestamp))
-  ---@cast delay_ms integer
 
   -- no delay, show immediately
   -- only start a new timer if the cursor has moved or the id has changed.
