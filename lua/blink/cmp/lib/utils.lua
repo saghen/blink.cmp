@@ -1,9 +1,11 @@
+local lib = require('blink.lib')
+
 local utils = {}
 
-function utils.to_string_or_empty(v) return (utils.is_not_nil(v) and type(v) == 'string') and v or '' end
+function utils.to_string_or_empty(v) return (lib.is_not_nil(v) and type(v) == 'string') and v or '' end
 
 function utils.schedule_if_needed(fn)
-  if vim.in_fast_event() then
+  if vim.in_fast_event() == true then
     vim.schedule(fn)
   else
     fn()
@@ -59,8 +61,10 @@ end
 --- @return T
 function utils.defer_neovide_redraw(fn)
   -- don't do anything special when not running inside neovide
+  ---@diagnostic disable-next-line: undefined-global
   if not _G.neovide or not neovide.enable_redraw or not neovide.disable_redraw then return fn() end
 
+  ---@diagnostic disable-next-line: undefined-global
   neovide.disable_redraw()
 
   local success, result = pcall(fn)
@@ -68,6 +72,7 @@ function utils.defer_neovide_redraw(fn)
   -- make sure that the screen is updated and the mouse cursor returned to the right position before re-enabling redrawing
   pcall(vim.api.nvim__redraw, { cursor = true, flush = true })
 
+  ---@diagnostic disable-next-line: undefined-global
   neovide.enable_redraw()
 
   if not success then error(result) end

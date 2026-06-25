@@ -5,7 +5,7 @@ local lib = require('blink.lib')
 
 --- @type integer?
 local last_context_id = nil
---- @type blink.lib.Task<T>?
+--- @type blink.lib.Task<blink.cmp.CompletionItem>?
 local last_request = nil
 local timer = lib.timer.new()
 

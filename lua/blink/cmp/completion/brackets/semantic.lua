@@ -28,6 +28,7 @@ function semantic.finish_request()
   semantic.timer:stop()
 end
 
+--- @param tokens STTokenRangeInspect[]
 function semantic.process_request(tokens)
   local request = semantic.request
   if request == nil then return end
