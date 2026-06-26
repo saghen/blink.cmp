@@ -85,7 +85,7 @@ function scrollbar_win:_make_win(geometry, hl_group)
     focusable = false,
     noautocmd = true,
     border = 'none',
-  } --[[@as blink.cmp.ScrollbarGeometry]])
+  })
   local win = nvim.open_win(self.buf, false, win_config)
   nvim.set_option_value('winhighlight', 'Normal:' .. hl_group .. ',EndOfBuffer:' .. hl_group, { win = win })
   return win
