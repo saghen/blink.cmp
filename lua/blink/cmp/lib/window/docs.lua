@@ -6,25 +6,29 @@ local docs = {}
 
 --- @class blink.cmp.RenderDetailAndDocumentationOpts
 --- @field bufnr integer
---- @field detail? string|string[]
+--- @field detail? string | string[]
 --- @field documentation? lsp.MarkupContent | string
 --- @field max_width integer
---- @field use_treesitter_highlighting boolean?
+--- @field use_treesitter_highlighting? boolean
 
 --- @class blink.cmp.RenderDetailAndDocumentationOptsPartial
 --- @field bufnr? integer
 --- @field detail? string
 --- @field documentation? lsp.MarkupContent | string
 --- @field max_width? integer
---- @field use_treesitter_highlighting boolean?
+--- @field use_treesitter_highlighting? boolean
 
 --- @param opts blink.cmp.RenderDetailAndDocumentationOpts
 function docs.render_detail_and_documentation(opts)
+  ---@type string[]
   local detail_lines = {}
   local details = lib.is_not_nil(opts.detail) and (type(opts.detail) == 'string' and { opts.detail } or opts.detail)
     or {}
   --- @cast details string[]
+
   details = lib.list.dedup(details)
+  --- @cast details string[]
+
   for _, v in ipairs(details) do
     vim.list_extend(detail_lines, docs.split_lines(v))
   end
@@ -36,8 +40,7 @@ function docs.render_detail_and_documentation(opts)
     vim.lsp.util.convert_input_to_markdown_lines(doc, doc_lines)
   end
 
-  ---@type string[]
-  local combined_lines = vim.list_extend({}, detail_lines)
+  local combined_lines = vim.list_extend({} --[[@as string[] ]], detail_lines)
 
   -- add a blank line for the --- separator
   local doc_already_has_separator = #doc_lines > 1 and (doc_lines[1] == '---' or doc_lines[1] == '***')
@@ -72,12 +75,12 @@ function docs.render_detail_and_documentation(opts)
 end
 
 --- Highlights the given range with treesitter with the given filetype
---- @param bufnr number
---- @param filetype string
---- @param start_line number
---- @param end_line number
 --- TODO: fallback to regex highlighting if treesitter fails
 --- TODO: only render what's visible
+--- @param bufnr integer
+--- @param filetype string
+--- @param start_line integer
+--- @param end_line integer
 function docs.highlight_with_treesitter(bufnr, filetype, start_line, end_line)
   local Range = require('vim.treesitter._range')
   local treesitter_priority = vim.hl.priorities.treesitter
@@ -104,14 +107,15 @@ function docs.highlight_with_treesitter(bufnr, filetype, start_line, end_line)
       local capture, node, metadata, _ = iter(line)
       if capture == nil then break end
 
+      ---@type Range
       local range = { root_end_row + 1, 0, root_end_row + 1, 0 }
-      if node then range = vim.treesitter.get_range(node, bufnr, metadata and metadata[capture]) end
+      if node ~= nil then range = vim.treesitter.get_range(node, bufnr, metadata and metadata[capture]) end
       local start_row, start_col, end_row, end_col = Range.unpack4(range)
 
-      if capture then
+      if capture ~= nil then
         local name = highlighter_query.captures[capture]
         local hl = 0
-        if not vim.startswith(name, '_') then hl = nvim.get_hl_id_by_name('@' .. name .. '.' .. lang) end
+        if name and not vim.startswith(name, '_') then hl = nvim.get_hl_id_by_name('@' .. name .. '.' .. lang) end
 
         -- The "priority" attribute can be set at the pattern level or on a particular capture
         local priority = (
@@ -129,7 +133,7 @@ function docs.highlight_with_treesitter(bufnr, filetype, start_line, end_line)
             hl_group = hl,
             priority = priority,
             conceal = conceal,
-          })
+          } --[[@as vim.api.keyset.set_extmark]])
         end
       end
 
@@ -138,11 +142,15 @@ function docs.highlight_with_treesitter(bufnr, filetype, start_line, end_line)
   end)
 end
 
+--- @param text string
+--- @return string[]
 function docs.split_lines(text)
+  --- @type string[]
   local lines = {}
   for s in text:gmatch('[^\r\n]+') do
     table.insert(lines, s)
   end
+
   return lines
 end
 
