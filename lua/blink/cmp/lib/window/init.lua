@@ -7,7 +7,7 @@ local utils = require('blink.cmp.lib.window.utils')
 --- @class blink.cmp.WindowOptions
 --- @field min_width? integer
 --- @field max_width? integer
---- @field max_height? integer
+--- @field max_height integer
 --- @field cursorline? boolean
 --- @field cursorline_priority? integer
 --- @field default_border? blink.cmp.WindowBorder
@@ -37,8 +37,8 @@ local utils = require('blink.cmp.lib.window.utils')
 --- @field set_option_value fun(self: blink.cmp.Window, option: string, value: any)
 --- @field update_size fun(self: blink.cmp.Window)
 --- @field get_content_height fun(self: blink.cmp.Window): integer
---- @field get_border_size fun(self: blink.cmp.Window, border?: 'none' | 'single' | 'double' | 'rounded' | 'solid' | 'shadow' | 'bold' | 'padded' | string[]): { vertical: integer, horizontal: integer, left: integer, right: integer, top: integer, bottom: integer }
---- @field expand_border_chars fun(border: string[]): string[]
+--- @field get_border_size fun(self: blink.cmp.Window): { vertical: integer, horizontal: integer, left: integer, right: integer, top: integer, bottom: integer }
+--- @field expand_border_chars fun(border: blink.cmp.WindowBorderChar[]): string[]
 --- @field get_height fun(self: blink.cmp.Window): integer
 --- @field get_content_width fun(self: blink.cmp.Window): integer
 --- @field get_width fun(self: blink.cmp.Window): integer
@@ -48,10 +48,12 @@ local utils = require('blink.cmp.lib.window.utils')
 --- @field set_width fun(self: blink.cmp.Window, width: integer)
 --- @field set_win_config fun(self: blink.cmp.Window, config: table)
 --- @field get_vertical_direction_and_height fun(self: blink.cmp.Window, direction_priority: blink.cmp.WindowDirectionPriority, max_height: integer): { height: integer, direction: 'n' | 's' }?
---- @field get_direction_with_window_constraints fun(self: blink.cmp.Window, anchor_win: blink.cmp.Window, direction_priority: ("n" | "s" | "e" | "w")[], desired_min_size?: { width: integer, height: integer }): { width: integer, height: integer, direction: 'n' | 's' | 'e' | 'w' }?
+--- @field get_direction_with_window_constraints fun(self: blink.cmp.Window, anchor_win: blink.cmp.Window, direction_priority: ('n' | 's' | 'e' | 'w')[], desired_min_size: { width: integer, height: integer }): { width: integer, height: integer, direction: 'n' | 's' | 'e' | 'w' }?
 --- @field redraw_if_needed fun(self: blink.cmp.Window)
 
---- @alias blink.cmp.WindowDirectionPriority ("n"|"s")[] | fun(): ("n"|"s")[]
+--- @alias blink.cmp.WindowDirectionPriority ('n'|'s')[] | fun(): ('n'|'s')[]
+--- @alias blink.cmp.WindowBorderChar string | string[]
+--- @alias blink.cmp.WindowBorder nil | 'single' | 'double' | 'rounded' | 'solid' | 'shadow' | 'bold' | 'padded' | 'none' | blink.cmp.WindowBorderChar[] When set to `nil`, uses the `vim.o.winborder` value on nvim 0.11+
 
 --- @type blink.cmp.Window
 --- @diagnostic disable-next-line: missing-fields
@@ -98,7 +100,7 @@ end
 
 function win:get_buf()
   -- create buffer if it doesn't exist
-  if self.buf == nil or not nvim.buf_is_valid(self.buf) then
+  if not self.buf or not nvim.buf_is_valid(self.buf) then
     self.buf = nvim.create_buf(false, true)
     nvim.set_option_value('tabstop', 1, { buf = self.buf }) -- prevents tab widths from being unpredictable
   end
@@ -125,7 +127,7 @@ function win:open()
     row = 1,
     col = 1,
     zindex = 1001,
-    border = self.config.border == 'padded' and { ' ', '', '', ' ', '', '', ' ', ' ' } or self.config.border,
+    border = self.config.border == 'padded' and { ' ', '', '', ' ', '', '', ' ', ' ' } or self.config.border --[[@as vim.api.keyset.win_config.border]],
   })
   nvim.set_option_value('winblend', self.config.winblend, { win = self.id })
   nvim.set_option_value('winhighlight', self.config.winhighlight, { win = self.id })
@@ -146,7 +148,8 @@ function win:open()
 end
 
 function win:set_option_value(option, value)
-  if self.id == nil or not nvim.win_is_valid(self.id) then return end
+  if not self.id or not nvim.win_is_valid(self.id) then return end
+
   nvim.set_option_value(option, value, { win = self.id })
 end
 
@@ -162,7 +165,10 @@ end
 --- Updates the size of the window to match the max width and height of the content/config
 function win:update_size()
   if not self:is_open() then return end
+
   local winnr = self:get_win()
+  assert(winnr ~= nil, 'Window must be open to update size')
+
   local config = self.config
 
   -- TODO: never go above the screen width and height
@@ -178,11 +184,15 @@ function win:update_size()
   nvim.win_set_height(winnr, height)
 end
 
--- TODO: fix nvim_win_text_height
--- @return integer
+--- TODO: fix nvim_win_text_height
+--- @return integer
 function win:get_content_height()
   if not self:is_open() then return 0 end
-  return nvim.win_text_height(self:get_win(), {}).all
+
+  local winnr = self:get_win()
+  assert(winnr ~= nil, 'Window must be open to get the content height')
+
+  return nvim.win_text_height(winnr, {}).all
 end
 
 --- Gets the size of the borders around the window
@@ -242,12 +252,16 @@ end
 --- Gets the height of the window, taking into account the border
 function win:get_height()
   if not self:is_open() then return 0 end
-  return nvim.win_get_height(self:get_win()) + self:get_border_size().vertical
+
+  local winnr = self:get_win()
+  assert(winnr ~= nil, 'Window must be open to get the height')
+
+  return nvim.win_get_height(winnr) + self:get_border_size().vertical
 end
 
 --- Gets the width of the longest line in the window
 function win:get_content_width()
-  if not self:is_open() then return 0 end
+  if not self:is_open() or not self.buf then return 0 end
   local max_width = 0
   for _, line in ipairs(nvim.buf_get_lines(self.buf, 0, -1, false)) do
     max_width = math.max(max_width, nvim.strwidth(line))
@@ -258,7 +272,11 @@ end
 --- Gets the width of the window, taking into account the border
 function win:get_width()
   if not self:is_open() then return 0 end
-  return nvim.win_get_width(self:get_win()) + self:get_border_size().horizontal
+
+  local winnr = self:get_win()
+  assert(winnr ~= nil, 'Window must be open to get the width')
+
+  return nvim.win_get_width(winnr) + self:get_border_size().horizontal
 end
 
 --- Gets the cursor's distance from all sides of the screen
@@ -336,6 +354,8 @@ end
 --- direction_priority list
 function win:get_vertical_direction_and_height(direction_priority, max_height)
   if type(direction_priority) == 'function' then direction_priority = direction_priority() end
+  ---@cast direction_priority ('n'|'s')[]
+
   local constraints = self.get_cursor_screen_position()
   local border_size = self:get_border_size()
   local function get_distance(direction)
@@ -348,21 +368,25 @@ function win:get_vertical_direction_and_height(direction_priority, max_height)
     return (distance_a < distance_b) and 1 or (distance_a > distance_b) and -1 or 0
   end)
 
-  local direction = direction_priority_by_space[1]
+  local direction = assert(direction_priority_by_space[1])
   local height = math.min(self:get_height(), get_distance(direction), max_height)
   if height <= border_size.vertical then return end
+
   return { height = height - border_size.vertical, direction = direction }
 end
 
 function win:get_direction_with_window_constraints(anchor_win, direction_priority, desired_min_size)
   local cursor_constraints = self.get_cursor_screen_position()
 
-  -- nnvim.win_get_position doesn't return the correct position most of the time
+  -- nvim.win_get_position doesn't return the correct position most of the time
   -- so we calculate the position ourselves
   local anchor_config
-  local anchor_win_config = nvim.win_get_config(anchor_win:get_win())
+  local anchor_win_config = nvim.win_get_config(assert(anchor_win:get_win()))
+  assert(anchor_win_config.row)
+  assert(anchor_win_config.col)
+
   if anchor_win_config.relative == 'win' then
-    local anchor_relative_win_position = nvim.win_get_position(anchor_win_config.win)
+    local anchor_relative_win_position = nvim.win_get_position(assert(anchor_win_config.win))
     anchor_config = {
       row = anchor_win_config.row + anchor_relative_win_position[1] + 1,
       col = anchor_win_config.col + anchor_relative_win_position[2] + 1,
@@ -381,8 +405,8 @@ function win:get_direction_with_window_constraints(anchor_win, direction_priorit
   end
 
   local anchor_border_size = anchor_win:get_border_size()
-  local anchor_col = anchor_config.col - anchor_border_size.left
-  local anchor_row = anchor_config.row - anchor_border_size.top
+  local anchor_col = math.floor(anchor_config.col - anchor_border_size.left)
+  local anchor_row = math.floor(anchor_config.row - anchor_border_size.top)
   local anchor_height = anchor_win:get_height()
   local anchor_width = anchor_win:get_width()
 
@@ -443,7 +467,7 @@ function win:get_direction_with_window_constraints(anchor_win, direction_priorit
   end)
 
   local border_size = self:get_border_size()
-  local direction = direction_priority_by_space[1]
+  local direction = assert(direction_priority_by_space[1])
   local height = math.min(max_height, direction_constraints[direction].vertical)
   if height <= border_size.vertical then return end
   local width = math.min(max_width, direction_constraints[direction].horizontal)
@@ -458,7 +482,7 @@ end
 
 --- In cmdline mode, the window won't be redrawn automatically so we redraw ourselves on schedule
 function win:redraw_if_needed()
-  if self.redraw_queued or nvim.get_mode().mode ~= 'c' or self:get_win() == nil then return end
+  if self.redraw_queued or nvim.get_mode().mode ~= 'c' or not self:get_win() then return end
 
   -- We redraw on schedule to avoid the cmdline disappearing during redraw
   -- and to batch multiple redraws together
