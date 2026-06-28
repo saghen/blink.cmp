@@ -98,7 +98,7 @@ function semantic.add_brackets_via_semantic_token(ctx, filetype, item)
     } --[[@as blink.cmp.SemanticRequest]]
 
     -- semantic tokens debounced, so manually request a refresh to avoid latency
-    highlighter:send_request()
+    highlighter:send_request(client.id)
 
     -- first check if a semantic token already exists at the current cursor position
     -- we get the token 1 character before the cursor (`bar|` would check `r`)
