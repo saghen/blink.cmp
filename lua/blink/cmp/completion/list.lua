@@ -164,7 +164,7 @@ end
 
 ---------- Selection ----------
 
-function list.get_selected_item() return list.items[list.selected_item_idx or 1] end
+function list.get_selected_item() return list.selected_item_idx and list.items[list.selected_item_idx] end
 
 function list.get_selection_mode(ctx)
   assert(ctx ~= nil, 'Context must be set before getting selection mode')
