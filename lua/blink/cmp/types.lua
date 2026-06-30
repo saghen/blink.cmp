@@ -3,7 +3,7 @@
 --- @alias blink.cmp.CursorPos { [1]: integer, [2]: integer }
 
 --- @class blink.cmp.CompletionItem : lsp.CompletionItem
---- @field documentation? string | { kind: lsp.MarkupKind, value: string, draw?: fun(opts?: blink.cmp.CompletionDocumentationDrawOpts) }
+--- @field documentation? string | blink.cmp.CompletionDocumentationMarkupContent
 --- @field score_offset? integer
 --- @field source_id string
 --- @field source_name string

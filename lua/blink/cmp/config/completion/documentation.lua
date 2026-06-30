@@ -28,6 +28,9 @@
 --- @field config blink.cmp.CompletionDocumentationConfig
 --- @field default_implementation fun(opts?: blink.cmp.RenderDetailAndDocumentationOptsPartial)
 
+--- @class blink.cmp.CompletionDocumentationMarkupContent : lsp.MarkupContent
+--- @field draw? fun(opts?: blink.cmp.CompletionDocumentationDrawOpts)
+
 local config = require('blink.lib.config')
 return {
   enabled = { true, 'boolean' },
