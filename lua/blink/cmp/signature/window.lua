@@ -1,5 +1,3 @@
-local nvim = require('blink.lib.nvim')
-
 --- @class blink.cmp.SignatureWindow
 --- @field win blink.cmp.Window
 --- @field context? blink.cmp.SignatureHelpContext
@@ -10,6 +8,7 @@ local nvim = require('blink.lib.nvim')
 --- @field scroll_down fun(amount: integer): boolean
 --- @field update_position fun()
 
+local nvim = require('blink.lib.nvim')
 local config = require('blink.cmp.config').signature.window
 local sources = require('blink.cmp.sources.lib')
 local menu = require('blink.cmp.completion.windows.menu')
@@ -40,19 +39,16 @@ nvim.create_autocmd({ 'CursorMovedI', 'WinScrolled', 'WinResized' }, {
 })
 
 --- @param context blink.cmp.SignatureHelpContext
---- @param signature_help? lsp.SignatureHelp
+--- @param signature_help lsp.SignatureHelp
 function signature.open_with_signature_help(context, signature_help)
-  signature.context = context
   -- check if there are any signatures in signature_help, since
   -- convert_signature_help_to_markdown_lines errors with no signatures
-  if
-    signature_help == nil
-    or #signature_help.signatures == 0
-    or signature_help.signatures[(signature_help.activeSignature or 0) + 1] == nil
-  then
-    signature.win:close()
+  if #signature_help.signatures == 0 or not signature_help.signatures[(signature_help.activeSignature or 0) + 1] then
+    signature.close()
     return
   end
+
+  signature.context = context
 
   local active_signature = signature_help.signatures[(signature_help.activeSignature or 0) + 1]
   assert(active_signature, 'Unable to find the active signature')
@@ -96,11 +92,6 @@ function signature.open_with_signature_help(context, signature_help)
   signature.scroll_up(1)
 end
 
-function signature.close()
-  if not signature.win:is_open() then return end
-  signature.win:close()
-end
-
 --- @param amount integer
 --- @return boolean
 function signature.scroll_up(amount)
@@ -131,6 +122,7 @@ end
 function signature.update_position()
   local win = signature.win
   if not win:is_open() then return end
+  if not signature.context then return end
 
   local winnr = win:get_win()
   assert(winnr, 'window id not found for signature help')
@@ -173,17 +165,26 @@ function signature.update_position()
   if menu_win_config ~= nil then
     assert(menu_win_config.relative == 'win', 'The menu window must be relative to a window')
     assert(menu_win_config and menu_win_config.row)
+
     local cursor_screen_row = vim.fn.winline()
     local menu_win_is_up = menu_win_config.row - cursor_screen_row < 0
-    nvim.win_set_config(winnr, {
+
+    win:set_win_config({
       relative = menu_win_config.relative,
       win = menu_win_config.win,
       row = menu_win_is_up and menu_win_config.row + menu.win:get_height() + 1 or menu_win_config.row - height - 1,
       col = menu_win_config.col,
     })
   else
-    nvim.win_set_config(winnr, { relative = 'cursor', row = pos.direction == 's' and 1 or -height, col = 0 })
+    win:set_win_config({ relative = 'cursor', row = pos.direction == 's' and 1 or -height, col = 0 })
   end
+end
+
+function signature.close()
+  if not signature.win:is_open() then return end
+
+  signature.win:close()
+  signature.context = nil
 end
 
 return signature
