@@ -1,6 +1,5 @@
 --- @class blink.cmp.CompletionDocumentationWindow
 --- @field win blink.cmp.Window
---- @field last_context_id? integer
 --- @field auto_show_timer uv.uv_timer_t
 --- @field shown_item? blink.cmp.CompletionItem
 ---
@@ -37,7 +36,6 @@ local docs = {
     filetype = 'blink-cmp-documentation',
     scrolloff = 0,
   }),
-  last_context_id = nil,
   auto_show_timer = lib.timer.new(),
 }
 
