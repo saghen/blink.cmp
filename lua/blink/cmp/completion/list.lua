@@ -357,15 +357,20 @@ end
 
 function list.accept(opts)
   opts = opts or {}
-  local idx = opts.index or list.selected_item_idx or 1
-  local item = list.items[idx]
-  if item == nil then return false end
+
+  if not list.context then return false end
+
+  local idx = opts.index or list.selected_item_idx
+  if not idx then return false end
+
+  local item = assert(list.items[idx])
 
   list.undo_preview()
   require('blink.cmp.completion.accept')(list.context, item, function()
     list.accept_emitter:emit({ item = item, context = list.context })
     if opts.callback then opts.callback() end
   end)
+
   return true
 end
 
