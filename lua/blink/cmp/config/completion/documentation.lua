@@ -44,7 +44,11 @@ return {
     ),
   },
   treesitter_highlighting = { true, 'boolean' },
-  draw = { function(opts) opts.default_implementation() end, 'function' },
+  draw = {
+    ---@param opts blink.cmp.CompletionDocumentationDrawOpts
+    function(opts) opts.default_implementation() end,
+    'function',
+  },
   window = {
     min_width = { 10, 'number' },
     max_width = { 80, 'number' },
