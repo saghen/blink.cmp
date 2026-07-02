@@ -1,3 +1,4 @@
+local lib = require('blink.lib')
 local config = require('blink.cmp.config')
 local completion = {}
 
@@ -64,7 +65,7 @@ function completion.setup()
   if config.completion.menu.enabled then
     local menu = function() return require('blink.cmp.completion.windows.menu') end
 
-    local loading_timer = vim.uv.new_timer()
+    local loading_timer = lib.timer.new()
     trigger.show_emitter:on(function(event)
       if event.context.trigger.kind ~= 'manual' then return end
       loading_timer:start(500, 0, vim.schedule_wrap(function() menu().open_loading(event.context) end))
@@ -81,6 +82,8 @@ function completion.setup()
 
     list.select_emitter:on(function(event)
       menu().set_selected_item_idx(event.idx)
+
+      if not event.item then return end
       require('blink.cmp.completion.windows.documentation').auto_show_item(event.context, event.item)
     end)
   end
@@ -89,7 +92,10 @@ function completion.setup()
   local ghost_text = function() return require('blink.cmp.completion.windows.ghost_text') end
 
   local menu = require('blink.cmp.completion.windows.menu')
-  menu.open_emitter:on(function() ghost_text().show_preview(menu.context, menu.items, menu.selected_item_idx) end)
+  menu.open_emitter:on(function()
+    assert(menu.context, 'A context is required to display the ghost text')
+    ghost_text().show_preview(menu.context, menu.items, menu.selected_item_idx)
+  end)
 
   list.show_emitter:on(function(event) ghost_text().show_preview(event.context, event.items, 1) end)
   list.select_emitter:on(function(event) ghost_text().show_preview(event.context, event.items, event.idx) end)
@@ -102,7 +108,7 @@ function completion.setup()
     -- when selection.preselect == false, we still want to prefetch the first item
     local item = event.item or list.items[1]
     if item == nil then return end
-    require('blink.cmp.completion.prefetch')(event.context, event.item)
+    require('blink.cmp.completion.prefetch')(event.context, item)
   end)
 end
 

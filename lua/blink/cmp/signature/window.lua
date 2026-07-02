@@ -1,15 +1,14 @@
-local nvim = require('blink.lib.nvim')
-
 --- @class blink.cmp.SignatureWindow
 --- @field win blink.cmp.Window
 --- @field context? blink.cmp.SignatureHelpContext
 ---
 --- @field open_with_signature_help fun(context: blink.cmp.SignatureHelpContext, signature_help?: lsp.SignatureHelp)
 --- @field close fun()
---- @field scroll_up fun(amount: number): boolean
---- @field scroll_down fun(amount: number): boolean
+--- @field scroll_up fun(amount: integer): boolean
+--- @field scroll_down fun(amount: integer): boolean
 --- @field update_position fun()
 
+local nvim = require('blink.lib.nvim')
 local config = require('blink.cmp.config').signature.window
 local sources = require('blink.cmp.sources.lib')
 local menu = require('blink.cmp.completion.windows.menu')
@@ -27,10 +26,11 @@ local signature = {
     wrap = true,
     filetype = 'blink-cmp-signature',
   }),
+  ---@type blink.cmp.SignatureHelpContext?
   context = nil,
 }
 
--- todo: deduplicate this
+-- TODO: deduplicate this
 menu.position_update_emitter:on(function() signature.update_position() end)
 nvim.create_autocmd({ 'CursorMovedI', 'WinScrolled', 'WinResized' }, {
   callback = function()
@@ -39,23 +39,21 @@ nvim.create_autocmd({ 'CursorMovedI', 'WinScrolled', 'WinResized' }, {
 })
 
 --- @param context blink.cmp.SignatureHelpContext
---- @param signature_help lsp.SignatureHelp | nil
+--- @param signature_help lsp.SignatureHelp
 function signature.open_with_signature_help(context, signature_help)
-  signature.context = context
   -- check if there are any signatures in signature_help, since
   -- convert_signature_help_to_markdown_lines errors with no signatures
-  if
-    signature_help == nil
-    or #signature_help.signatures == 0
-    or signature_help.signatures[(signature_help.activeSignature or 0) + 1] == nil
-  then
-    signature.win:close()
+  if #signature_help.signatures == 0 or not signature_help.signatures[(signature_help.activeSignature or 0) + 1] then
+    signature.close()
     return
   end
 
-  local active_signature = signature_help.signatures[(signature_help.activeSignature or 0) + 1]
+  signature.context = context
 
-  local labels = vim.tbl_map(function(signature) return signature.label end, signature_help.signatures)
+  local active_signature = signature_help.signatures[(signature_help.activeSignature or 0) + 1]
+  assert(active_signature, 'Unable to find the active signature')
+
+  local labels = vim.tbl_map(function(sign) return sign.label end, signature_help.signatures)
 
   if signature.shown_signature ~= active_signature then
     require('blink.cmp.lib.window.docs').render_detail_and_documentation({
@@ -94,12 +92,7 @@ function signature.open_with_signature_help(context, signature_help)
   signature.scroll_up(1)
 end
 
-function signature.close()
-  if not signature.win:is_open() then return end
-  signature.win:close()
-end
-
---- @param amount number
+--- @param amount integer
 --- @return boolean
 function signature.scroll_up(amount)
   local winnr = signature.win:get_win()
@@ -112,7 +105,7 @@ function signature.scroll_up(amount)
   return vim.fn.line('w0', winnr) < top_line
 end
 
---- @param amount number
+--- @param amount integer
 --- @return boolean
 function signature.scroll_down(amount)
   local winnr = signature.win:get_win()
@@ -129,15 +122,20 @@ end
 function signature.update_position()
   local win = signature.win
   if not win:is_open() then return end
+  if not signature.context then return end
+
   local winnr = win:get_win()
+  assert(winnr, 'window id not found for signature help')
 
   win:update_size()
 
+  local menu_winnr = menu.win:get_win()
+  local menu_win_config = menu_winnr and nvim.win_get_config(menu_winnr)
   local direction_priority = config.direction_priority
 
   -- if the menu window is open, we want to place the signature window on the opposite side
-  local menu_win_config = menu.win:get_win() and nvim.win_get_config(menu.win:get_win())
   if menu.win:is_open() then
+    assert(menu_win_config and menu_win_config.row)
     local cursor_screen_row = vim.fn.winline()
     local menu_win_is_up = menu_win_config.row - cursor_screen_row < 0
     direction_priority = menu_win_is_up and { 's' } or { 'n' }
@@ -164,19 +162,29 @@ function signature.update_position()
   local height = win:get_height()
 
   -- default to the user's preference but attempt to use the other options
-  if menu_win_config then
+  if menu_win_config ~= nil then
     assert(menu_win_config.relative == 'win', 'The menu window must be relative to a window')
+    assert(menu_win_config and menu_win_config.row)
+
     local cursor_screen_row = vim.fn.winline()
     local menu_win_is_up = menu_win_config.row - cursor_screen_row < 0
-    nvim.win_set_config(winnr, {
+
+    win:set_win_config({
       relative = menu_win_config.relative,
       win = menu_win_config.win,
       row = menu_win_is_up and menu_win_config.row + menu.win:get_height() + 1 or menu_win_config.row - height - 1,
       col = menu_win_config.col,
     })
   else
-    nvim.win_set_config(winnr, { relative = 'cursor', row = pos.direction == 's' and 1 or -height, col = 0 })
+    win:set_win_config({ relative = 'cursor', row = pos.direction == 's' and 1 or -height, col = 0 })
   end
+end
+
+function signature.close()
+  if not signature.win:is_open() then return end
+
+  signature.win:close()
+  signature.context = nil
 end
 
 return signature

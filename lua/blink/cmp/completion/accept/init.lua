@@ -107,6 +107,7 @@ local function accept(ctx, item, callback)
     :map(function(resolved_item)
       -- Updates the text edit based on the cursor position and converts it to utf-8
       resolved_item = vim.deepcopy(resolved_item)
+      ---@cast resolved_item blink.cmp.CompletionItem
       resolved_item.textEdit = text_edits_lib.get_from_item(resolved_item)
 
       return sources.execute(

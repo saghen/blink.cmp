@@ -1,11 +1,11 @@
 --- @class blink.cmp.DrawItemContext
 --- @field self blink.cmp.Draw
 --- @field item blink.cmp.CompletionItem
---- @field idx number
+--- @field idx integer
 --- @field label string
 --- @field label_detail string
 --- @field label_description string
---- @field label_matched_indices number[]
+--- @field label_matched_indices integer[]
 --- @field kind string
 --- @field kind_icon string
 --- @field kind_hl string
@@ -32,7 +32,9 @@ function draw_context.get_from_items(context, draw, items)
 
   local ctxs = {}
   for idx, item in ipairs(items) do
-    ctxs[idx] = draw_context.new(draw, idx, item, matched_indices[idx])
+    local matched_idx = matched_indices[idx]
+    assert(matched_idx, 'No index ' .. idx .. ' found in fuzzy_matched_indices')
+    ctxs[idx] = draw_context.new(draw, idx, item, matched_idx)
   end
   return ctxs
 end
@@ -41,9 +43,9 @@ local config = require('blink.cmp.config').appearance
 local kinds = require('blink.cmp.types').CompletionItemKind
 
 --- @param draw blink.cmp.Draw
---- @param item_idx number
+--- @param item_idx integer
 --- @param item blink.cmp.CompletionItem
---- @param matched_indices number[]
+--- @param matched_indices integer[]
 --- @return blink.cmp.DrawItemContext
 function draw_context.new(draw, item_idx, item, matched_indices)
   local kind = item.kind_name or kinds[item.kind] or 'Unknown'
@@ -83,11 +85,11 @@ function draw_context.new(draw, item_idx, item, matched_indices)
     kind_hl = kind_hl,
     icon_gap = config.nerd_font_variant == 'mono' and '' or ' ',
     deprecated = (lib.is_not_nil(item.deprecated) and item.deprecated)
-      or (lib.is_not_nil(item.tags) and vim.tbl_contains(item.tags, 1))
+      or (lib.is_not_nil(item.tags) and vim.tbl_contains(item.tags or {}, 1))
       or false,
     source_id = source_id,
     source_name = source_name,
-  }
+  } --[[@as blink.cmp.DrawItemContext]]
 end
 
 return draw_context

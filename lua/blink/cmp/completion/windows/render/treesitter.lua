@@ -6,7 +6,7 @@ local cache_size = 0
 local MAX_CACHE_SIZE = 1000
 
 --- @param ctx blink.cmp.DrawItemContext
---- @param opts? {offset?: number}
+--- @param opts? {offset?: integer}
 function treesitter.highlight(ctx, opts)
   local ret = cache[ctx.label]
   if not ret then
@@ -53,14 +53,13 @@ function treesitter._highlight(ctx)
     for capture, node in query:iter_captures(tstree:root(), source) do
       local _, start_col, _, end_col = node:range()
 
-      ---@type string
       local name = query.captures[capture]
       if name ~= 'spell' then
         ret[#ret + 1] = {
           start_col,
           end_col,
           group = '@' .. name .. '.' .. lang,
-        }
+        } --[[@as blink.cmp.DrawHighlight]]
       end
     end
   end)

@@ -7,12 +7,12 @@ local nvim = require('blink.lib.nvim')
 --- This behavior is generally undesirable, so we instead draw the background above all highlights.
 --- @class blink.cmp.CursorLine
 --- @field name string
---- @field priority number
---- @field ns number
+--- @field priority integer
+--- @field ns integer
 local cursor_line = {}
 
 --- @param name string
---- @param priority number Priority of the background highlight for the cursorline, defaults to 10000. Setting this to 0 will render it below other highlights
+--- @param priority? integer Priority of the background highlight for the cursorline, defaults to 10000. Setting this to 0 will render it below other highlights
 --- @return blink.cmp.CursorLine
 function cursor_line.new(name, priority)
   local self = setmetatable({}, { __index = cursor_line })
@@ -22,7 +22,7 @@ function cursor_line.new(name, priority)
   return self
 end
 
---- @param win number
+--- @param win integer
 function cursor_line:update(win)
   if not nvim.win_is_valid(win) then return end
 

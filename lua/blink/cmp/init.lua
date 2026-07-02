@@ -1,7 +1,9 @@
 if vim.fn.has('nvim-0.12') == 0 then error('blink.cmp v2 requires nvim 0.12+, consider pinning to v1') end
 
-local success, lib = pcall(require, 'blink.lib')
-if not success then error('blink.cmp v2 requires "saghen/blink.lib" installed via your package manager: ' .. lib) end
+local success, mod = pcall(require, 'blink.lib')
+if not success then error('blink.cmp v2 requires "saghen/blink.lib" installed via your package manager: ' .. mod) end
+---@module "blink.lib"
+local lib = mod
 
 local logger = require('blink.cmp.logger')
 local config = require('blink.cmp.config')
@@ -50,6 +52,7 @@ function cmp.setup(opts)
 
   -- configuration
   opts = opts or {}
+  ---@type blink.cmp.Config
   opts = lib.tbl.copy(opts)
   if opts.cmdline then
     config(lib.tbl.omit(opts.cmdline, { 'enabled', 'keymap' }), { mode = 'cmdline' })
@@ -93,7 +96,7 @@ end
 -------- Native Library --------
 
 function cmp.get_repo_root() return native.repo_root end
-
+function cmp.get_library_name() return native.library_name end
 function cmp.library_available() return native:library_available() end
 
 --- Builds the native library if it's not already available
@@ -151,7 +154,7 @@ function cmp.is_documentation_visible() return require('blink.cmp.completion.win
 
 --- @class blink.cmp.ShowOpts
 --- @field providers? string[] List of providers to show
---- @field initial_selected_item_idx? number The index of the item to select initially
+--- @field initial_selected_item_idx? integer The index of the item to select initially
 --- @field callback? fun() Called after the menu is shown
 
 --- Show the completion window
@@ -344,7 +347,7 @@ function cmp.get_context() return require('blink.cmp.completion.list').context e
 function cmp.get_selected_item() return require('blink.cmp.completion.list').get_selected_item() end
 
 --- Gets the currently selected completion item index
---- @return number?
+--- @return integer?
 function cmp.get_selected_item_idx() return require('blink.cmp.completion.list').selected_item_idx end
 
 --- Gets the sorted list of completion items
@@ -377,7 +380,7 @@ function cmp.hide_documentation()
 end
 
 --- Scroll the documentation window up
---- @param count? number
+--- @param count? integer
 --- @return boolean
 function cmp.scroll_documentation_up(count)
   local documentation = require('blink.cmp.completion.windows.documentation')
@@ -387,7 +390,7 @@ function cmp.scroll_documentation_up(count)
 end
 
 --- Scroll the documentation window down
---- @param count? number
+--- @param count? integer
 --- @return boolean
 function cmp.scroll_documentation_down(count)
   local documentation = require('blink.cmp.completion.windows.documentation')
@@ -419,7 +422,7 @@ function cmp.hide_signature()
 end
 
 --- Scroll the signature window up
---- @param count? number
+--- @param count? integer
 --- @return boolean
 function cmp.scroll_signature_up(count)
   local signature = require('blink.cmp.signature.window')
@@ -429,7 +432,7 @@ function cmp.scroll_signature_up(count)
 end
 
 --- Scroll the signature window down
---- @param count? number
+--- @param count? integer
 --- @return boolean
 function cmp.scroll_signature_down(count)
   local signature = require('blink.cmp.signature.window')
@@ -439,7 +442,7 @@ function cmp.scroll_signature_down(count)
 end
 
 --- Check if a snippet is active, optionally filtering by direction
---- @param filter? { direction?: number }
+--- @param filter? { direction?: integer }
 --- @return boolean
 function cmp.snippet_active(filter) return config.snippets.active(filter) end
 

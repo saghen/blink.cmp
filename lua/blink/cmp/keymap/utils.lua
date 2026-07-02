@@ -1,10 +1,12 @@
 local nvim = require('blink.lib.nvim')
+-- TODO: Move this constant elsewhere
+local PROJECT_NAME = 'blink.cmp'
 
 local utils = {}
 
 --- @param mapping vim.api.keyset.get_keymap
 --- @return boolean?
-function utils.is_blink_keymap(mapping) return mapping.desc and mapping.desc:match('^blink%.cmp') ~= nil end
+function utils.is_blink_keymap(mapping) return mapping.desc and mapping.desc:match('^' .. vim.pesc(PROJECT_NAME)) ~= nil end
 
 --- @param keys string
 --- @param mode string
@@ -17,13 +19,13 @@ end
 --- @param mapping vim.api.keyset.get_keymap
 --- @return boolean, string?
 function utils.eval_vlua_expr(mapping)
-  local expr = mapping.rhs:gsub('^v:lua%.', '')
+  local expr = assert(mapping.rhs):gsub('^v:lua%.', '')
   local fn_path = expr:match('^(.-)%(')
   if fn_path and not fn_path:find('[^%w_%.]') then
     local fn = vim.tbl_get(_G, unpack(vim.split(fn_path, '.', { plain = true })))
-    if type(fn) == 'function' then return pcall(fn, mapping.lhsraw) end
+    if type(fn) == 'function' then return (pcall(fn, mapping.lhsraw)) end
   end
-  return pcall(vim.fn.luaeval, expr)
+  return (pcall(vim.fn.luaeval, expr))
 end
 
 --- nvim_buf_get_keymap translates LHS for leaders and space by their literal
@@ -31,8 +33,6 @@ end
 --- Mimic that behavior to ease the comparison with our mappings.
 --- @param lhs string
 function utils.normalize_lhs(lhs)
-  if not lhs then return lhs end
-
   -- Normalize Alt to Meta
   lhs = lhs:gsub('<[aAM]%-', '<m-')
   -- Convert <m-s-x> to <m-X>
@@ -41,7 +41,7 @@ function utils.normalize_lhs(lhs)
   -- when it would change the keycode (e.g. <m-H> = <m-S-h> != <m-h>)
   lhs = lhs:gsub('<([^>]+)>', function(inner)
     local prefix, key = inner:match('^(.*-)([^-]+)$')
-    if prefix then
+    if prefix and key then
       local original = '<' .. inner .. '>'
       local lowered = '<' .. prefix:lower() .. key:lower() .. '>'
       -- If lowercasing changes the keycode, preserve the key case
@@ -78,8 +78,10 @@ function utils.normalize_leader(lhs)
 end
 
 --- @param rhs string
+--- @return { key: string, mode: string }[]?
 function utils.split_script_rhs(rhs)
-  local out = {}
+  ---@type { key: string, mode: string }[]
+  local keys = {}
   local i = 1
 
   while i <= #rhs do
@@ -95,11 +97,11 @@ function utils.split_script_rhs(rhs)
     local mode = (chunk:match('^<SNR>') or chunk:match('^<SID>') or chunk:match('^<Plug>')) and 'm' -- internal/script
       or 'n' -- normal/literal
 
-    table.insert(out, { key = chunk, mode = mode })
+    table.insert(keys, { key = chunk, mode = mode })
     i = i + #chunk
   end
 
-  return out
+  return #keys > 0 and keys or nil
 end
 
 --- Generates the keymap description based on commands
@@ -115,20 +117,20 @@ function utils.get_description(commands)
     end
   end
 
-  return 'blink.cmp: ' .. (#parts == 0 and 'Default Behavior' or table.concat(parts, ', '))
+  return PROJECT_NAME .. ': ' .. (#parts == 0 and 'Default Behavior' or table.concat(parts, ', '))
 end
 
 --- Merge the existing keymap with the new keymaps, newer overwriting the existing.
---- @param existing_mappings table<string, blink.cmp.KeymapCommand[] | false>
---- @param new_mappings table<string, blink.cmp.KeymapCommand[] | false>
---- @return table<string, blink.cmp.KeymapCommand[] | false>
+--- @param existing_mappings blink.cmp.KeymapList
+--- @param new_mappings blink.cmp.KeymapList
+--- @return blink.cmp.KeymapList
 function utils.merge_mappings(existing_mappings, new_mappings)
-  local merged = {}
+  local merged, existing = {}, {}
+
   for key, commands in pairs(existing_mappings or {}) do
     merged[utils.normalize_leader(key)] = commands
   end
 
-  local existing = {}
   for key in pairs(existing_mappings or {}) do
     local k = utils.normalize_leader(key)
     existing[k] = k
@@ -138,7 +140,7 @@ function utils.merge_mappings(existing_mappings, new_mappings)
     merged[existing[key] or utils.normalize_leader(key)] = commands
   end
 
-  return merged
+  return merged --[[@as blink.cmp.KeymapList]]
 end
 
 --- Compute a fingerprint of the currently registered blink.cmp keymaps based on
@@ -149,7 +151,7 @@ end
 function utils.hash_keymaps(bufnr, vim_mode)
   local lhs = {}
   for _, map in ipairs(nvim.buf_get_keymap(bufnr, vim_mode)) do
-    if utils.is_blink_keymap(map) then lhs[#lhs + 1] = utils.normalize_lhs(map.lhs) end
+    if utils.is_blink_keymap(map) then lhs[#lhs + 1] = utils.normalize_lhs(assert(map.lhs)) end
   end
   table.sort(lhs)
 

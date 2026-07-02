@@ -8,8 +8,9 @@
 ---
 --- @field context? blink.cmp.Context
 --- @field items blink.cmp.CompletionItem[]
---- @field selected_item_idx? number
---- @field preview_undo? { text_edit: lsp.TextEdit, cursor_before?: integer[], cursor_after: integer[] }
+--- @field selected_item_idx? integer
+--- @field is_explicitly_selected boolean
+--- @field preview_undo? { text_edit: lsp.TextEdit, cursor_before?: blink.cmp.CursorPos, cursor_after: blink.cmp.CursorPos }
 ---
 --- @field show fun(context: blink.cmp.Context, items: table<string, blink.cmp.CompletionItem[]>)
 --- @field fuzzy fun(context: blink.cmp.Context, items: table<string, blink.cmp.CompletionItem[]>): blink.cmp.CompletionItem[]
@@ -17,19 +18,19 @@
 ---
 --- @field get_selected_item fun(): blink.cmp.CompletionItem?
 --- @field get_selection_mode fun(context: blink.cmp.Context): { preselect: boolean, auto_insert: boolean }
---- @field get_item_idx_in_list fun(item?: blink.cmp.CompletionItem): number?
---- @field select fun(idx?: number, opts?: { auto_insert?: boolean, is_explicit_selection?: boolean }): boolean
+--- @field get_item_idx_in_list fun(item?: blink.cmp.CompletionItem): integer?
+--- @field select fun(idx?: integer, opts?: { auto_insert?: boolean, is_explicit_selection?: boolean }): boolean
 --- @field select_next fun(opts?: blink.cmp.CompletionListSelectOpts): boolean
 --- @field select_prev fun(opts?: blink.cmp.CompletionListSelectOpts): boolean
 --- @field can_select fun(opts?: blink.cmp.CompletionListSelectOpts): boolean
---- @field jump_by fun(dir: number, opts?: blink.cmp.CompletionListSelectOpts): boolean
+--- @field jump_by fun(dir: integer, opts?: blink.cmp.CompletionListSelectOpts): boolean
 ---
 --- @field undo_preview fun()
 --- @field apply_preview fun(item: blink.cmp.CompletionItem)
 --- @field accept fun(opts?: blink.cmp.CompletionListAcceptOpts): boolean Applies the currently selected item, returning true if it succeeded
 
 --- @class blink.cmp.CompletionListSelectOpts
---- @field count? number The number of items to jump by, defaults to 1
+--- @field count? integer The number of items to jump by, defaults to 1
 --- @field jump_by? blink.cmp.CompletionListJumpBy Jump to the item whose specified property differs from the current one.
 --- @field auto_insert? boolean Insert the completion item automatically when selecting it
 --- @field on_ghost_text? boolean Run when ghost text is visible, instead of only when the menu is visible
@@ -50,7 +51,7 @@
 --- @field force? boolean Force accept without visual feedback (no menu, no ghost text visible)
 
 --- @class blink.cmp.CompletionListAcceptOpts : blink.cmp.CompletionListSelectAndAcceptOpts
---- @field index? number The index of the item to accept, if not provided, the currently selected item will be accepted
+--- @field index? integer The index of the item to accept, if not provided, the currently selected item will be accepted
 
 --- @class blink.cmp.CompletionListShowEvent
 --- @field items blink.cmp.CompletionItem[]
@@ -60,7 +61,7 @@
 --- @field context blink.cmp.Context
 
 --- @class blink.cmp.CompletionListSelectEvent
---- @field idx? number
+--- @field idx? integer
 --- @field item? blink.cmp.CompletionItem
 --- @field items blink.cmp.CompletionItem[]
 --- @field context blink.cmp.Context
@@ -88,9 +89,9 @@ local list = {
 
 ---------- State ----------
 
-function list.show(context, items_by_source)
+function list.show(ctx, items_by_source)
   -- reset state for new context
-  local is_new_context = not list.context or list.context.id ~= context.id
+  local is_new_context = not list.context or list.context.id ~= ctx.id
   if is_new_context then
     list.preview_undo = nil
     list.is_explicitly_selected = false
@@ -98,8 +99,8 @@ function list.show(context, items_by_source)
 
   -- if the keyword changed, the list is no longer explicitly selected
   local bounds_equal = list.context ~= nil
-    and list.context.bounds.start_col == context.bounds.start_col
-    and list.context.bounds.length == context.bounds.length
+    and list.context.bounds.start_col == ctx.bounds.start_col
+    and list.context.bounds.length == ctx.bounds.length
   if not bounds_equal then list.is_explicitly_selected = false end
 
   local previous_selected_item = list.get_selected_item()
@@ -109,13 +110,13 @@ function list.show(context, items_by_source)
   list.undo_preview()
 
   -- update the context/list and emit
-  list.context = context
-  list.items = list.fuzzy(context, items_by_source)
+  list.context = ctx
+  list.items = list.fuzzy(ctx, items_by_source)
 
   if #list.items == 0 then
-    list.hide_emitter:emit({ context = context })
+    list.hide_emitter:emit({ context = ctx })
   else
-    list.show_emitter:emit({ items = list.items, context = context })
+    list.show_emitter:emit({ items = list.items, context = ctx })
   end
 
   -- context may have changed during emitters (like hide), so skip selection logic for gone context
@@ -126,54 +127,54 @@ function list.show(context, items_by_source)
   if list.is_explicitly_selected and previous_item_idx ~= nil and previous_item_idx <= 10 then
     list.select(previous_item_idx)
   -- respect the context's initial selected item idx
-  elseif context.initial_selected_item_idx ~= nil then
-    list.select(context.initial_selected_item_idx, { is_explicit_selection = true })
+  elseif ctx.initial_selected_item_idx ~= nil then
+    list.select(ctx.initial_selected_item_idx, { is_explicit_selection = true })
   -- otherwise, use the default selection
   else
     list.select(
-      list.get_selection_mode(context).preselect and 1 or nil,
+      list.get_selection_mode(ctx).preselect and 1 or nil,
       { auto_insert = false, is_explicit_selection = false }
     )
   end
 end
 
-function list.fuzzy(context, items_by_source)
+function list.fuzzy(ctx, items_by_source)
   local fuzzy = require('blink.cmp.fuzzy')
   local filtered_items = fuzzy.fuzzy(
-    context.get_line(),
-    context.get_cursor()[2],
+    ctx.get_line(),
+    ctx.get_cursor()[2],
     items_by_source,
     require('blink.cmp.config').completion.keyword.range
   )
 
   -- apply the per source max_items
-  filtered_items = require('blink.cmp.sources.lib').apply_max_items_for_completions(context, filtered_items)
+  filtered_items = require('blink.cmp.sources.lib').apply_max_items_for_completions(ctx, filtered_items)
 
   -- apply the global max_items
   return lib.list.slice(filtered_items, 1, list.config.max_items)
 end
 
 function list.hide()
-  local context = list.context
+  local ctx = list.context
   list.context = nil
   list.items = {}
   list.selected_item_idx = nil
-  list.hide_emitter:emit({ context = context })
+  list.hide_emitter:emit({ context = ctx })
 end
 
 ---------- Selection ----------
 
-function list.get_selected_item() return list.items[list.selected_item_idx] end
+function list.get_selected_item() return list.selected_item_idx and list.items[list.selected_item_idx] end
 
-function list.get_selection_mode(context)
-  assert(context ~= nil, 'Context must be set before getting selection mode')
+function list.get_selection_mode(ctx)
+  assert(ctx ~= nil, 'Context must be set before getting selection mode')
 
   local preselect = list.config.selection.preselect
-  if type(preselect) == 'function' then preselect = preselect(context) end
+  if type(preselect) == 'function' then preselect = preselect(ctx) end
   --- @cast preselect boolean
 
   local auto_insert = list.config.selection.auto_insert
-  if type(auto_insert) == 'function' then auto_insert = auto_insert(context) end
+  if type(auto_insert) == 'function' then auto_insert = auto_insert(ctx) end
   --- @cast auto_insert boolean
 
   return { preselect = preselect, auto_insert = auto_insert }
@@ -181,6 +182,7 @@ end
 
 function list.get_item_idx_in_list(item)
   if item == nil then return end
+
   return lib.list.find_idx(list.items, function(i) return i.label == item.label and item.source_id == i.source_id end)
 end
 
@@ -198,7 +200,6 @@ function list.select(idx, opts)
     if auto_insert and item ~= nil then list.apply_preview(item) end
   end)
 
-  --- @diagnostic disable-next-line: assign-type-mismatch
   list.is_explicitly_selected = opts.is_explicit_selection == nil and true or opts.is_explicit_selection
   list.selected_item_idx = idx
   list.select_emitter:emit({ idx = idx, item = item, items = list.items, context = list.context })
@@ -356,14 +357,20 @@ end
 
 function list.accept(opts)
   opts = opts or {}
-  local item = list.items[opts.index or list.selected_item_idx]
-  if item == nil then return false end
+
+  if not list.context then return false end
+
+  local idx = opts.index or list.selected_item_idx
+  if not idx then return false end
+
+  local item = assert(list.items[idx])
 
   list.undo_preview()
   require('blink.cmp.completion.accept')(list.context, item, function()
     list.accept_emitter:emit({ item = item, context = list.context })
     if opts.callback then opts.callback() end
   end)
+
   return true
 end
 

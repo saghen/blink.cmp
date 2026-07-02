@@ -161,7 +161,8 @@ end
 function utils.get_completions(pattern, type, completion_type)
   -- If a shell command is requested on Windows or WSL, update PATH to avoid performance issues.
   if completion_type == 'shellcmd' then
-    local separator, filter_fn
+    local separator ---@type ":" | ";"
+    local filter_fn ---@type fun()?
 
     if vim.fn.has('win32') == 1 then
       separator = ';'

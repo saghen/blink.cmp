@@ -1,15 +1,15 @@
 local task = require('blink.lib.task')
 
 --- @class blink.cmp.SourcesQueue
---- @field id number
+--- @field id integer
 --- @field providers table<string, blink.cmp.SourceProvider>
---- @field request blink.lib.Task | nil
---- @field queued_request_context blink.cmp.Context | nil
---- @field cached_items_by_provider table<string, blink.cmp.CompletionResponse> | nil
---- @field on_completions_callback fun(context: blink.cmp.Context, responses: table<string, blink.cmp.CompletionResponse>)
+--- @field request blink.lib.Task<nil>
+--- @field queued_request_context blink.cmp.Context?
+--- @field cached_items_by_provider table<string, blink.cmp.CompletionItem[]>?
+--- @field on_completions_callback fun(context: blink.cmp.Context, responses: table<string, blink.cmp.CompletionItem[]>)
 ---
---- @field new fun(context: blink.cmp.Context, on_completions_callback: fun(context: blink.cmp.Context, responses: table<string, blink.cmp.CompletionResponse>)): blink.cmp.SourcesQueue
---- @field get_cached_completions fun(self: blink.cmp.SourcesQueue): table<string, blink.cmp.CompletionResponse> | nil
+--- @field new fun(context: blink.cmp.Context, on_completions_callback: fun(context: blink.cmp.Context, responses: table<string, blink.cmp.CompletionItem[]>)): blink.cmp.SourcesQueue
+--- @field get_cached_completions fun(self: blink.cmp.SourcesQueue): table<string, blink.cmp.CompletionItem[]>?
 --- @field get_completions fun(self: blink.cmp.SourcesQueue, context: blink.cmp.Context)
 --- @field destroy fun(self: blink.cmp.SourcesQueue)
 
@@ -20,7 +20,6 @@ local queue = {}
 function queue.new(context, on_completions_callback)
   local self = setmetatable({}, { __index = queue })
   self.id = context.id
-
   self.request = nil
   self.queued_request_context = nil
   self.on_completions_callback = on_completions_callback
@@ -53,7 +52,7 @@ function queue:get_completions(context)
     local queued_context = self.queued_request_context
     if queued_context ~= nil then
       self.queued_request_context = nil
-      self.request:cancel()
+      if self.request ~= nil then self.request:cancel() end
       self:get_completions(queued_context)
     end
   end)
