@@ -119,7 +119,7 @@ function registry:snippet_to_completion_item(snippet, context)
   local cur_line, cur_col = unpack(context.cursor)
 
   -- Find the position of the (longest partial) prefix just before the cursor
-  local start_col
+  local start_col ---@type integer?
   local line = context.get_line():sub(1, cur_col)
   for i = #snippet.prefix, 1, -1 do
     local pos = cur_col - i + 1
@@ -148,7 +148,7 @@ function registry:snippet_to_completion_item(snippet, context)
 end
 
 --- @param snippet string
---- @param cache_key number
+--- @param cache_key integer
 --- @return string
 function registry:expand_vars(snippet, cache_key)
   local lazy_vars = self.builtin_vars.lazy

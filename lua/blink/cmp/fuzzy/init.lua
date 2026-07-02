@@ -168,7 +168,7 @@ function fuzzy.fuzzy(line, cursor_col, haystacks_by_provider, range)
 end
 
 --- @param line string
---- @param col number
+--- @param col integer
 --- @param range? blink.cmp.CompletionKeywordRange
 --- @return integer, integer
 function fuzzy.get_keyword_range(line, col, range)
