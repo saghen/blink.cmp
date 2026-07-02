@@ -190,7 +190,7 @@ end
 --- @param func_str string v:lua expression (e.g. "v:lua.foo.bar" or "v:lua.require'bar'.foo")
 --- @param prefix string
 --- @param line string
---- @param col number
+--- @param col integer
 --- @return boolean success
 --- @return table|string|nil result
 function utils.call_vlua(func_str, prefix, line, col)

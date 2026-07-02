@@ -15,7 +15,7 @@ local kind_snippet = require('blink.cmp.types').CompletionItemKind.Snippet
 --- @field use_label_description? boolean Whether to put the snippet description in the label description
 
 ---@class blink.cmp.LuasnipItemData
----@field snip_id number
+---@field snip_id integer
 ---@field show_condition function
 ---@field raw_text string
 
@@ -26,7 +26,7 @@ local kind_snippet = require('blink.cmp.types').CompletionItemKind.Snippet
 local source = {}
 
 ---@param snippet table
----@param event number
+---@param event integer
 ---@param callback fun(table, table)
 local function add_luasnip_callback(snippet, event, callback)
   -- not defined for autosnippets
