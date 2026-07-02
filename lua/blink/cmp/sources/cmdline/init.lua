@@ -16,14 +16,7 @@ local cmdline = {
   options = nvim.get_all_options_info(),
 }
 
-function cmdline.new()
-  local self = setmetatable({}, { __index = cmdline })
-  self.before_line = ''
-  self.offset = -1
-  self.ctype = ''
-  self.items = {}
-  return self
-end
+function cmdline.new() return setmetatable({}, { __index = cmdline }) end
 
 function cmdline:enabled() return vim.bo.ft == 'vim' or utils.is_command_line({ ':', '@' }) end
 
