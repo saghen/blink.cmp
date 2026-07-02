@@ -218,9 +218,7 @@ function docs.update_position()
   }
 
   local position = positions[pos.direction]
-  if position ~= nil then
-    docs.win:set_win_config({ relative = 'win', win = menu_winnr, row = position.row, col = position.col })
-  end
+  docs.win:set_win_config({ relative = 'win', win = menu_winnr, row = position.row, col = position.col })
 end
 
 function docs.close()
