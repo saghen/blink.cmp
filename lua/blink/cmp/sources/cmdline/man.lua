@@ -3,6 +3,7 @@ local man = {}
 
 ---@param arg string
 ---@param line string
+---@return blink.lib.Task<string[]>
 function man.get_completions(arg, line)
   return task.resolve():map(function()
     if not arg or arg == '' then return {} end
