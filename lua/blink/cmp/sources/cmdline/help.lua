@@ -6,7 +6,7 @@ local help = {}
 
 --- Processes a help file and returns a list of tags asynchronously
 --- @param file string
---- @return blink.lib.Task
+--- @return blink.lib.Task<string[]>
 local function read_tags_from_file(file)
   return fs.read(file, help_file_byte_limit)
     :map(function(data)
@@ -18,7 +18,7 @@ local function read_tags_from_file(file)
       end
       return tags
     end)
-    :catch(function() return {} end)
+    :catch(function() return {} end) --[[@as blink.lib.Task<string[]>]]
 end
 
 --- @param arg_prefix string

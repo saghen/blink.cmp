@@ -25,11 +25,11 @@ local async_system = function(cmd, opts)
     )
 
     return function() return proc:kill('TERM') end
-  end)
+  end) --[[@as blink.lib.Task<vim.SystemCompleted>]]
 end
 
 --- Builds the rust binary from source
---- @return blink.lib.Task
+--- @return blink.lib.Task<vim.SystemCompleted>
 function build.build()
   logger:notify(vim.log.levels.INFO, 'Building fuzzy matching library from source...')
 
