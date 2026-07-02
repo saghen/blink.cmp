@@ -1,4 +1,3 @@
-local task = require('blink.lib.task')
 local regex = require('blink.cmp.sources.path.regex')
 local lib = require('blink.lib')
 
