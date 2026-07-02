@@ -19,8 +19,6 @@
 --- @field show_if_on_trigger_character fun(opts?: { is_accept?: boolean })
 --- @field show fun(opts?: blink.cmp.CompletionTriggerShowOptions): blink.cmp.Context?
 --- @field hide fun()
---- @field within_query_bounds fun(cursor: blink.cmp.CursorPos): boolean
---- @field get_bounds fun(regex: vim.regex, line: string, cursor: blink.cmp.CursorPos): blink.cmp.ContextBounds
 
 --- @class blink.cmp.CompletionTriggerShowOptions
 --- @field trigger_kind blink.cmp.CompletionTriggerKind

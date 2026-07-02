@@ -1,7 +1,3 @@
---- @class blink.cmp.CompletionTriggerContext
---- @field kind number
---- @field character? string
-
 --- @class blink.cmp.CompletionResponse
 --- @field is_incomplete_forward boolean
 --- @field is_incomplete_backward boolean
