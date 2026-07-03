@@ -238,15 +238,17 @@ function menu.update_position()
     })
   -- otherwise, we use the cursor position
   else
-    local cursor_row, cursor_col = unpack(context.get_cursor())
-
-    -- use virtcol to avoid misalignment on multibyte characters
-    local virt_cursor_col = vim.fn.virtcol({ cursor_row, cursor_col })
-    local col = vim.fn.virtcol({ cursor_row, context.bounds.start_col - 1 })
-      - alignment_start_col
-      - virt_cursor_col
-      - border_size.left
-
+    -- curswant reflects the cursor's true virtual column, including virtual
+    -- space from 'virtualedit=all', unlike virtcol() on the byte cursor column.
+    -- We compute the prefix width from raw buffer text (strpart + strdisplaywidth)
+    -- rather than a screen/render-based API, so extmarks such as ghost text
+    -- are correctly ignored and don't affect menu alignment.
+    -- strpart (byte-based) + strdisplaywidth also keeps this correct for
+    -- tabs/multibyte chars before start_col.
+    local curswant = vim.fn.getcurpos()[5] - 1
+    local prefix = vim.fn.strpart(context.line, 0, context.bounds.start_col - 1)
+    local offset_from_cursor = vim.fn.strdisplaywidth(prefix) - curswant
+    local col = offset_from_cursor - alignment_start_col - border_size.left
     if config.draw.align_to == 'cursor' then col = 0 end
 
     win:set_win_config({ relative = 'cursor', row = row, col = col })
