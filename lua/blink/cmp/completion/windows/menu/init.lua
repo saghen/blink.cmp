@@ -245,11 +245,15 @@ function menu.update_position()
     -- are correctly ignored and don't affect menu alignment.
     -- strpart (byte-based) + strdisplaywidth also keeps this correct for
     -- tabs/multibyte chars before start_col.
-    local curswant = vim.fn.getcurpos()[5] - 1
+    local curpos = vim.fn.getcurpos()
+    local off = curpos[4]
+    local curswant = curpos[5] - 1
+
     local prefix = vim.fn.strpart(context.line, 0, context.bounds.start_col - 1)
     local offset_from_cursor = vim.fn.strdisplaywidth(prefix) - curswant
     local col = offset_from_cursor - alignment_start_col - border_size.left
     if config.draw.align_to == 'cursor' then col = 0 end
+    if off ~= 0 then col = col + off end
 
     win:set_win_config({ relative = 'cursor', row = row, col = col })
   end
