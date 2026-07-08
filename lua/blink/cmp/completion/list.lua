@@ -363,7 +363,8 @@ function list.accept(opts)
   local idx = opts.index or list.selected_item_idx
   if not idx then return false end
 
-  local item = assert(list.items[idx])
+  local item = list.items[idx]
+  if not item then return false end
 
   list.undo_preview()
   require('blink.cmp.completion.accept')(list.context, item, function()
