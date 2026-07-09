@@ -3,8 +3,8 @@
 --- @field auto_show_timer uv.uv_timer_t
 --- @field shown_item? blink.cmp.CompletionItem
 ---
---- @field auto_show_item fun(context: blink.cmp.Context, item: blink.cmp.CompletionItem)
---- @field show_item fun(context: blink.cmp.Context, item: blink.cmp.CompletionItem)
+--- @field auto_show_item fun(context: blink.cmp.Context, item?: blink.cmp.CompletionItem)
+--- @field show_item fun(context: blink.cmp.Context, item?: blink.cmp.CompletionItem)
 --- @field update_position fun()
 --- @field scroll_up fun(amount: integer): boolean
 --- @field scroll_down fun(amount: integer): boolean

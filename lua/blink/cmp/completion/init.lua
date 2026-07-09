@@ -82,8 +82,6 @@ function completion.setup()
 
     list.select_emitter:on(function(event)
       menu().set_selected_item_idx(event.idx)
-
-      if not event.item then return end
       require('blink.cmp.completion.windows.documentation').auto_show_item(event.context, event.item)
     end)
   end
