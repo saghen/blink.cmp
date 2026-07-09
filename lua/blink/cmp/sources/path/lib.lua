@@ -198,12 +198,7 @@ end
 function path_lib:compute_unique_suffixes(paths)
   local is_windows = vim.fn.has('win32') == 1
   local sep = is_windows and '\\' or '/'
-  if is_windows then
-    paths = vim.tbl_map(function(path)
-      local p = path:gsub('/', '\\')
-      return p
-    end, paths)
-  end
+  if is_windows then paths = vim.tbl_map(function(path) return (path:gsub('/', '\\')) end, paths) end
 
   -- if not enough paths, return as is
   local n = #paths
