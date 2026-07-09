@@ -3,7 +3,7 @@ local task = require('blink.lib.task')
 --- @class blink.cmp.SourcesQueue
 --- @field id integer
 --- @field providers table<string, blink.cmp.SourceProvider>
---- @field request blink.lib.Task<nil>
+--- @field request blink.lib.Task<nil>?
 --- @field queued_request_context blink.cmp.Context?
 --- @field cached_items_by_provider table<string, blink.cmp.CompletionItem[]>?
 --- @field on_completions_callback fun(context: blink.cmp.Context, responses: table<string, blink.cmp.CompletionItem[]>)
