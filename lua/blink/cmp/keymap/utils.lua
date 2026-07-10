@@ -17,15 +17,15 @@ end
 
 --- Evaluate a v:lua expression RHS.
 --- @param mapping vim.api.keyset.get_keymap
---- @return boolean, string?
+--- @return boolean, any, any?
 function utils.eval_vlua_expr(mapping)
   local expr = assert(mapping.rhs):gsub('^v:lua%.', '')
   local fn_path = expr:match('^(.-)%(')
   if fn_path and not fn_path:find('[^%w_%.]') then
     local fn = vim.tbl_get(_G, unpack(vim.split(fn_path, '.', { plain = true })))
-    if type(fn) == 'function' then return (pcall(fn, mapping.lhsraw)) end
+    if type(fn) == 'function' then return pcall(fn, mapping.lhsraw) end
   end
-  return (pcall(vim.fn.luaeval, expr))
+  return pcall(vim.fn.luaeval, expr)
 end
 
 --- nvim_buf_get_keymap translates LHS for leaders and space by their literal
