@@ -19,7 +19,7 @@ function utils.get_char_at_cursor()
 
   local line = context.get_line()
   if line == '' then return '' end
-  local cursor_col = context.get_cursor()[2]
+  local cursor_col = context.get_pos().col
 
   -- Find the start of the UTF-8 character
   local start_col = cursor_col

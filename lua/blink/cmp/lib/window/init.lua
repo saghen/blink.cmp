@@ -43,7 +43,7 @@ local utils = require('blink.cmp.lib.window.utils')
 --- @field get_content_width fun(self: blink.cmp.Window): integer
 --- @field get_width fun(self: blink.cmp.Window): integer
 --- @field get_cursor_screen_position fun(): { distance_from_top: integer, distance_from_bottom: integer }
---- @field set_cursor fun(self: blink.cmp.Window, cursor: blink.cmp.CursorPos)
+--- @field set_cursor fun(self: blink.cmp.Window, cursor: { [1]: integer, [2]: integer })
 --- @field set_height fun(self: blink.cmp.Window, height: integer)
 --- @field set_width fun(self: blink.cmp.Window, width: integer)
 --- @field set_win_config fun(self: blink.cmp.Window, config: table)
@@ -298,15 +298,15 @@ function win.get_cursor_screen_position()
   end
 
   -- default
-  local cursor_line, cursor_column = unpack(nvim.win_get_cursor(0))
+  local cursor_line, cursor_column = unpack(vim.pos.cursor(0):to_cursor())
   -- TODO: convert cursor_column to byte index
-  local pos = vim.fn.screenpos(0, cursor_line, cursor_column)
+  local screenpos = vim.fn.screenpos(0, cursor_line, cursor_column)
 
   return {
-    distance_from_top = pos.row - 1,
-    distance_from_bottom = screen_height - pos.row,
-    distance_from_left = pos.col,
-    distance_from_right = screen_width - pos.col,
+    distance_from_top = screenpos.row - 1,
+    distance_from_bottom = screen_height - screenpos.row,
+    distance_from_left = screenpos.col,
+    distance_from_right = screen_width - screenpos.col,
   }
 end
 

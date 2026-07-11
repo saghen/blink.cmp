@@ -49,9 +49,9 @@ local function process_response(context, client, res)
     ---@cast item blink.cmp.CompletionItem
     item.client_id = client.id
     item.client_name = client.name
-    -- we must set the cursor column because this will be cached and used later
-    -- by default, blink.cmp will use the cursor column at the time of the request
-    item.cursor_column = context.cursor[2]
+    -- Record the position at which this completion was requested.
+    -- This is used later to compensate text edits if the cursor moves before the item is accepted.
+    item.pos = context.pos
 
     -- score offset for deprecated items
     -- TODO: make configurable

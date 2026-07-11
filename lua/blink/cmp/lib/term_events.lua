@@ -101,19 +101,18 @@ end
 --- HACK: there's likely edge cases with this since we can't know for sure
 --- if the autocmds will fire for cursor_moved afaik
 function term_events:suppress_events_for_callback(cb)
-  local cursor_before = nvim.win_get_cursor(0)
+  local pos_before = vim.pos.cursor(0)
   local changed_tick_before = nvim.buf_get_changedtick(0)
 
   cb()
 
-  local cursor_after = nvim.win_get_cursor(0)
+  local pos_after = vim.pos.cursor(0)
   local changed_tick_after = nvim.buf_get_changedtick(0)
 
   local is_term_mode = nvim.get_mode().mode == 't'
   self.ignore_next_text_changed = changed_tick_after ~= changed_tick_before and is_term_mode
   -- TODO: does this guarantee that the CursorMovedI event will fire?
-  self.ignore_next_cursor_moved = (cursor_after[1] ~= cursor_before[1] or cursor_after[2] ~= cursor_before[2])
-    and is_term_mode
+  self.ignore_next_cursor_moved = pos_after ~= pos_before and is_term_mode
 end
 
 return term_events

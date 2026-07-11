@@ -96,7 +96,7 @@ function ghost_text.draw_preview()
 
   -- Determine the actual end position for typed text.
   -- Use cursor column if multiline, otherwise use LSP end character.
-  local typed_end_col = (range.start.line ~= range['end'].line) and ghost_text.context.get_cursor()[2] or end_col
+  local typed_end_col = (range.start.line ~= range['end'].line) and ghost_text.context.get_pos().col or end_col
   local typed_text = line:sub(start_col + 1, typed_end_col)
   local typed_length = math.max(0, math.min(vim.fn.strchars(typed_text), vim.fn.strchars(text_edit.newText)))
   local untyped_text = vim.fn.strcharpart(text_edit.newText, typed_length)

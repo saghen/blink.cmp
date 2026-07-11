@@ -35,7 +35,7 @@ function cmdline:get_completions(context, callback)
     and not is_filename_modifier_completion
     and not is_wildcard_completion
   local context_line, arguments = utils.smart_split(context.line, should_split_path)
-  local before_cursor = context_line:sub(1, context.cursor[2])
+  local before_cursor = context_line:sub(1, context.pos.col)
   local _, args_before_cursor = utils.smart_split(before_cursor, should_split_path)
   local arg_number = #args_before_cursor
 
@@ -48,7 +48,7 @@ function cmdline:get_completions(context, callback)
   local keyword = context.get_bounds(keyword_config.range)
   local current_arg_prefix = current_arg:sub(1, keyword.start_col - #text_before_argument - 1)
 
-  local line_pos = context.cursor[1] - 1
+  local line_pos = context.pos.row
   local start_pos = #text_before_argument + #leading_spaces
   -- Skip leading command range when computing start_pos
   if arg_number == 1 and completion_type == 'command' then
@@ -101,11 +101,11 @@ function cmdline:get_completions(context, callback)
           -- Handle v:lua functions (:h v:lua-call)
           if vim.startswith(custom_func, 'v:lua') then
             success, fn_completions =
-              utils.call_vlua(completion_func, current_arg_prefix, context.get_line(), context.cursor[2] + 1)
+              utils.call_vlua(completion_func, current_arg_prefix, context.get_line(), context.pos.col + 1)
           else
             -- Regular vimscript/Lua functions
             success, fn_completions =
-              pcall(vim.fn.call, completion_func, { current_arg_prefix, context.get_line(), context.cursor[2] + 1 })
+              pcall(vim.fn.call, completion_func, { current_arg_prefix, context.get_line(), context.pos.col + 1 })
           end
 
           -- Forward any error catch by pcall
@@ -288,7 +288,7 @@ function cmdline:get_completions(context, callback)
             newText = new_text,
             insert = {
               start = { line = line_pos, character = start_pos },
-              ['end'] = { line = line_pos, character = context.cursor[2] },
+              ['end'] = { line = line_pos, character = context.pos.col },
             },
             replace = {
               start = { line = line_pos, character = start_pos },

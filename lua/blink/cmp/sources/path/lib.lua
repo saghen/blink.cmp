@@ -100,21 +100,21 @@ end
 --- @param context blink.cmp.Context
 --- @return { file: lsp.Range, directory: lsp.Range }
 function path_lib.get_text_edit_ranges(context)
-  local line_before_cursor = context.line:sub(1, context.cursor[2])
-  local next_letter_is_slash = context.line:sub(context.cursor[2] + 1, context.cursor[2] + 1) == '/'
+  local line_before_cursor = context.line:sub(1, context.pos.col)
+  local next_letter_is_slash = context.line:sub(context.pos.col + 1, context.pos.col + 1) == '/'
 
   local last_part_idx = path_lib.get_last_path_part(line_before_cursor)
 
   -- TODO: return the insert and replace ranges, instead of only the insert range
   return {
     file = {
-      start = { line = context.cursor[1] - 1, character = last_part_idx - 1 },
-      ['end'] = { line = context.cursor[1] - 1, character = context.cursor[2] },
+      start = { line = context.pos.row, character = last_part_idx - 1 },
+      ['end'] = { line = context.pos.row, character = context.pos.col },
     },
     directory = {
-      start = { line = context.cursor[1] - 1, character = last_part_idx - 1 },
+      start = { line = context.pos.row, character = last_part_idx - 1 },
       -- replace the slash after the cursor, if it exists
-      ['end'] = { line = context.cursor[1] - 1, character = context.cursor[2] + (next_letter_is_slash and 1 or 0) },
+      ['end'] = { line = context.pos.row, character = context.pos.col + (next_letter_is_slash and 1 or 0) },
     },
   }
 end

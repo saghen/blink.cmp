@@ -105,7 +105,7 @@ function menu.open_loading(context)
 
       source_id = '',
       source_name = '',
-      cursor_column = 0,
+      pos = nil,
       score = 0,
       score_offset = 0,
       client_id = 0,
@@ -177,7 +177,7 @@ function menu.queue_auto_show(context, items)
 
   -- only start a new timer if the cursor has moved or the id has changed.
   -- note we should use timer, even for 0ms, to prevent synchronous geometry races
-  local timer_key = string.format('%d|%d|%d', context.id, context.cursor[1], context.cursor[2])
+  local timer_key = string.format('%d|%d|%d', context.id, context.pos.row, context.pos.col)
   if menu.auto_show.timer:is_active() and menu.auto_show.timer_key == timer_key then return end
 
   menu.auto_show.timer_key = timer_key

@@ -152,18 +152,17 @@ builtin.lazy.LINE_COMMENT = cached(function() return buffer_comment_chars()[1] e
 builtin.lazy.BLOCK_COMMENT_START = cached(function() return buffer_comment_chars()[2] end)
 builtin.lazy.BLOCK_COMMENT_END = cached(function() return buffer_comment_chars()[3] end)
 
-local function get_cursor()
-  local c = nvim.win_get_cursor(0)
-  c[1] = c[1] - 1
-  return c
-end
+local function get_pos() return vim.pos.cursor(0) end
 
 local function get_current_line()
-  local pos = get_cursor()
-  return nvim.buf_get_lines(0, pos[1], pos[1] + 1, false)[1]
+  local pos = get_pos()
+  return nvim.buf_get_lines(0, pos.row, pos.row + 1, false)[1]
 end
 
-local function word_under_cursor(cur, line)
+---@param word_pos vim.Pos
+---@param line string?
+---@return string?
+local function word_under_cursor(word_pos, line)
   if line == nil then return end
 
   local ind_start = 1
@@ -172,11 +171,11 @@ local function word_under_cursor(cur, line)
   while true do
     local tmp = string.find(line, '%W%w', ind_start)
     if not tmp then break end
-    if tmp > cur[2] + 1 then break end
+    if tmp > word_pos.col + 1 then break end
     ind_start = tmp + 1
   end
 
-  local tmp = string.find(line, '%w%W', cur[2] + 1)
+  local tmp = string.find(line, '%w%W', word_pos.col + 1)
   if tmp then ind_end = tmp end
 
   return string.sub(line, ind_start, ind_end)
@@ -185,11 +184,13 @@ end
 nvim.create_autocmd('InsertEnter', {
   group = nvim.create_augroup('BlinkSnippetsEagerEnter', { clear = true }),
   callback = function()
+    local pos = get_pos()
+
     builtin.eager = {}
     builtin.eager.TM_CURRENT_LINE = get_current_line()
-    builtin.eager.TM_CURRENT_WORD = word_under_cursor(get_cursor(), builtin.eager.TM_CURRENT_LINE)
-    builtin.eager.TM_LINE_INDEX = tostring(get_cursor()[1])
-    builtin.eager.TM_LINE_NUMBER = tostring(get_cursor()[1] + 1)
+    builtin.eager.TM_CURRENT_WORD = word_under_cursor(pos, builtin.eager.TM_CURRENT_LINE)
+    builtin.eager.TM_LINE_INDEX = tostring(pos.row)
+    builtin.eager.TM_LINE_NUMBER = tostring(pos.row + 1)
   end,
 })
 

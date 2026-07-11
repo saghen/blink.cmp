@@ -64,12 +64,9 @@ local function apply_item(ctx, item)
 
     -- OR Normal: Apply the text edit and move the cursor
   else
-    local new_cursor = text_edits_lib.get_apply_end_position(item.textEdit, all_text_edits)
-    new_cursor[2] = new_cursor[2]
-
+    local new_pos = text_edits_lib.get_apply_end_position(item.textEdit, all_text_edits)
     text_edits_lib.apply(item.textEdit, all_text_edits)
-
-    ctx.set_cursor(new_cursor)
+    ctx.set_cursor(new_pos)
     text_edits_lib.move_cursor_in_dot_repeat(offset)
   end
 

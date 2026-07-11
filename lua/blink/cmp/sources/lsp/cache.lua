@@ -15,8 +15,8 @@ function cache.get(context, client)
   if entry == nil then return end
 
   if context.id ~= entry.context.id then return end
-  if entry.response.is_incomplete_forward and entry.context.cursor[2] ~= context.cursor[2] then return end
-  if not entry.response.is_incomplete_forward and entry.context.cursor[2] > context.cursor[2] then return end
+  if entry.response.is_incomplete_forward and entry.context.pos.col ~= context.pos.col then return end
+  if not entry.response.is_incomplete_forward and entry.context.pos.col > context.pos.col then return end
 
   return entry.response
 end

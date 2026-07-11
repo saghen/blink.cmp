@@ -35,17 +35,17 @@ function cursor_line:update(win)
   local hack_hl = 'BlinkCmpCursorLine' .. self.name:sub(1, 1):upper() .. self.name:sub(2) .. 'Hack'
   nvim.set_hl(0, hack_hl, { bg = hl_params.bg })
 
-  local cursor_line_number = 0
+  local pos ---@type vim.Pos?
   nvim.set_decoration_provider(self.ns, {
     on_win = function(_, maybe_win)
       if win ~= maybe_win then return false end
       if not nvim.win_is_valid(win) then return false end
       if not nvim.get_option_value('cursorline', { win = win }) then return false end
 
-      cursor_line_number = nvim.win_get_cursor(win)[1] - 1
+      pos = vim.pos.cursor(win)
     end,
     on_line = function(_, _, bufnr, line_number)
-      if line_number ~= cursor_line_number then return end
+      if pos and line_number ~= pos.row then return end
 
       nvim.buf_set_extmark(bufnr, self.ns, line_number, 0, {
         end_col = #nvim.buf_get_lines(bufnr, line_number, line_number + 1, true)[1],

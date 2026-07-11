@@ -12,7 +12,8 @@ local nvim = require('blink.lib.nvim')
 --- @field mode blink.cmp.Mode
 --- @field id integer
 --- @field bufnr integer
---- @field cursor blink.cmp.CursorPos
+--- @field cursor { [1]: integer, [2]: integer } Deprecated, use `pos` instead
+--- @field pos vim.Pos
 --- @field line string
 --- @field term blink.cmp.ContextTerm
 --- @field bounds blink.cmp.ContextBounds
@@ -23,11 +24,12 @@ local nvim = require('blink.lib.nvim')
 ---
 --- @field new fun(opts: blink.cmp.ContextOpts): blink.cmp.Context
 --- @field get_keyword fun(): string
---- @field within_query_bounds fun(self: blink.cmp.Context, cursor: blink.cmp.CursorPos, include_start_bound?: boolean): boolean
+--- @field within_query_bounds fun(self: blink.cmp.Context, include_start_bound?: boolean): boolean
 ---
 --- @field get_mode fun(): blink.cmp.Mode
---- @field get_cursor fun(): blink.cmp.CursorPos
---- @field set_cursor fun(cursor: blink.cmp.CursorPos)
+--- @field get_pos fun(): vim.Pos
+--- @field get_cursor fun(): { [1]: integer, [2]: integer } Deprecated, use `get_pos` instead
+--- @field set_cursor fun(pos: vim.Pos)
 --- @field get_line fun(num?: integer): string
 --- @field get_bounds fun(range: blink.cmp.CompletionKeywordRange): blink.cmp.ContextBounds
 --- @field get_term_command fun(): blink.cmp.ContextTermCommand?
@@ -60,15 +62,15 @@ local nvim = require('blink.lib.nvim')
 local context = {}
 
 function context.new(opts)
-  local cursor = context.get_cursor()
-  local line = context.get_line()
+  local pos = context.get_pos()
 
   return setmetatable({
     mode = context.get_mode(),
     id = opts.id,
     bufnr = nvim.get_current_buf(),
-    cursor = cursor,
-    line = line,
+    pos = pos,
+    cursor = pos:to_cursor(),
+    line = context.get_line(),
     term = { command = context.get_term_command() },
     bounds = context.get_bounds('full'),
     trigger = {
@@ -89,18 +91,19 @@ function context.get_keyword()
   return string.sub(context.get_line(), range.start_col, range.start_col + range.length - 1)
 end
 
---- @param cursor blink.cmp.CursorPos
 --- @param include_start_bound? boolean Whether to include the start boundary as inside of the query. E.g. start_col = 1 (one indexed), cursor[2] = 0 (zero indexed) would be considered within the query bounds with this flag enabled.
 --- @return boolean
-function context:within_query_bounds(cursor, include_start_bound)
-  local row, col = cursor[1], cursor[2]
-  col = col + 1 -- Convert from 0-indexed to 1-indexed
+function context:within_query_bounds(include_start_bound)
+  local pos, bounds = self.pos, self.bounds
+  if pos.row + 1 ~= bounds.line_number then return false end
 
-  local bounds = self.bounds
-  if include_start_bound then
-    return row == bounds.line_number and col >= bounds.start_col and col <= (bounds.start_col + bounds.length)
-  end
-  return row == bounds.line_number and col > bounds.start_col and col <= (bounds.start_col + bounds.length)
+  local cursor_col = pos.col + 1
+  local end_col = bounds.start_col + bounds.length
+  if cursor_col > end_col then return false end
+
+  if include_start_bound then return cursor_col >= bounds.start_col end
+
+  return cursor_col > bounds.start_col
 end
 
 function context.get_mode()
@@ -117,20 +120,25 @@ function context.get_mode()
     or 'default'
 end
 
-function context.get_cursor()
-  return context.get_mode() == 'cmdline' and { 1, vim.fn.getcmdpos() - 1 } or nvim.win_get_cursor(0)
+function context.get_pos()
+  local bufnr = context.bufnr or 0
+  if context.get_mode() == 'cmdline' then return vim.pos(bufnr, 0, vim.fn.getcmdpos() - 1) end
+
+  return vim.pos.cursor(bufnr)
 end
 
-function context.set_cursor(cursor)
+function context.get_cursor() return context.get_pos():to_cursor() end
+
+function context.set_cursor(pos)
   local mode = context.get_mode()
   if vim.tbl_contains({ 'default', 'term', 'cmdwin' }, mode) then
-    nvim.win_set_cursor(0, cursor)
+    nvim.win_set_cursor(0, pos:to_cursor())
     return
   end
 
   assert(mode == 'cmdline', 'Unsupported mode for setting cursor: ' .. mode)
-  assert(cursor[1] == 1, 'Cursor must be on the first line in cmdline mode')
-  vim.fn.setcmdpos(cursor[2])
+  assert(pos.row == 0, 'Cursor must be on the first line in cmdline mode')
+  vim.fn.setcmdpos(pos.col + 1)
 end
 
 function context.get_line(num)
@@ -143,16 +151,18 @@ function context.get_line(num)
   end
 
   -- This method works for normal buffers and the terminal prompt
-  if num == nil then num = context.get_cursor()[1] - 1 end
+  if not num then num = context.get_pos().row end
+
   return nvim.buf_get_lines(0, num, num + 1, false)[1] or ''
 end
 
 --- Gets characters around the cursor and returns the range, 0-indexed
 function context.get_bounds(range)
   local line = context.get_line()
-  local cursor = context.get_cursor()
-  local start_col, end_col = require('blink.cmp.fuzzy').get_keyword_range(line, cursor[2], range)
-  return { line = line, line_number = cursor[1], start_col = start_col + 1, length = end_col - start_col }
+  local pos = context.get_pos()
+  local start_col, end_col = require('blink.cmp.fuzzy').get_keyword_range(line, pos.col, range)
+
+  return { line = line, line_number = pos.row + 1, start_col = start_col + 1, length = end_col - start_col }
 end
 
 --- Get the terminal command in the current line without the shell prompt.
@@ -168,18 +178,10 @@ end
 function context.get_term_command()
   if context.get_mode() ~= 'term' then return end
 
-  local cursor = context.get_cursor()
-  local cursor_row = cursor[1]
-  local cursor_col = cursor[2] + 1
-  local line = string.sub(context.get_line(), 1, cursor_col - 1)
-
-  local extmarks = nvim.buf_get_extmarks(
-    0,
-    nvim.create_namespace('blink_cmp_term_command_start'),
-    { cursor_row - 1, cursor_col - 1 },
-    { cursor_row - 1, 0 },
-    { limit = 1 }
-  )
+  local pos = context.get_pos()
+  local line = string.sub(context.get_line(), 1, pos.col)
+  local ns = nvim.create_namespace('blink_cmp_term_command_start')
+  local extmarks = nvim.buf_get_extmarks(0, ns, { pos.row, pos.col }, { pos.row, 0 }, { limit = 1 })
 
   --- If we find no mark for the start of the terminal command the terminal or shell
   --- probably does not support the FTCS_COMMAND_START escape sequence. The best effort

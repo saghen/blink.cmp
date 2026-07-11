@@ -116,7 +116,7 @@ function fuzzy.fuzzy(line, cursor_col, haystacks_by_provider, range)
   end
 
   -- get the nearby words
-  local cursor_row = nvim.win_get_cursor(0)[1]
+  local cursor_row = vim.pos.cursor(0):to_cursor()[1]
   local start_row = math.max(0, cursor_row - 30)
   local end_row = math.min(cursor_row + 30, nvim.buf_line_count(0))
   local nearby_text = table.concat(nvim.buf_get_lines(0, start_row, end_row, false), '\n')

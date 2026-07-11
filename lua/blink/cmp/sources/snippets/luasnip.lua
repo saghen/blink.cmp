@@ -248,7 +248,7 @@ function source:get_completions(ctx, callback)
 
   -- Filter items based on show_condition, if configured
   if self.opts.use_show_condition then
-    local line_to_cursor = ctx.line:sub(0, ctx.cursor[2] - 1)
+    local line_to_cursor = ctx.line:sub(0, ctx.pos.col - 1)
     items = vim.tbl_filter(function(item) return item.data.show_condition(line_to_cursor) end, items)
   end
 
@@ -305,20 +305,18 @@ function source:execute(ctx, item)
     add_luasnip_callback(snip, events.pre_expand, function(s) choice_callback(s, events) end)
   end
 
-  local cursor = ctx.get_cursor() --[[@as LuaSnip.BytecolBufferPosition]]
-  cursor[1] = cursor[1] - 1
-
+  local pos = ctx.get_pos()
   local range = text_edits.get_from_item(item).range
 
   ---@type LuaSnip.BufferRegion
   local clear_region = {
     from = { range.start.line, range.start.character },
-    to = cursor,
+    to = { pos.row, pos.col },
   }
 
   local line = ctx.get_line()
-  local line_to_cursor = line:sub(1, cursor[2])
-  local range_text = line:sub(range.start.character + 1, cursor[2])
+  local line_to_cursor = line:sub(1, pos.col)
+  local range_text = line:sub(range.start.character + 1, pos.col)
 
   local expand_params = snip:matches(line_to_cursor, {
     fallback_match = range_text ~= line_to_cursor and range_text or nil,
@@ -328,8 +326,7 @@ function source:execute(ctx, item)
     if expand_params.clear_region ~= nil then
       clear_region = expand_params.clear_region
     elseif expand_params.trigger ~= nil then
-      clear_region.from = { cursor[1], cursor[2] - #expand_params.trigger }
-      clear_region.to = cursor
+      clear_region.from = { pos.row, pos.col - #expand_params.trigger }
     end
   end
 
