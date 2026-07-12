@@ -102,7 +102,6 @@ function context:within_query_bounds(include_start_bound)
   if cursor_col > end_col then return false end
 
   if include_start_bound then return cursor_col >= bounds.start_col end
-
   return cursor_col > bounds.start_col
 end
 
@@ -123,7 +122,6 @@ end
 function context.get_pos()
   local bufnr = context.bufnr or 0
   if context.get_mode() == 'cmdline' then return vim.pos(bufnr, 0, vim.fn.getcmdpos() - 1) end
-
   return vim.pos.cursor(bufnr)
 end
 
@@ -152,7 +150,6 @@ function context.get_line(num)
 
   -- This method works for normal buffers and the terminal prompt
   if not num then num = context.get_pos().row end
-
   return nvim.buf_get_lines(0, num, num + 1, false)[1] or ''
 end
 
