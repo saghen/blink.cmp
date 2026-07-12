@@ -46,8 +46,7 @@ function text_edits.apply(text_edit, additional_text_edits)
     assert(#additional_text_edits == 0, 'Terminal mode only supports one text edit. Contributions welcome!')
 
     if vim.bo.channel and vim.bo.channel ~= 0 then
-      local cur_col = nvim.win_get_cursor(0)[2]
-      local n_replaced = cur_col - text_edit.range.start.character
+      local n_replaced = vim.pos.cursor(0).col - text_edit.range.start.character
       local backspace_keycode = '\8'
 
       vim.fn.chansend(vim.bo.channel, backspace_keycode:rep(n_replaced) .. text_edit.newText)
@@ -152,7 +151,7 @@ function text_edits.get_from_item(item)
   }
   assert(text_edit.range ~= nil, 'Invalid text edit: missing range')
 
-  text_edit = text_edits.compensate_for_cursor_movement(text_edit, item.cursor_column, context.get_cursor()[2])
+  text_edit = text_edits.compensate_for_cursor_movement(text_edit, item.pos, context.get_pos())
 
   -- convert the offset encoding to utf-8
   -- TODO: we have to do this last because it applies a max on the position based on the length of the line
@@ -170,13 +169,13 @@ end
 --- from when the items were fetched versus the current.
 --- HACK: is there a better way?
 --- @param text_edit lsp.TextEdit
---- @param old_cursor_col integer Position of the cursor when the text edit was created
---- @param new_cursor_col integer New position of the cursor
+--- @param old_pos vim.Pos Position when the text edit was created
+--- @param new_pos vim.Pos New position
 --- @return lsp.TextEdit
-function text_edits.compensate_for_cursor_movement(text_edit, old_cursor_col, new_cursor_col)
+function text_edits.compensate_for_cursor_movement(text_edit, old_pos, new_pos)
   text_edit = vim.deepcopy(text_edit)
 
-  local offset = new_cursor_col - old_cursor_col
+  local offset = new_pos.col - old_pos.col
   text_edit.range['end'].character = text_edit.range['end'].character + offset
 
   return text_edit
@@ -212,19 +211,15 @@ function text_edits.guess(item)
     or (lib.is_not_nil(item.label) and item.label)
     or ''
 
-  local start_col, end_col = require('blink.cmp.fuzzy').guess_edit_range(
-    item,
-    context.get_line(),
-    context.get_cursor()[2],
-    config.completion.keyword.range
-  )
-  local current_line = context.get_cursor()[1]
+  local pos = context.get_pos()
+  local start_col, end_col =
+    require('blink.cmp.fuzzy').guess_edit_range(item, context.get_line(), pos.col, config.completion.keyword.range)
 
   -- convert to 0-index
   return {
     range = {
-      start = { line = current_line - 1, character = start_col },
-      ['end'] = { line = current_line - 1, character = end_col },
+      start = { line = pos.row, character = start_col },
+      ['end'] = { line = pos.row, character = end_col },
     },
     newText = word,
   }
@@ -256,13 +251,13 @@ end
 --- This means that the end position will be the range _before_ applying the edit.
 --- This function gets the end position of the range _after_ applying the edit.
 --- This may be used for placing the cursor after applying the edit.
---- Returns (1, 0) indexed line and column
+--- Returns 0-indexed line and column
 ---
 --- TODO: write tests cases, there are many uncommon cases it doesn't handle
 ---
 --- @param text_edit lsp.TextEdit
 --- @param additional_text_edits lsp.TextEdit[]
---- @return blink.cmp.CursorPos
+--- @return vim.Pos
 function text_edits.get_apply_end_position(text_edit, additional_text_edits)
   -- Calculate the end position of the range, ignoring the additional text edits
   local lines = vim.split(text_edit.newText, '\n')
@@ -314,8 +309,7 @@ function text_edits.get_apply_end_position(text_edit, additional_text_edits)
   end_line = end_line + line_offset
   end_col = end_col + col_offset
 
-  -- Convert from 0-indexed to (1, 0)-indexed to match nvim cursor api
-  return { end_line + 1, end_col }
+  return vim.pos(0, end_line, end_col)
 end
 
 ----- Dot repeat -----

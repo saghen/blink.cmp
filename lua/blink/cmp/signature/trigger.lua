@@ -9,7 +9,7 @@ local nvim = require('blink.lib.nvim')
 --- @class blink.cmp.SignatureHelpContext
 --- @field id integer
 --- @field bufnr integer
---- @field cursor blink.cmp.CursorPos
+--- @field pos vim.Pos
 --- @field line string
 --- @field is_retrigger boolean
 --- @field active_signature_help lsp.SignatureHelp?
@@ -91,8 +91,8 @@ function trigger.activate()
   })
 
   if config.show_on_accept then
-    require('blink.cmp.completion.list').accept_emitter:on(function()
-      local cursor_col = nvim.win_get_cursor(0)[2]
+    require('blink.cmp.completion.list').accept_emitter:on(function(ev)
+      local cursor_col = ev.context.get_pos().col
       local char_under_cursor = nvim.get_current_line():sub(cursor_col, cursor_col)
 
       local is_on_trigger = trigger.is_trigger_character(char_under_cursor)
@@ -121,7 +121,7 @@ function trigger.show_if_on_trigger_character()
   if require('blink.cmp.completion.trigger.context').get_mode() ~= 'default' then return end
   if not config.enabled or not trigger.context then return end
 
-  local cursor_col = nvim.win_get_cursor(0)[2]
+  local cursor_col = trigger.context.pos.col
   local char_under_cursor = nvim.get_current_line():sub(cursor_col, cursor_col)
   if trigger.is_trigger_character(char_under_cursor) then trigger.show({ trigger_character = char_under_cursor }) end
 end
@@ -134,13 +134,14 @@ function trigger.show(opts)
   end
 
   -- update context
-  local cursor = nvim.win_get_cursor(0)
+  local pos = vim.pos.cursor(0)
   if trigger.context == nil then trigger.current_context_id = trigger.current_context_id + 1 end
+
   trigger.context = {
     id = trigger.current_context_id,
     bufnr = nvim.get_current_buf(),
-    cursor = cursor,
-    line = nvim.buf_get_lines(0, cursor[1] - 1, cursor[1], false)[1],
+    pos = pos,
+    line = nvim.buf_get_lines(0, pos.row, pos.row + 1, false)[1] or '',
     trigger = {
       kind = opts.trigger_character and vim.lsp.protocol.CompletionTriggerKind.TriggerCharacter
         or vim.lsp.protocol.CompletionTriggerKind.Invoked,

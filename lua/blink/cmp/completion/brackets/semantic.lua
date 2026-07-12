@@ -4,7 +4,7 @@ local config = require('blink.cmp.config').completion.accept.auto_brackets
 local utils = require('blink.cmp.completion.brackets.utils')
 
 --- @class blink.cmp.SemanticRequest
---- @field cursor blink.cmp.CursorPos
+--- @field pos vim.Pos
 --- @field item blink.cmp.CompletionItem
 --- @field filetype string
 --- @field callback fun(added: boolean)
@@ -34,17 +34,18 @@ function semantic.process_request(tokens)
   local request = semantic.request
   if request == nil then return end
 
-  local cursor = nvim.win_get_cursor(0)
+  local pos = vim.pos.cursor(0)
+
   -- cancel if the cursor moved
-  if request.cursor[1] ~= cursor[1] or request.cursor[2] ~= cursor[2] then return semantic.finish_request() end
+  if request.pos ~= pos then return semantic.finish_request() end
 
   for _, token in ipairs(tokens) do
     if
       (token.type == 'function' or token.type == 'method')
-      and cursor[1] - 1 == token.line
-      and cursor[2] >= token.start_col
+      and pos.row == token.line
+      and pos.col >= token.start_col
       -- we do <= to check 1 character before the cursor (`bar|` would check `r`)
-      and cursor[2] <= token.end_col
+      and pos.col <= token.end_col
     then
       -- add the brackets
       -- TODO: make dot repeatable
@@ -55,12 +56,12 @@ function semantic.process_request(tokens)
         {
           newText = brackets_for_filetype[1] .. brackets_for_filetype[2],
           range = {
-            start = { line = cursor[1] - 1, character = start_col },
-            ['end'] = { line = cursor[1] - 1, character = start_col },
+            start = { line = pos.row, character = start_col },
+            ['end'] = { line = pos.row, character = start_col },
           },
         },
       }, nvim.get_current_buf(), 'utf-8')
-      nvim.win_set_cursor(0, { cursor[1], start_col + #brackets_for_filetype[1] })
+      nvim.win_set_cursor(0, { pos.row + 1, start_col + #brackets_for_filetype[1] })
       return semantic.finish_request()
     end
   end
@@ -89,9 +90,9 @@ function semantic.add_brackets_via_semantic_token(ctx, filetype, item)
     if highlighter == nil then return resolve(false) end
 
     semantic.timer:stop()
-    local cursor = nvim.win_get_cursor(0)
+    local pos = vim.pos.cursor(0)
     semantic.request = {
-      cursor = nvim.win_get_cursor(0),
+      pos = pos,
       filetype = filetype,
       item = item,
       callback = resolve,
@@ -102,7 +103,7 @@ function semantic.add_brackets_via_semantic_token(ctx, filetype, item)
 
     -- first check if a semantic token already exists at the current cursor position
     -- we get the token 1 character before the cursor (`bar|` would check `r`)
-    local tokens = vim.lsp.semantic_tokens.get_at_pos(0, cursor[1] - 1, cursor[2] - 1)
+    local tokens = vim.lsp.semantic_tokens.get_at_pos(0, pos.row, pos.col - 1)
     if tokens ~= nil then semantic.process_request(tokens) end
     if semantic.request == nil then
       -- a matching token exists, and brackets were added

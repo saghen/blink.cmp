@@ -10,7 +10,7 @@
 --- @field items blink.cmp.CompletionItem[]
 --- @field selected_item_idx? integer
 --- @field is_explicitly_selected boolean
---- @field preview_undo? { text_edit: lsp.TextEdit, cursor_before?: blink.cmp.CursorPos, cursor_after: blink.cmp.CursorPos }
+--- @field preview_undo? { text_edit: lsp.TextEdit, pos_before?: vim.Pos, pos_after: vim.Pos }
 ---
 --- @field show fun(context: blink.cmp.Context, items: table<string, blink.cmp.CompletionItem[]>)
 --- @field fuzzy fun(context: blink.cmp.Context, items: table<string, blink.cmp.CompletionItem[]>): blink.cmp.CompletionItem[]
@@ -142,7 +142,7 @@ function list.fuzzy(ctx, items_by_source)
   local fuzzy = require('blink.cmp.fuzzy')
   local filtered_items = fuzzy.fuzzy(
     ctx.get_line(),
-    ctx.get_cursor()[2],
+    ctx.get_pos().col,
     items_by_source,
     require('blink.cmp.config').completion.keyword.range
   )
@@ -328,13 +328,13 @@ function list.undo_preview()
   -- The text edit may be out of date due to the user typing more characters
   -- so we adjust the range to compensate
   -- TODO: Set offset_encoding
-  local old_cursor_col = list.preview_undo.cursor_after[2]
-  local new_cursor_col = context.get_cursor()[2]
-  text_edit = text_edits_lib.compensate_for_cursor_movement(text_edit, old_cursor_col, new_cursor_col)
+  local old_pos = list.preview_undo.pos_after
+  local new_pos = context.get_pos()
+  text_edit = text_edits_lib.compensate_for_cursor_movement(text_edit, old_pos, new_pos)
 
   require('blink.cmp.lib.text_edits').apply(text_edit)
-  if list.preview_undo.cursor_before ~= nil then
-    require('blink.cmp.completion.trigger.context').set_cursor(list.preview_undo.cursor_before)
+  if list.preview_undo.pos_before ~= nil then
+    require('blink.cmp.completion.trigger.context').set_cursor(list.preview_undo.pos_before)
   end
 
   list.preview_undo = nil
@@ -345,11 +345,12 @@ function list.apply_preview(item)
   list.undo_preview()
 
   -- apply the new preview
-  local undo_text_edit, undo_cursor = require('blink.cmp.completion.accept.preview')(item)
+  local undo_text_edit, undo_pos = require('blink.cmp.completion.accept.preview')(item)
+
   list.preview_undo = {
     text_edit = undo_text_edit,
-    cursor_before = undo_cursor,
-    cursor_after = context.get_cursor(),
+    pos_before = undo_pos,
+    pos_after = context.get_pos(),
   }
 end
 

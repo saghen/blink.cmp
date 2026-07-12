@@ -116,15 +116,15 @@ function registry:snippet_to_completion_item(snippet, context)
     or table.concat(snippet.body --[[@as table]], '\n')
 
   local new_text = self:expand_vars(body, context.id)
-  local cur_line, cur_col = unpack(context.cursor)
+  local pos = context.get_pos()
 
   -- Find the position of the (longest partial) prefix just before the cursor
   local start_col ---@type integer?
-  local line = context.get_line():sub(1, cur_col)
+  local line = context.get_line():sub(1, pos.col)
   for i = #snippet.prefix, 1, -1 do
-    local pos = cur_col - i + 1
-    if line:sub(pos, cur_col) == snippet.prefix:sub(1, i) then
-      start_col = pos
+    local col = pos.col - i + 1
+    if line:sub(col, pos.col) == snippet.prefix:sub(1, i) then
+      start_col = col
       break
     end
   end
@@ -139,8 +139,8 @@ function registry:snippet_to_completion_item(snippet, context)
       or nil,
     textEdit = {
       range = {
-        start = { line = cur_line - 1, character = (start_col or context.bounds.start_col) - 1 },
-        ['end'] = { line = cur_line - 1, character = cur_col },
+        start = { line = pos.row, character = (start_col or context.bounds.start_col) - 1 },
+        ['end'] = { line = pos.row, character = pos.col },
       },
       newText = new_text,
     },

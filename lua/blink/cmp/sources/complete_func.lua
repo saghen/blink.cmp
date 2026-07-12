@@ -45,7 +45,7 @@ end
 ---@overload fun(func: string, findstart: 1, base: ''): integer
 ---@overload fun(func: string, findstart: 0, base: string): table<{ words: blink.cmp.CompleteFuncWords, refresh: string }> | blink.cmp.CompleteFuncWords
 local function invoke_complete_func(func, findstart, base)
-  local prev_pos = nvim.win_get_cursor(0)
+  local prev_pos = vim.pos.cursor(0)
 
   local _, result = pcall(function()
     local args = { findstart, base }
@@ -58,8 +58,8 @@ local function invoke_complete_func(func, findstart, base)
     end
   end)
 
-  local next_pos = nvim.win_get_cursor(0)
-  if prev_pos[1] ~= next_pos[1] or prev_pos[2] ~= next_pos[2] then nvim.win_set_cursor(0, prev_pos) end
+  local next_pos = vim.pos.cursor(0)
+  if next_pos ~= prev_pos then nvim.win_set_cursor(0, prev_pos:to_cursor()) end
 
   return result
 end
@@ -88,31 +88,25 @@ function Source:get_completions(context, resolve)
     return nil
   end
 
-  local cur_line, cur_col = unpack(context.cursor)
+  local pos = context.get_pos()
 
   -- TODO: differentiate between staying in (-2) vs leaving (-3) completion mode?
   if start_col == -2 or start_col == -3 then
     resolve()
     return nil
-  elseif start_col < 0 or start_col > cur_col then
-    start_col = cur_col
+  elseif start_col < 0 or start_col > pos.col then
+    start_col = pos.col
   end
 
   -- for info on complete-func results see `:h complete-items`
   -- get the actual complete-func completion results
-  local cmp_results = invoke_complete_func(complete_func, 0, string.sub(context.line, start_col + 1, cur_col))
+  local cmp_results = invoke_complete_func(complete_func, 0, string.sub(context.line, start_col + 1, pos.col))
   cmp_results = cmp_results['words'] or cmp_results
   ---@cast cmp_results blink.cmp.CompleteFuncWords
 
   local range = {
-    ['start'] = {
-      line = cur_line - 1,
-      character = start_col,
-    },
-    ['end'] = {
-      line = cur_line - 1,
-      character = cur_col,
-    },
+    ['start'] = { line = pos.row, character = start_col },
+    ['end'] = { line = pos.row, character = pos.col },
   }
 
   local items = {} ---@type blink.cmp.CompletionItem[]

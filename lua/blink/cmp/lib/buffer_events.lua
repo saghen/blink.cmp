@@ -214,12 +214,12 @@ end
 --- HACK: there's likely edge cases with this since we can't know for sure
 --- if the autocmds will fire for cursor_moved afaik
 function buffer_events:suppress_events_for_callback(cb)
-  local cursor_before = nvim.win_get_cursor(0)
+  local pos_before = vim.pos.cursor(0)
   local changed_tick_before = nvim.buf_get_changedtick(0)
 
   cb()
 
-  local cursor_after = nvim.win_get_cursor(0)
+  local pos_after = vim.pos.cursor(0)
   local changed_tick_after = nvim.buf_get_changedtick(0)
 
   local is_insert_mode = nvim.get_mode().mode:sub(1, 1) == 'i'
@@ -233,7 +233,7 @@ function buffer_events:suppress_events_for_callback(cb)
   -- that the CursorMovedI event will fire
   -- TODO: It could make sense to override the nvim_win_set_cursor function and mark as ignored if it's called
   -- on the current buffer
-  local cursor_moved = cursor_after[1] ~= cursor_before[1] or cursor_after[2] ~= cursor_before[2]
+  local cursor_moved = pos_after ~= pos_before
   self.ignore_next_cursor_moved = is_insert_mode
   if not cursor_moved then vim.defer_fn(function() self.ignore_next_cursor_moved = false end, 10) end
 end

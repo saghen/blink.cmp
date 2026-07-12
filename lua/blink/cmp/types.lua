@@ -1,13 +1,11 @@
 --- @alias blink.cmp.Mode 'cmdline' | 'cmdwin' | 'term' | 'default'
 
---- @alias blink.cmp.CursorPos { [1]: integer, [2]: integer }
-
 --- @class blink.cmp.CompletionItem : lsp.CompletionItem
 --- @field documentation? string | blink.cmp.CompletionDocumentationMarkupContent
 --- @field score_offset? integer
 --- @field source_id string
 --- @field source_name string
---- @field cursor_column integer
+--- @field pos? vim.Pos
 --- @field client_id? integer
 --- @field client_name? string
 --- @field kind_name? string
