@@ -1,6 +1,7 @@
 local nvim = require('blink.lib.nvim')
 local task = require('blink.lib.task')
 local config = require('blink.cmp.config').completion.accept.auto_brackets
+local lib_utils = require('blink.cmp.lib.utils')
 local utils = require('blink.cmp.completion.brackets.utils')
 
 --- @class blink.cmp.SemanticRequest
@@ -34,7 +35,7 @@ function semantic.process_request(tokens)
   local request = semantic.request
   if request == nil then return end
 
-  local pos = vim.pos.cursor(0)
+  local pos = lib_utils.get_vim_pos_cursor(0)
 
   -- cancel if the cursor moved
   if request.pos ~= pos then return semantic.finish_request() end
@@ -90,7 +91,7 @@ function semantic.add_brackets_via_semantic_token(ctx, filetype, item)
     if highlighter == nil then return resolve(false) end
 
     semantic.timer:stop()
-    local pos = vim.pos.cursor(0)
+    local pos = lib_utils.get_vim_pos_cursor(0)
     semantic.request = {
       pos = pos,
       filetype = filetype,

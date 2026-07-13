@@ -1,4 +1,5 @@
 local nvim = require('blink.lib.nvim')
+local utils = require('blink.cmp.lib.utils')
 
 --- @param item blink.cmp.CompletionItem
 --- @return lsp.TextEdit, vim.Pos?
@@ -16,7 +17,7 @@ local function preview(item)
   -- only keep the first line.
   text_edit.newText = vim.split(text_edit.newText, '\n', { plain = true, trimempty = true })[1] or '' -- vim.split returns an empty list if the string was empty, making [1] nil
 
-  local original_pos = vim.pos.cursor(0)
+  local original_pos = utils.get_vim_pos_cursor(0)
   local cursor_pos = {
     text_edit.range.start.line + 1,
     text_edit.range.start.character + #text_edit.newText,

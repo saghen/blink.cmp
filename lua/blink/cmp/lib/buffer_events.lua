@@ -4,6 +4,7 @@
 
 local nvim = require('blink.lib.nvim')
 local snippet = require('blink.cmp.config').snippets
+local utils = require('blink.cmp.lib.utils')
 
 --- @class blink.cmp.BufferEvents
 --- @field has_context fun(): boolean
@@ -214,12 +215,12 @@ end
 --- HACK: there's likely edge cases with this since we can't know for sure
 --- if the autocmds will fire for cursor_moved afaik
 function buffer_events:suppress_events_for_callback(cb)
-  local pos_before = vim.pos.cursor(0)
+  local pos_before = utils.get_vim_pos_cursor(0)
   local changed_tick_before = nvim.buf_get_changedtick(0)
 
   cb()
 
-  local pos_after = vim.pos.cursor(0)
+  local pos_after = utils.get_vim_pos_cursor(0)
   local changed_tick_after = nvim.buf_get_changedtick(0)
 
   local is_insert_mode = nvim.get_mode().mode:sub(1, 1) == 'i'

@@ -5,6 +5,7 @@
 -- TODO: ensure this always calls *after* the completion trigger to avoid increasing latency
 
 local nvim = require('blink.lib.nvim')
+local utils = require('blink.cmp.lib.utils')
 
 --- @class blink.cmp.SignatureHelpContext
 --- @field id integer
@@ -134,7 +135,7 @@ function trigger.show(opts)
   end
 
   -- update context
-  local pos = vim.pos.cursor(0)
+  local pos = utils.get_vim_pos_cursor(0)
   if trigger.context == nil then trigger.current_context_id = trigger.current_context_id + 1 end
 
   trigger.context = {

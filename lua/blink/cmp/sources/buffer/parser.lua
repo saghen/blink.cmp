@@ -12,7 +12,7 @@ function parser.get_buf_text(bufnr, exclude_word_under_cursor)
   if bufnr ~= vim.api.nvim_get_current_buf() or not exclude_word_under_cursor then return table.concat(lines, '\n') end
 
   -- exclude word under the cursor for the current buffer
-  local line_number, column = unpack(vim.pos.cursor(0):to_cursor())
+  local line_number, column = unpack(vim.api.nvim_win_get_cursor(0))
   local line = lines[line_number]
   assert(line, 'buffer source: Unable to find the line ' .. line_number)
 

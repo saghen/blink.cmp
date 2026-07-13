@@ -2,6 +2,30 @@ local lib = require('blink.lib')
 
 local utils = {}
 
+-- TODO: vim.Pos API changed in nvim-0.13. Remove compat layer for vim.Pos API when we drop support for nvim 0.12
+if vim.fn.has('nvim-0.13') == 1 then
+  --- @param target integer
+  --- @return vim.Pos
+  function utils.get_vim_pos_cursor(target) return vim.pos.cursor(target) end
+
+  --- @param pos vim.Pos
+  --- @return integer[]
+  function utils.vim_pos_to_cursor(pos) return pos:to_cursor() end
+else
+  --- @param win integer
+  --- @return vim.Pos
+  function utils.get_vim_pos_cursor(win)
+    if win == 0 then win = vim.api.nvim_get_current_win() end
+    local buf = vim.api.nvim_win_get_buf(win)
+    local pos = vim.api.nvim_win_get_cursor(win)
+    return vim.pos.cursor(buf, pos)
+  end
+
+  --- @param pos vim.Pos
+  --- @return integer[]
+  function utils.vim_pos_to_cursor(pos) return { pos:to_cursor() } end
+end
+
 function utils.to_string_or_empty(v) return (lib.is_not_nil(v) and type(v) == 'string') and v or '' end
 
 function utils.schedule_if_needed(fn)

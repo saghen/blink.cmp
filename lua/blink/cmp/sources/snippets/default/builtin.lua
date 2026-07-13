@@ -4,6 +4,7 @@
 -- see: https://github.com/garymjr/nvim-snippets/blob/main/lua/snippets/utils/builtin.lua
 
 local nvim = require('blink.lib.nvim')
+local utils = require('blink.cmp.lib.utils')
 
 local builtin = {
   lazy = {},
@@ -152,7 +153,7 @@ builtin.lazy.LINE_COMMENT = cached(function() return buffer_comment_chars()[1] e
 builtin.lazy.BLOCK_COMMENT_START = cached(function() return buffer_comment_chars()[2] end)
 builtin.lazy.BLOCK_COMMENT_END = cached(function() return buffer_comment_chars()[3] end)
 
-local function get_pos() return vim.pos.cursor(0) end
+local function get_pos() return utils.get_vim_pos_cursor(0) end
 
 local function get_current_line()
   local pos = get_pos()

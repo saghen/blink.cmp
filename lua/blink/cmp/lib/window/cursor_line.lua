@@ -1,4 +1,5 @@
 local nvim = require('blink.lib.nvim')
+local utils = require('blink.cmp.lib.utils')
 
 --- By default, the CursorLine highlight will be drawn below all other highlights.
 --- Unless it contains a foreground color, in which case it will be drawn above
@@ -42,7 +43,7 @@ function cursor_line:update(win)
       if not nvim.win_is_valid(win) then return false end
       if not nvim.get_option_value('cursorline', { win = win }) then return false end
 
-      pos = vim.pos.cursor(win)
+      pos = utils.get_vim_pos_cursor(win)
     end,
     on_line = function(_, _, bufnr, line_number)
       if pos and line_number ~= pos.row then return end

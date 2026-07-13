@@ -1,6 +1,7 @@
 -- TODO: move the get_line, get_cursor, etc.. to a separate lib
 
 local nvim = require('blink.lib.nvim')
+local utils = require('blink.cmp.lib.utils')
 
 --- @class blink.cmp.ContextBounds
 --- @field line string
@@ -69,7 +70,7 @@ function context.new(opts)
     id = opts.id,
     bufnr = nvim.get_current_buf(),
     pos = pos,
-    cursor = pos:to_cursor(),
+    cursor = utils.vim_pos_to_cursor(pos),
     line = context.get_line(),
     term = { command = context.get_term_command() },
     bounds = context.get_bounds('full'),
@@ -122,15 +123,15 @@ end
 function context.get_pos()
   local bufnr = context.bufnr or 0
   if context.get_mode() == 'cmdline' then return vim.pos(bufnr, 0, vim.fn.getcmdpos() - 1) end
-  return vim.pos.cursor(bufnr)
+  return utils.get_vim_pos_cursor(bufnr)
 end
 
-function context.get_cursor() return context.get_pos():to_cursor() end
+function context.get_cursor() return utils.vim_pos_to_cursor(context.get_pos()) end
 
 function context.set_cursor(pos)
   local mode = context.get_mode()
   if vim.tbl_contains({ 'default', 'term', 'cmdwin' }, mode) then
-    nvim.win_set_cursor(0, pos:to_cursor())
+    nvim.win_set_cursor(0, utils.vim_pos_to_cursor(pos))
     return
   end
 

@@ -1,5 +1,5 @@
 local nvim = require('blink.lib.nvim')
-
+local utils = require('blink.cmp.lib.utils')
 local Kind = require('blink.cmp.types').CompletionItemKind
 
 ---@class blink.cmp.CompleteFuncOpts
@@ -45,7 +45,7 @@ end
 ---@overload fun(func: string, findstart: 1, base: ''): integer
 ---@overload fun(func: string, findstart: 0, base: string): table<{ words: blink.cmp.CompleteFuncWords, refresh: string }> | blink.cmp.CompleteFuncWords
 local function invoke_complete_func(func, findstart, base)
-  local prev_pos = vim.pos.cursor(0)
+  local prev_pos = utils.get_vim_pos_cursor(0)
 
   local _, result = pcall(function()
     local args = { findstart, base }
@@ -58,8 +58,8 @@ local function invoke_complete_func(func, findstart, base)
     end
   end)
 
-  local next_pos = vim.pos.cursor(0)
-  if next_pos ~= prev_pos then nvim.win_set_cursor(0, prev_pos:to_cursor()) end
+  local next_pos = utils.get_vim_pos_cursor(0)
+  if next_pos ~= prev_pos then nvim.win_set_cursor(0, utils.vim_pos_to_cursor(prev_pos)) end
 
   return result
 end

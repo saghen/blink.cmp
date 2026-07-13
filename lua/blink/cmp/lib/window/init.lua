@@ -298,7 +298,7 @@ function win.get_cursor_screen_position()
   end
 
   -- default
-  local cursor_line, cursor_column = unpack(vim.pos.cursor(0):to_cursor())
+  local cursor_line, cursor_column = unpack(nvim.win_get_cursor(0))
   -- TODO: convert cursor_column to byte index
   local screen_pos = vim.fn.screenpos(0, cursor_line, cursor_column)
 

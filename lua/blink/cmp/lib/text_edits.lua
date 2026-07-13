@@ -46,7 +46,7 @@ function text_edits.apply(text_edit, additional_text_edits)
     assert(#additional_text_edits == 0, 'Terminal mode only supports one text edit. Contributions welcome!')
 
     if vim.bo.channel and vim.bo.channel ~= 0 then
-      local n_replaced = vim.pos.cursor(0).col - text_edit.range.start.character
+      local n_replaced = utils.get_vim_pos_cursor(0).col - text_edit.range.start.character
       local backspace_keycode = '\8'
 
       vim.fn.chansend(vim.bo.channel, backspace_keycode:rep(n_replaced) .. text_edit.newText)
