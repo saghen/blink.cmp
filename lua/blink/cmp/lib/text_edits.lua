@@ -309,7 +309,7 @@ function text_edits.get_apply_end_position(text_edit, additional_text_edits)
   end_line = end_line + line_offset
   end_col = end_col + col_offset
 
-  return vim.pos(0, end_line, end_col)
+  return utils.get_vim_pos(0, end_line, end_col)
 end
 
 ----- Dot repeat -----

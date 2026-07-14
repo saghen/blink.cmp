@@ -122,7 +122,7 @@ end
 
 function context.get_pos()
   local bufnr = context.bufnr or 0
-  if context.get_mode() == 'cmdline' then return vim.pos(bufnr, 0, vim.fn.getcmdpos() - 1) end
+  if context.get_mode() == 'cmdline' then return utils.get_vim_pos(bufnr, 0, vim.fn.getcmdpos() - 1) end
   return utils.get_vim_pos_cursor(bufnr)
 end
 
