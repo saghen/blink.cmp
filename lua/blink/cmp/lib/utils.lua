@@ -4,21 +4,60 @@ local utils = {}
 
 -- TODO: vim.Pos API changed in nvim-0.13. Remove compat layer for vim.Pos API when we drop support for nvim 0.12
 if vim.fn.has('nvim-0.13') == 1 then
-  --- @param target integer
+  --- @param buf integer
+  --- @param pos [integer, integer] (lnum, col) tuple
   --- @return vim.Pos
-  function utils.get_vim_pos_cursor(target) return vim.pos.cursor(target) end
+  --- @overload fun(win: integer): vim.Pos
+  function utils.get_vim_pos_cursor(buf, pos) return vim.pos.cursor(buf, pos) end
 
   --- @param pos vim.Pos
   --- @return integer[]
   function utils.vim_pos_to_cursor(pos) return pos:to_cursor() end
-else
-  --- @param win integer
+
+  --- @param buf integer
+  --- @param row integer 0-indexed
+  --- @param col integer 0-indexed
   --- @return vim.Pos
-  function utils.get_vim_pos_cursor(win)
-    if win == 0 then win = vim.api.nvim_get_current_win() end
-    local buf = vim.api.nvim_win_get_buf(win)
-    local pos = vim.api.nvim_win_get_cursor(win)
-    return vim.pos.cursor(buf, pos)
+  function utils.get_vim_pos(buf, row, col) return vim.pos(buf, row, col) end
+else
+  --- @param buf integer
+  --- @param pos? [integer, integer]
+  --- @return integer, [integer, integer]
+  local function normalize_cursor_args(buf, pos)
+    if pos then
+      if buf == 0 then buf = vim.api.nvim_get_current_buf() end
+    else
+      local win = buf
+      if win == 0 then win = vim.api.nvim_get_current_win() end
+      buf = vim.api.nvim_win_get_buf(win)
+      pos = vim.api.nvim_win_get_cursor(win)
+    end
+
+    return buf, pos
+  end
+
+  if vim.fn.has('nvim-0.12.2') == 1 then
+    --- @param buf integer
+    --- @param pos? [integer, integer] (lnum, col) tuple
+    --- @overload fun(win: integer): vim.Pos
+    --- @return vim.Pos
+    function utils.get_vim_pos_cursor(buf, pos)
+      buf, pos = normalize_cursor_args(buf, pos)
+      return vim.pos.cursor(buf, pos)
+    end
+
+    --- @param buf integer
+    --- @param row integer 0-indexed
+    --- @param col integer 0-indexed
+    --- @return vim.Pos
+    function utils.get_vim_pos(buf, row, col) return vim.pos(buf, row, col) end
+  else
+    function utils.get_vim_pos_cursor(buf, pos)
+      buf, pos = normalize_cursor_args(buf, pos)
+      return vim.pos.cursor(pos, { buf = buf })
+    end
+
+    function utils.get_vim_pos(buf, row, col) return vim.pos(row, col, { buf = buf }) end
   end
 
   --- @param pos vim.Pos
