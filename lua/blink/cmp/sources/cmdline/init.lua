@@ -50,14 +50,17 @@ function cmdline:get_completions(context, callback)
 
   local line_pos = context.pos.row
   local start_pos = #text_before_argument + #leading_spaces
+  local is_range_prefix_stale = false
   -- Skip leading command range when computing start_pos
   if arg_number == 1 and completion_type == 'command' then
-    local prefix = utils.longest_match(current_arg, {
+    local range_prefix = utils.longest_match(current_arg, {
       "^%s*'<%s*,%s*'>%s*", -- Visual range, e.g. '<,>'
       '^%s*%d+%s*,%s*%d+%s*', -- Numeric range, e.g. 3,5
-      '^%s*[%p]+%s*', -- One or more punctuation characters
+      '^%s*[%p]+%s*', -- One or more punctuation characters, e.g. % for whole buffer
     })
-    start_pos = start_pos + #prefix
+    start_pos = start_pos + #range_prefix
+    -- The text edit start moves forward if more of the range is typed, so cached items become stale
+    is_range_prefix_stale = range_prefix ~= '' and #range_prefix == #current_arg
   end
   local replace_end_pos = math.min(start_pos + #current_arg, context.bounds.start_col + context.bounds.length - 1)
 
@@ -313,7 +316,7 @@ function cmdline:get_completions(context, callback)
 
       callback({
         is_incomplete_backward = completion_type ~= 'help',
-        is_incomplete_forward = is_man_completion and current_arg == '' or false,
+        is_incomplete_forward = (is_man_completion and current_arg == '') or is_range_prefix_stale,
         items = items,
       })
     end)
