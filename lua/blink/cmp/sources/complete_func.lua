@@ -48,16 +48,18 @@ end
 local function invoke_complete_func(func, findstart, base)
   local prev_pos = utils.get_vim_pos_cursor(0)
 
-  local _, result = pcall(function()
-    local args = { findstart, base }
-    local match = func:match('^v:lua%.(.+)')
+  local result
+  local match = func:match('^v:lua%.(.+)')
 
-    if match then
-      return vim.fn.luaeval(string.format('%s(_A[1], _A[2], _A[3])', match), args)
-    else
-      return nvim.call_function(func, args)
-    end
-  end)
+  -- The call here used to be done in a pcall. However if the complete function errored, the 2nd return value of the
+  -- pcall would be a string and cause following code to error anyways. Letting the error propagate makes issues easier
+  -- to debug.
+  if match then
+    local fn = assert(loadstring('return ' .. match))()
+    result = fn(findstart, base)
+  else
+    result = nvim.call_function(func, { findstart, base })
+  end
 
   local next_pos = utils.get_vim_pos_cursor(0)
   if next_pos ~= prev_pos then nvim.win_set_cursor(0, utils.vim_pos_to_cursor(prev_pos)) end
@@ -102,6 +104,10 @@ function Source:get_completions(context, resolve)
   -- for info on complete-func results see `:h complete-items`
   -- get the actual complete-func completion results
   local cmp_results = invoke_complete_func(complete_func, 0, string.sub(context.line, start_col + 1, pos.col))
+  if type(cmp_results) ~= 'table' then
+    resolve()
+    return nil
+  end
   cmp_results = cmp_results['words'] or cmp_results
   ---@cast cmp_results blink.cmp.CompleteFuncWords
 
