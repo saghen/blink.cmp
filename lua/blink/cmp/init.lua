@@ -104,7 +104,7 @@ function cmp.library_available() return native:library_available() end
 --- @return blink.lib.Task
 function cmp.build(opts)
   return native:build({ 'cargo', 'build', '--release' }, function(repo_root, platform)
-    local target_dir = vim.env.CARGO_TARGET_DIR or repo_root .. '/target'
+    local target_dir = vim.uv.os_getenv('CARGO_TARGET_DIR') or repo_root .. '/target'
     return {
       target_dir .. '/release/libblink_cmp_fuzzy' .. platform.lib_extension,
       target_dir .. '/release/blink_cmp_fuzzy' .. platform.lib_extension,
