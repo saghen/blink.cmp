@@ -194,13 +194,6 @@ local commands = {
   'snippet_backward',
 }
 
-local command_or_function = config.types.validator('string | function', function(val)
-  if type(val) == 'string' and not vim.tbl_contains(commands, val) then
-    return false, ('unknown command `%s`'):format(val)
-  end
-  return type(val) == 'string' or type(val) == 'function'
-end)
-
 local keycode = config.types.validator('keycode', function(val)
   if type(val) ~= 'string' or val == '' then return false end
   local rest = val:gsub('<[^<>]+>', '')
@@ -208,14 +201,12 @@ local keycode = config.types.validator('keycode', function(val)
   return true
 end)
 
-local actions = config.types.union(config.types.enum({ false }), config.types.list(command_or_function))
+local actions =
+  config.types.union(config.types.enum({ false }), config.types.list({ config.types.enum(commands), 'function' }))
 
 ---@param default_preset blink.cmp.KeymapPreset
 function keymap.get(default_preset)
-  return {
-    { preset = default_preset },
-    config.types.table({ preset = { 'default', config.types.enum(presets) } }, keycode, actions),
-  }
+  return config.types.catchall({ preset = { default_preset, config.types.enum(presets) } }, keycode, actions)
 end
 
 return keymap

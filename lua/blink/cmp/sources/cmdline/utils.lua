@@ -2,6 +2,21 @@ local nvim = require('blink.lib.nvim')
 local constants = require('blink.cmp.sources.cmdline.constants')
 local path_lib = require('blink.cmp.sources.path.lib')
 local reg_modifier = vim.regex([[\v(\s+|'|")((\%|#\d*|\<\w+\>)(:(h|p|t|r|e|s|S|gs|\~|\.)?)*)\<?(\s+|'|"|$)]])
+-- Build once the list of common range patterns, see :h cmdline-ranges
+local range_patterns = {
+  "^%s*'<%s*,%s*'>%s*", -- Visual range
+  '^%s*[%%%*]%s*', -- Shortcuts % and *
+}
+for _, addr in ipairs(constants.range_address_patterns) do
+  -- Single address
+  table.insert(range_patterns, '^%s*' .. addr .. '%s*')
+  -- Two-address range
+  for _, other in ipairs(constants.range_address_patterns) do
+    for _, separator in ipairs({ ',', ';' }) do
+      table.insert(range_patterns, '^%s*' .. addr .. '%s*' .. separator .. '%s*' .. other .. '%s*')
+    end
+  end
+end
 
 local utils = {}
 
@@ -34,14 +49,30 @@ function utils.in_ex_search_commands()
 end
 
 --- Get the current completion type.
---- @param mode blink.cmp.Mode
+--- @param context blink.cmp.Context
 --- @return string completion_type The detected completion type, or an empty string if unknown.
-function utils.get_completion_type(mode)
-  if mode == 'cmdline' then return vim.fn.getcmdcompltype() end
-  if mode ~= 'cmdwin' then return '' end
+function utils.get_completion_type(context)
+  local completion_type = ''
 
-  local line = nvim.get_current_line()
-  return vim.fn.getcompletiontype(line)
+  if context.mode == 'cmdline' then
+    completion_type = vim.fn.getcmdcompltype()
+  elseif context.mode ~= 'cmdwin' then
+    completion_type = ''
+  else
+    completion_type = vim.fn.getcompletiontype(context.line)
+  end
+
+  if completion_type == '' then
+    local cmd = context.line:match('^(%a+)%s')
+    if cmd then
+      local find_cmds = { find = true, sfind = true, tabfind = true }
+      -- Returns custom completion type to distinguish :find-family commands
+      -- when 'findfunc' is set, since Neovim returns '' in this case.
+      if find_cmds[cmd] and vim.opt.findfunc ~= '' then return 'findfunc' end
+    end
+  end
+
+  return completion_type
 end
 
 --- @param path string
@@ -124,15 +155,14 @@ function utils.smart_split(line, is_path_completion)
   return line, vim.split(trimmed, ' ', { plain = true })
 end
 
---- Find the longest match for a given set of patterns
+--- Get the leading command-line range prefix, if any
 --- @param str string
---- @param patterns string[]
---- @return string
-function utils.longest_match(str, patterns)
-  local best = ''
-  for _, pat in ipairs(patterns) do
+--- @return string?
+function utils.get_range_prefix(str)
+  local best --- @type string?
+  for _, pat in ipairs(range_patterns) do
     local m = str:match(pat)
-    if m and #m > #best then best = m end
+    if m and (not best or #m > #best) then best = m end
   end
   return best
 end
@@ -145,12 +175,13 @@ end
 function utils.get_completions(pattern, type, completion_type)
   -- If a shell command is requested on Windows or WSL, update PATH to avoid performance issues.
   if completion_type == 'shellcmd' then
-    local separator, filter_fn
+    local separator ---@type ":" | ";"
+    local filter_fn ---@type fun()?
 
     if vim.fn.has('win32') == 1 then
       separator = ';'
       -- Remove System32 folder on native Windows
-      filter_fn = function(part) return not part:lower():match('^[a-z]:\\windows\\system32$') end
+      filter_fn = function(part) return not part:lower():match('^[a-z]:[/\\]windows[/\\]system32[/\\]?$') end
     elseif vim.fn.has('wsl') == 1 then
       separator = ':'
       -- Remove all Windows filesystem mounts on WSL
@@ -173,7 +204,7 @@ end
 --- @param func_str string v:lua expression (e.g. "v:lua.foo.bar" or "v:lua.require'bar'.foo")
 --- @param prefix string
 --- @param line string
---- @param col number
+--- @param col integer
 --- @return boolean success
 --- @return table|string|nil result
 function utils.call_vlua(func_str, prefix, line, col)
@@ -213,6 +244,20 @@ function utils.call_vlua(func_str, prefix, line, col)
 
   local call_ok, result = pcall(fn, prefix, line, col)
   return call_ok, result
+end
+
+---@param error string
+---@param codes string[]
+---@return boolean
+function utils.is_expected_vim_error(error, codes)
+  local err_code = error:match('^Vim:E(%d+):')
+  if not err_code then return false end
+
+  for _, code in ipairs(codes) do
+    if err_code == code then return true end
+  end
+
+  return false
 end
 
 return utils

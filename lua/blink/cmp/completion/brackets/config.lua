@@ -1,5 +1,5 @@
 local css_exceptions = function(ctx)
-  local str = string.sub(ctx.line, 1, ctx.cursor[2] or #ctx.line)
+  local str = string.sub(ctx.line, 1, ctx.pos.col or #ctx.line)
   return not str:find('[%w_-]*::?[%w-]*$')
 end
 local typescript_exceptions = function(ctx) return ctx.line:find('^%s*import%s') == nil end

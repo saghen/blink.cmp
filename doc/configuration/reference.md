@@ -175,7 +175,7 @@ completion.menu = {
   max_height = 10,
   border = nil, -- Defaults to `vim.o.winborder` on nvim 0.11+
   winblend = 0,
-  winhighlight = 'Normal:BlinkCmpMenu,FloatBorder:BlinkCmpMenuBorder,CursorLine:BlinkCmpMenuSelection,Search:None',
+  winhighlight = 'Normal:BlinkCmpMenu,FloatBorder:BlinkCmpMenuBorder,CursorLine:BlinkCmpMenuSelection,Search:None,CurSearch:None',
   -- Keep the cursor X lines away from the top/bottom of the window
   scrolloff = 2,
   -- Note that the gutter will be disabled when border ~= 'none'
@@ -341,6 +341,8 @@ completion.ghost_text = {
   show_with_menu = true,
   -- Show the ghost text when the menu is closed
   show_without_menu = true,
+  -- Only show the first line of ghost text for multi-line suggestions
+  show_first_line_only = false,
 },
 ```
 

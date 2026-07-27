@@ -15,14 +15,14 @@
 --- @field show_on_accept_on_trigger_character boolean Show the signature help window when the cursor comes after a trigger character after accepting a completion item, e.g. func(|) where "(" is a trigger character
 
 --- @class (exact) blink.cmp.SignatureWindowConfig
---- @field min_width number
---- @field max_width number
---- @field max_height number
+--- @field min_width integer
+--- @field max_width integer
+--- @field max_height integer
 --- @field border blink.cmp.WindowBorder
---- @field winblend number
+--- @field winblend integer
 --- @field winhighlight string
 --- @field scrollbar boolean Note that the gutter will be disabled when border ~= 'none'
---- @field direction_priority ("n" | "s")[] | fun(): table Which directions to show the window ,or a function returning such a table, falling back to the next direction when there's not enough space, or another window is in the way.
+--- @field direction_priority blink.cmp.WindowDirectionPriority table Which directions to show the window ,or a function returning such a table, falling back to the next direction when there's not enough space, or another window is in the way.
 --- @field treesitter_highlighting boolean Disable if you run into performance issues, (v2.0, drop this)
 --- @field show_documentation boolean (v2.0, set this to false by default)
 

@@ -1,7 +1,6 @@
-# Picked glibc 2.21 to support Ubuntu 14.04+
-
+# centos images use glibc 2.17
 [target.x86_64-unknown-linux-gnu]
-zig = "2.17"
+image = "ghcr.io/cross-rs/x86_64-unknown-linux-gnu:main-centos"
 
 [target.aarch64-unknown-linux-gnu]
-zig = "2.17"
+image = "ghcr.io/cross-rs/aarch64-unknown-linux-gnu:main-centos"

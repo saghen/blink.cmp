@@ -1,8 +1,9 @@
 local nvim = require('blink.lib.nvim')
 
 local recency = {
+  --- @type boolean?
   is_tracking = false,
-  --- @type table<number, number>
+  --- @type table<integer, integer>
   bufs = {},
 }
 
@@ -14,7 +15,7 @@ function recency.start_tracking()
     desc = 'Track buffer recency when entering a buffer',
     callback = function()
       local bufnr = nvim.get_current_buf()
-      recency.bufs[bufnr] = vim.loop.hrtime()
+      recency.bufs[bufnr] = vim.uv.hrtime()
     end,
   })
 

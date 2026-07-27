@@ -79,7 +79,7 @@ function list:append(response)
   local source_score_offset = self.provider.config.score_offset(self.context) or 0
   for _, item in ipairs(response.items) do
     item.score_offset = (item.score_offset or 0) + source_score_offset
-    item.cursor_column = item.cursor_column or self.context.cursor[2]
+    item.pos = item.pos or self.context.pos
     item.source_id = self.provider.id
     item.source_name = self.provider.name
     item.kind = item.kind or require('blink.cmp.types').CompletionItemKind.Property
@@ -113,8 +113,8 @@ function list:is_valid_for_context(new_context)
   if self.context.id ~= new_context.id then return false end
 
   -- get the text for the current and queued context
-  local old_context_query = self.context.line:sub(self.context.bounds.start_col, self.context.cursor[2])
-  local new_context_query = new_context.line:sub(new_context.bounds.start_col, new_context.cursor[2])
+  local old_context_query = self.context.line:sub(self.context.bounds.start_col, self.context.pos.col)
+  local new_context_query = new_context.line:sub(new_context.bounds.start_col, new_context.pos.col)
 
   -- check if the texts are overlapping
   local is_before = vim.startswith(old_context_query, new_context_query)

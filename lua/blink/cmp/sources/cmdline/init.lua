@@ -7,50 +7,36 @@ local task = require('blink.lib.task')
 local nvim = require('blink.lib.nvim')
 local logger = require('blink.cmp.logger')
 local constants = require('blink.cmp.sources.cmdline.constants')
-local cmdline_utils = require('blink.cmp.sources.cmdline.utils')
+local utils = require('blink.cmp.sources.cmdline.utils')
 local path_lib = require('blink.cmp.sources.path.lib')
 
---- @class blink.cmp.Source
+---@class blink.cmp.CmdlineSource : blink.cmp.Source
 local cmdline = {
   ---@type table<string, vim.api.keyset.get_option_info?>
   options = nvim.get_all_options_info(),
 }
 
-function cmdline.new()
-  local self = setmetatable({}, { __index = cmdline })
-  self.before_line = ''
-  self.offset = -1
-  self.ctype = ''
-  self.items = {}
-  return self --[[@as blink.cmp.Source]]
-end
+function cmdline.new() return setmetatable({}, { __index = cmdline }) end
 
----@return boolean
-function cmdline:enabled()
-  return vim.bo.ft == 'vim'
-    or (cmdline_utils.is_command_line({ ':', '@' }) and not cmdline_utils.in_ex_search_commands())
-end
+function cmdline:enabled() return vim.bo.ft == 'vim' or utils.is_command_line({ ':', '@' }) end
 
----@return table
 function cmdline:get_trigger_characters() return { ' ', '.', '#', '&', '-', '=', '/', ':', '!', '%', '~' } end
 
----@param context blink.cmp.Context
----@param callback fun(result?: blink.cmp.CompletionResponse)
----@return fun()
 function cmdline:get_completions(context, callback)
-  local completion_type = cmdline_utils.get_completion_type(context.mode)
+  local completion_type = utils.get_completion_type(context)
 
-  local is_path_completion = cmdline_utils.is_path_completion(completion_type, context.line)
+  local is_path_completion = utils.is_path_completion(completion_type, context.line)
   local is_buffer_completion = vim.tbl_contains(constants.completion_types.buffer, completion_type)
-  local is_filename_modifier_completion = cmdline_utils.contains_filename_modifiers(context.line, completion_type)
-  local is_wildcard_completion = cmdline_utils.contains_wildcard(context.line)
+  local is_filename_modifier_completion = utils.contains_filename_modifiers(context.line, completion_type)
+  local is_wildcard_completion = utils.contains_wildcard(context.line)
+  local is_man_completion = completion_type == '' and context.line:match('^Man ')
 
   local should_split_path = (is_path_completion or is_buffer_completion)
     and not is_filename_modifier_completion
     and not is_wildcard_completion
-  local context_line, arguments = cmdline_utils.smart_split(context.line, should_split_path)
-  local before_cursor = context_line:sub(1, context.cursor[2])
-  local _, args_before_cursor = cmdline_utils.smart_split(before_cursor, should_split_path)
+  local context_line, arguments = utils.smart_split(context.line, should_split_path)
+  local before_cursor = context_line:sub(1, context.pos.col)
+  local _, args_before_cursor = utils.smart_split(before_cursor, should_split_path)
   local arg_number = #args_before_cursor
 
   local leading_spaces = context.line:match('^(%s*)') -- leading spaces in the original query
@@ -62,21 +48,23 @@ function cmdline:get_completions(context, callback)
   local keyword = context.get_bounds(keyword_config.range)
   local current_arg_prefix = current_arg:sub(1, keyword.start_col - #text_before_argument - 1)
 
-  local line_pos = context.cursor[1] - 1
+  local line_pos = context.pos.row
   local start_pos = #text_before_argument + #leading_spaces
+
   -- Skip leading command range when computing start_pos
+  local range_prefix --- @type string?
   if arg_number == 1 and completion_type == 'command' then
-    local prefix = cmdline_utils.longest_match(current_arg, {
-      "^%s*'<%s*,%s*'>%s*", -- Visual range, e.g. '<,>'
-      '^%s*%d+%s*,%s*%d+%s*', -- Numeric range, e.g. 3,5
-      '^%s*[%p]+%s*', -- One or more punctuation characters
-    })
-    start_pos = start_pos + #prefix
+    range_prefix = utils.get_range_prefix(current_arg)
+    if range_prefix then
+      start_pos = start_pos + #range_prefix
+      current_arg_prefix = range_prefix
+    end
   end
   local replace_end_pos = math.min(start_pos + #current_arg, context.bounds.start_col + context.bounds.length - 1)
 
   local unique_suffixes = {}
   local unique_suffixes_limit = 2000
+  ---@type string?, string?
   local special_char, vim_expr
 
   local t = task
@@ -86,14 +74,19 @@ function cmdline:get_completions(context, callback)
       if completion_type == 'help' then
         return require('blink.cmp.sources.cmdline.help').get_completions(current_arg_prefix)
       end
+      -- Special case for :Man, builtin completion is lazy and only becomes meaningful
+      -- once there is at least one character after the space.
+      if is_man_completion and current_arg ~= '' then
+        return require('blink.cmp.sources.cmdline.man').get_completions(current_arg, context.line)
+      end
 
       local completions = {}
 
       -- Input mode (vim.fn.input())
-      if cmdline_utils.is_command_line({ '@' }) then
+      if utils.is_command_line({ '@' }) then
         local completion_args = vim.split(completion_type, ',', { plain = true })
-        local custom_type = completion_args[1]
-        local completion_func = completion_args[2]
+        local custom_type = completion_args[1] or ''
+        local completion_func = completion_args[2] or ''
 
         -- Handle custom completions
         if vim.startswith(custom_type, 'custom') then
@@ -109,11 +102,11 @@ function cmdline:get_completions(context, callback)
           -- Handle v:lua functions (:h v:lua-call)
           if vim.startswith(custom_func, 'v:lua') then
             success, fn_completions =
-              cmdline_utils.call_vlua(completion_func, current_arg_prefix, context.get_line(), context.cursor[2] + 1)
+              utils.call_vlua(completion_func, current_arg_prefix, context.get_line(), context.pos.col + 1)
           else
             -- Regular vimscript/Lua functions
             success, fn_completions =
-              pcall(vim.fn.call, completion_func, { current_arg_prefix, context.get_line(), context.cursor[2] + 1 })
+              pcall(vim.fn.call, completion_func, { current_arg_prefix, context.get_line(), context.pos.col + 1 })
           end
 
           -- Forward any error catch by pcall
@@ -137,23 +130,25 @@ function cmdline:get_completions(context, callback)
             -- path completions uniquely expect only the current path
             query = is_path_completion and current_arg_prefix or query
 
-            completions = cmdline_utils.get_completions(query, compl_type, completion_type)
+            completions = utils.get_completions(query, compl_type, completion_type)
             if type(completions) ~= 'table' then completions = {} end
           end
         end
       elseif is_filename_modifier_completion then
-        vim_expr = cmdline_utils.extract_quoted_part(current_arg) or current_arg
+        vim_expr = utils.extract_quoted_part(current_arg) or current_arg
         special_char = vim_expr:sub(-1)
 
         -- Alternate files
         if special_char == '#' then
           local alt_buf = vim.fn.bufnr('#')
           if alt_buf ~= -1 then
-            local buffers = { [''] = vim.fn.expand('#') } -- Keep the '#' prefix as a completion option
+            local buffers = {
+              [''] = vim.fn.expand('#') --[[@as string]],
+            } -- Keep the '#' prefix as a completion option
             local curr_buf = nvim.get_current_buf()
             for _, buf in ipairs(vim.fn.getbufinfo({ bufloaded = 1, buflisted = 1 })) do
               if buf.bufnr ~= curr_buf and buf.bufnr ~= alt_buf then
-                buffers[tostring(buf.bufnr)] = vim.fn.expand('#' .. buf.bufnr)
+                buffers[tostring(buf.bufnr)] = vim.fn.expand('#' .. buf.bufnr) --[[@as string]]
               end
             end
             completions = vim.tbl_keys(buffers)
@@ -175,7 +170,7 @@ function cmdline:get_completions(context, callback)
       else
         local query = (text_before_argument .. current_arg_prefix):gsub([[\\]], [[\\\\]])
         if query == '=' then query = '= ' end
-        completions = cmdline_utils.get_completions(query, 'cmdline', completion_type)
+        completions = utils.get_completions(query, 'cmdline', completion_type)
       end
 
       return completions
@@ -210,7 +205,8 @@ function cmdline:get_completions(context, callback)
 
         -- current (%) or alternate (#) filename with optional modifiers (:)
         if is_filename_modifier_completion then
-          local expanded = vim.fn.expand(vim_expr .. completion)
+          ---@cast vim_expr string
+          local expanded = vim.fn.expand(vim_expr .. completion) --[[@as string]]
           -- expand in command (e.g. :edit %) but don't in expression (e.g. =vim.fn.expand("%"))
           new_text = vim_expr:sub(1, 1) == current_arg_prefix:sub(1, 1) and expanded or current_arg_prefix .. completion
 
@@ -282,6 +278,7 @@ function cmdline:get_completions(context, callback)
         end
 
         ---@type blink.cmp.CompletionItem
+        ---@diagnostic disable-next-line: missing-fields
         local item = {
           label = label or filter_text,
           filterText = filter_text,
@@ -292,23 +289,23 @@ function cmdline:get_completions(context, callback)
             newText = new_text,
             insert = {
               start = { line = line_pos, character = start_pos },
-              ['end'] = { line = line_pos, character = context.cursor[2] },
+              ['end'] = { line = line_pos, character = context.pos.col },
             },
             replace = {
               start = { line = line_pos, character = start_pos },
               ['end'] = { line = line_pos, character = replace_end_pos },
             },
-          },
+          } --[[@as lsp.InsertReplaceEdit]],
           kind = require('blink.cmp.types').CompletionItemKind.Property,
         }
         items[#items + 1] = item
 
-        if option_info and option_info.type == 'boolean' then
+        if completion_type == 'option' and option_info and option_info.type == 'boolean' then
           filter_text = 'no' .. filter_text
           items[#items + 1] = vim.tbl_deep_extend('force', {}, item, {
             label = filter_text,
             filterText = filter_text,
-            labelDetails = { description = 'no' .. label_details.description },
+            labelDetails = { description = 'no' .. option_info.shortname },
             sortText = filter_text,
             textEdit = { newText = 'no' .. new_text },
           }) --[[@as blink.cmp.CompletionItem]]
@@ -317,17 +314,16 @@ function cmdline:get_completions(context, callback)
 
       callback({
         is_incomplete_backward = completion_type ~= 'help',
-        is_incomplete_forward = false,
+        is_incomplete_forward = (is_man_completion and current_arg == '') or range_prefix ~= nil,
         items = items,
-        ---@diagnostic disable-next-line: missing-return
       })
     end)
     :catch(function(err)
-      -- TODO: is there a way to avoid throwing this error?
-      if type(err) ~= 'string' or not err:match('Vim:E433: No tags file') then
+      -- TODO: is there a way to avoid throwing these errors?
+      if type(err) ~= 'string' or not utils.is_expected_vim_error(err, { '220', '433' }) then
         logger:notify(vim.log.levels.ERROR, 'Error while fetching completions: ' .. err)
       end
-      ---@diagnostic disable-next-line: missing-return
+
       callback({ is_incomplete_backward = false, is_incomplete_forward = false, items = {} })
     end)
 

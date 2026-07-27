@@ -5,6 +5,7 @@ local utils = require('blink.cmp.keymap.utils')
 --- Prepare a single key to feed
 --- @param key string
 --- @param mode? string
+--- @return { key: string, mode: string }[]
 local function single_key(key, mode) return { { key = key, mode = mode or 'n' } } end
 
 --- Build a lhs/mapping index (case-insensitive, normalized)
@@ -14,7 +15,7 @@ local function get_non_blink_keymaps(mappings)
   local index = {}
   for _, mapping in ipairs(mappings) do
     if not utils.is_blink_keymap(mapping) then
-      local lhs = utils.normalize_lhs(mapping.lhs)
+      local lhs = utils.normalize_lhs(assert(mapping.lhs))
       index[lhs] = mapping
     end
   end
@@ -46,7 +47,7 @@ function fallback.wrap(mode, key)
     end
 
     local mapping = buffer_index[normalized_key] or global_index[normalized_key]
-    if mapping then return fallback.run_non_blink_keymap(mapping, key) end
+    if mapping ~= nil then return fallback.run_non_blink_keymap(mapping, key) end
     if not mappings_only then return single_key(key) end
 
     return {}
@@ -91,7 +92,7 @@ function fallback.run_non_blink_keymap(mapping, default_key)
   -- Script mappings (<script>): <Plug>, <SID>, <SNR>, etc.
   if mapping.script == 1 then
     local keys = utils.split_script_rhs(mapping.rhs)
-    return #keys > 0 and keys or single_key(default_key)
+    return keys or single_key(default_key)
   end
 
   -- Remap logic (recursive)

@@ -71,7 +71,7 @@ local function apply_callback(mode, key, commands, callback)
 end
 
 --- @param mode 'i'|'s'|'c'|'t'
---- @param keys_to_commands table<string, blink.cmp.KeymapCommand[]>
+--- @param keys_to_commands blink.cmp.KeymapList
 local function set_keymaps_for_mode(mode, keys_to_commands, command_filter, filter_fn)
   for key, commands in pairs(keys_to_commands) do
     if not command_filter or command_filter(commands) then
@@ -121,7 +121,7 @@ end
 
 --- Applies the keymaps based on the mode
 --- @param mode blink.cmp.Mode
---- @param keys_to_commands table<string, blink.cmp.KeymapCommand[]>
+--- @param keys_to_commands blink.cmp.KeymapList
 function apply.keymaps(mode, keys_to_commands) keymaps_per_mode[mode](keys_to_commands) end
 
 return apply

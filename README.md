@@ -1,5 +1,5 @@
 > [!WARNING]
-> V2 is under active development with many breaking changes. Consider staying on stable by using `branch = 'v1'` or `version = "1.*"` in your `lazy.nvim` config.
+> V2 is under active development with many breaking changes. Consider staying on stable by using `branch = 'v1'` or `version = "1.*"` in your `lazy.nvim` config. [See the V1 docs](https://cmp.saghen.dev/)
 >
 > For V2, [blink.lib](https://github.com/saghen/blink.lib) must be installed via your package manager. See the [UPGRADE.md](./UPGRADE.md) for a detailed migration guide.
 

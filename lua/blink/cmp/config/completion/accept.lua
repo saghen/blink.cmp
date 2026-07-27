@@ -1,7 +1,7 @@
 --- @class (exact) blink.cmp.CompletionAcceptConfig
 --- @field dot_repeat boolean Write completions to the `.` register
 --- @field create_undo_point boolean Create an undo point when accepting a completion item
---- @field resolve_timeout_ms number How long to wait for the LSP to resolve the item with additional information before continuing as-is
+--- @field resolve_timeout_ms integer How long to wait for the LSP to resolve the item with additional information before continuing as-is
 --- @field auto_brackets blink.cmp.AutoBracketsConfig
 
 --- @class (exact) blink.cmp.AutoBracketsConfig
@@ -20,7 +20,7 @@
 --- @class (exact) blink.cmp.AutoBracketSemanticTokenResolutionConfig
 --- @field enabled boolean
 --- @field blocked_filetypes string[]
---- @field timeout_ms number How long to wait for semantic tokens to return before assuming no brackets should be added
+--- @field timeout_ms integer How long to wait for semantic tokens to return before assuming no brackets should be added
 
 local config = require('blink.lib.config')
 return {

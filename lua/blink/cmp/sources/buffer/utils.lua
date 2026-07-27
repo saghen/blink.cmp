@@ -40,7 +40,7 @@ function utils.retain_buffers(bufnrs, max_total_size, max_buffer_size, retention
 
   local selected, total_size = {}, 0
   for _, bufnr in ipairs(sorted_bufnrs) do
-    local size = buf_sizes[bufnr]
+    local size = buf_sizes[bufnr] or 0
     if total_size + size > max_total_size then break end
     total_size = total_size + size
     table.insert(selected, bufnr)

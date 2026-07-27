@@ -5,18 +5,19 @@
 -- TODO: ensure this always calls *after* the completion trigger to avoid increasing latency
 
 local nvim = require('blink.lib.nvim')
+local utils = require('blink.cmp.lib.utils')
 
 --- @class blink.cmp.SignatureHelpContext
---- @field id number
---- @field bufnr number
---- @field cursor number[]
+--- @field id integer
+--- @field bufnr integer
+--- @field pos vim.Pos
 --- @field line string
 --- @field is_retrigger boolean
---- @field active_signature_help lsp.SignatureHelp | nil
+--- @field active_signature_help lsp.SignatureHelp?
 --- @field trigger { kind: lsp.SignatureHelpTriggerKind, character?: string }
 
 --- @class blink.cmp.SignatureTrigger
---- @field current_context_id number
+--- @field current_context_id integer
 --- @field context? blink.cmp.SignatureHelpContext
 --- @field show_emitter blink.cmp.EventEmitter<{ context: blink.cmp.SignatureHelpContext }>
 --- @field hide_emitter blink.cmp.EventEmitter<{}>
@@ -25,9 +26,13 @@ local nvim = require('blink.lib.nvim')
 --- @field activate fun()
 --- @field is_trigger_character fun(char: string, is_retrigger?: boolean): boolean
 --- @field show_if_on_trigger_character fun()
---- @field show fun(opts?: { trigger_character: string, force?: boolean })
+--- @field show fun(opts?: blink.cmp.SignatureTriggerShowOpts)
 --- @field hide fun()
 --- @field set_active_signature_help fun(signature_help: lsp.SignatureHelp)
+
+--- @class blink.cmp.SignatureTriggerShowOpts
+--- @field trigger_character? string
+--- @field force? boolean
 
 local root_config = require('blink.cmp.config')
 local config = require('blink.cmp.config').signature.trigger
@@ -38,7 +43,7 @@ local fuzzy = require('blink.cmp.fuzzy')
 --- @diagnostic disable-next-line: missing-fields
 local trigger = {
   current_context_id = -1,
-  --- @type blink.cmp.SignatureHelpContext | nil
+  --- @type blink.cmp.SignatureHelpContext?
   context = nil,
   show_emitter = require('blink.cmp.lib.event_emitter').new('signature_help_show'),
   hide_emitter = require('blink.cmp.lib.event_emitter').new('signature_help_hide'),
@@ -87,8 +92,8 @@ function trigger.activate()
   })
 
   if config.show_on_accept then
-    require('blink.cmp.completion.list').accept_emitter:on(function()
-      local cursor_col = nvim.win_get_cursor(0)[2]
+    require('blink.cmp.completion.list').accept_emitter:on(function(ev)
+      local cursor_col = ev.context.get_pos().col
       local char_under_cursor = nvim.get_current_line():sub(cursor_col, cursor_col)
 
       local is_on_trigger = trigger.is_trigger_character(char_under_cursor)
@@ -115,9 +120,9 @@ end
 
 function trigger.show_if_on_trigger_character()
   if require('blink.cmp.completion.trigger.context').get_mode() ~= 'default' then return end
-  if not config.enabled and trigger.context == nil then return end
+  if not config.enabled or not trigger.context then return end
 
-  local cursor_col = nvim.win_get_cursor(0)[2]
+  local cursor_col = trigger.context.pos.col
   local char_under_cursor = nvim.get_current_line():sub(cursor_col, cursor_col)
   if trigger.is_trigger_character(char_under_cursor) then trigger.show({ trigger_character = char_under_cursor }) end
 end
@@ -130,13 +135,14 @@ function trigger.show(opts)
   end
 
   -- update context
-  local cursor = nvim.win_get_cursor(0)
+  local pos = utils.get_vim_pos_cursor(0)
   if trigger.context == nil then trigger.current_context_id = trigger.current_context_id + 1 end
+
   trigger.context = {
     id = trigger.current_context_id,
     bufnr = nvim.get_current_buf(),
-    cursor = cursor,
-    line = nvim.buf_get_lines(0, cursor[1] - 1, cursor[1], false)[1],
+    pos = pos,
+    line = nvim.buf_get_lines(0, pos.row, pos.row + 1, false)[1] or '',
     trigger = {
       kind = opts.trigger_character and vim.lsp.protocol.CompletionTriggerKind.TriggerCharacter
         or vim.lsp.protocol.CompletionTriggerKind.Invoked,
@@ -144,7 +150,7 @@ function trigger.show(opts)
     },
     is_retrigger = trigger.context ~= nil,
     active_signature_help = trigger.context and trigger.context.active_signature_help or nil,
-  }
+  } --[[@as blink.cmp.SignatureHelpContext]]
 
   trigger.show_emitter:emit({ context = trigger.context })
 end

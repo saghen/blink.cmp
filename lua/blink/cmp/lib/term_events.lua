@@ -1,4 +1,5 @@
 local nvim = require('blink.lib.nvim')
+local utils = require('blink.cmp.lib.utils')
 
 --- @class blink.cmp.TermEvents
 --- @field has_context fun(): boolean
@@ -89,6 +90,7 @@ function term_events:listen(opts)
   nvim.create_autocmd('TermRequest', {
     callback = function(args)
       if string.match(args.data.sequence, '^\027]133;B') then
+        --- @type integer, integer
         local row, col = unpack(args.data.cursor)
         pcall(nvim.buf_set_extmark, args.buf, term_command_start_ns, row - 1, col, {})
       end
@@ -100,19 +102,18 @@ end
 --- HACK: there's likely edge cases with this since we can't know for sure
 --- if the autocmds will fire for cursor_moved afaik
 function term_events:suppress_events_for_callback(cb)
-  local cursor_before = nvim.win_get_cursor(0)
+  local pos_before = utils.get_vim_pos_cursor(0)
   local changed_tick_before = nvim.buf_get_changedtick(0)
 
   cb()
 
-  local cursor_after = nvim.win_get_cursor(0)
+  local pos_after = utils.get_vim_pos_cursor(0)
   local changed_tick_after = nvim.buf_get_changedtick(0)
 
   local is_term_mode = nvim.get_mode().mode == 't'
   self.ignore_next_text_changed = changed_tick_after ~= changed_tick_before and is_term_mode
   -- TODO: does this guarantee that the CursorMovedI event will fire?
-  self.ignore_next_cursor_moved = (cursor_after[1] ~= cursor_before[1] or cursor_after[2] ~= cursor_before[2])
-    and is_term_mode
+  self.ignore_next_cursor_moved = pos_after ~= pos_before and is_term_mode
 end
 
 return term_events

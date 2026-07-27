@@ -1,7 +1,7 @@
 local clangd = {}
 
---- @param response blink.cmp.CompletionResponse | nil
---- @return blink.cmp.CompletionResponse | nil
+--- @param response blink.cmp.CompletionResponse?
+--- @return blink.cmp.CompletionResponse?
 function clangd.process_response(response)
   if not response then return response end
 

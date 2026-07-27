@@ -29,7 +29,8 @@ function cmdline_events:listen(opts)
   -- TextChanged
   local on_changed = function(key) opts.on_char_added(key, false) end
 
-  local last_move_time, pending_key
+  local last_move_time ---@type number?
+  local pending_key ---@type string?
   local is_change_queued = false
   vim.on_key(function(raw_key, escaped_key)
     if nvim.get_mode().mode ~= 'c' then return end
@@ -40,7 +41,7 @@ function cmdline_events:listen(opts)
     if key:sub(1, 1) == '<' and key:sub(#key, #key) == '>' and raw_key ~= ' ' then return end
     if key == '' then return end
 
-    last_move_time = vim.loop.hrtime() / 1e6
+    last_move_time = vim.uv.hrtime() / 1e6
     pending_key = raw_key
 
     if not is_change_queued then
@@ -60,10 +61,10 @@ function cmdline_events:listen(opts)
   -- as part of a burst and ignore them.
   local burst_threshold_ms = 2
   local function is_burst_move()
-    local current_time = vim.loop.hrtime() / 1e6
-    local is_burst = last_move_time and (current_time - last_move_time) < burst_threshold_ms
+    local current_time = vim.uv.hrtime() / 1e6
+    local is_burst = last_move_time and (current_time - last_move_time) < burst_threshold_ms or false
     last_move_time = current_time
-    return is_burst or false
+    return is_burst
   end
 
   -- CursorMoved

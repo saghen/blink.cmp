@@ -7,7 +7,7 @@
 --- @field buffer_events blink.cmp.BufferEvents
 --- @field cmdline_events blink.cmp.CmdlineEvents
 --- @field term_events blink.cmp.TermEvents
---- @field current_context_id number
+--- @field current_context_id integer
 --- @field context? blink.cmp.Context
 --- @field show_emitter blink.cmp.EventEmitter<{ context: blink.cmp.Context }>
 --- @field hide_emitter blink.cmp.EventEmitter<{}>
@@ -19,8 +19,6 @@
 --- @field show_if_on_trigger_character fun(opts?: { is_accept?: boolean })
 --- @field show fun(opts?: blink.cmp.CompletionTriggerShowOptions): blink.cmp.Context?
 --- @field hide fun()
---- @field within_query_bounds fun(cursor: number[]): boolean
---- @field get_bounds fun(regex: vim.regex, line: string, cursor: number[]): blink.cmp.ContextBounds
 
 --- @class blink.cmp.CompletionTriggerShowOptions
 --- @field trigger_kind blink.cmp.CompletionTriggerKind
@@ -28,7 +26,7 @@
 --- @field force? boolean
 --- @field send_upstream? boolean
 --- @field providers? string[]
---- @field initial_selected_item_idx? number
+--- @field initial_selected_item_idx? integer
 
 local root_config = require('blink.cmp.config')
 local config = root_config.completion.trigger
@@ -69,11 +67,8 @@ local function on_char_added(char, is_ignored)
 end
 
 local function on_cursor_moved(event, is_ignored, is_backspace, last_event)
+  local pos = context.get_pos()
   local is_enter_event = event == 'InsertEnter' or event == 'TermEnter'
-
-  local cursor = context.get_cursor()
-  local cursor_col = cursor[2]
-
   local char_under_cursor = utils.get_char_at_cursor()
   local is_keyword = fuzzy.is_keyword_character(char_under_cursor)
 
@@ -102,7 +97,7 @@ local function on_cursor_moved(event, is_ignored, is_backspace, last_event)
   if
     trigger.context ~= nil
     and trigger.context.trigger.kind ~= 'prefetch'
-    and trigger.context:within_query_bounds(cursor, trigger.is_trigger_character(char_under_cursor))
+    and trigger.context:within_query_bounds(trigger.is_trigger_character(char_under_cursor))
   then
     trigger.show({ trigger_kind = 'keyword' })
 
@@ -112,7 +107,7 @@ local function on_cursor_moved(event, is_ignored, is_backspace, last_event)
     trigger.show({ trigger_kind = 'trigger_character', trigger_character = char_under_cursor })
 
   -- show if we currently have a context, and we've moved outside of it's bounds by 1 char
-  elseif is_keyword and trigger.context ~= nil and cursor_col == trigger.context.bounds.start_col - 1 then
+  elseif is_keyword and trigger.context ~= nil and pos.col == trigger.context.bounds.start_col - 1 then
     trigger.context = nil
     trigger.show({ trigger_kind = 'keyword' })
 
@@ -182,10 +177,7 @@ function trigger.activate()
   end
 end
 
-function trigger.resubscribe()
-  ---@diagnostic disable-next-line: missing-fields
-  trigger.buffer_events:resubscribe({ on_char_added = on_char_added })
-end
+function trigger.resubscribe() trigger.buffer_events:resubscribe({ on_char_added = on_char_added }) end
 
 function trigger.is_trigger_character(char, is_show_on_x)
   local sources = require('blink.cmp.sources.lib')
@@ -231,8 +223,8 @@ function trigger.show_if_on_trigger_character(opts)
     return
   end
 
-  local cursor_col = context.get_cursor()[2]
-  local char_under_cursor = context.get_line():sub(cursor_col, cursor_col)
+  local pos = context.get_pos()
+  local char_under_cursor = context.get_line():sub(pos.col, pos.col)
 
   if trigger.is_trigger_character(char_under_cursor, true) then
     trigger.show({ trigger_kind = 'trigger_character', trigger_character = char_under_cursor })
@@ -242,42 +234,31 @@ end
 function trigger.show(opts)
   if vim.fn.pumvisible() == 1 or not require('blink.cmp').is_enabled() then return trigger.hide() end
 
-  opts = opts or {}
+  opts = opts or {} --[[@as blink.cmp.CompletionTriggerShowOptions]]
+
+  local ctx = trigger.context
+  local mode = context.get_mode()
+  local pos = context.get_pos()
 
   -- already triggered at this position, ignore
-  local mode = context.get_mode()
-  local cursor = context.get_cursor()
-  if
-    not opts.force
-    and trigger.context ~= nil
-    and trigger.context.mode == mode
-    and cursor[1] == trigger.context.cursor[1]
-    and cursor[2] == trigger.context.cursor[2]
-  then
-    return
-  end
+  if not opts.force and ctx ~= nil and ctx.mode == mode and ctx.pos == pos then return end
 
   -- update the context id to indicate a new context, and not an update to an existing context
-  if trigger.context == nil or opts.providers ~= nil then
-    trigger.current_context_id = trigger.current_context_id + 1
-  end
+  if not ctx or opts.providers ~= nil then trigger.current_context_id = trigger.current_context_id + 1 end
 
   local providers = opts.providers
-    or (trigger.context and trigger.context.providers)
-    or require('blink.cmp.sources.lib').get_enabled_provider_ids(context.get_mode())
+    or (ctx and ctx.providers)
+    or require('blink.cmp.sources.lib').get_enabled_provider_ids(mode)
 
-  local initial_trigger_kind = trigger.context and trigger.context.trigger.initial_kind or opts.trigger_kind
+  local initial_trigger_kind = ctx and ctx.trigger.initial_kind or opts.trigger_kind
   -- if we prefetched, don't keep that as the initial trigger kind
   if initial_trigger_kind == 'prefetch' then initial_trigger_kind = opts.trigger_kind end
   -- if we're manually triggering, set it as the initial trigger kind
   if opts.trigger_kind == 'manual' then initial_trigger_kind = 'manual' end
 
-  local initial_trigger_character = trigger.context and trigger.context.trigger.initial_character
-    or opts.trigger_character
+  local initial_trigger_character = ctx and ctx.trigger.initial_character or opts.trigger_character
   -- reset the initial character if the context id has changed
-  if trigger.context ~= nil and trigger.context.id ~= trigger.current_context_id then
-    initial_trigger_character = nil
-  end
+  if ctx ~= nil and ctx.id ~= trigger.current_context_id then initial_trigger_character = nil end
 
   trigger.context = context.new({
     id = trigger.current_context_id,

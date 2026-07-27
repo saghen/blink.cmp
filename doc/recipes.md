@@ -416,6 +416,20 @@ This also makes it easy to `:cwd` to the desired base directory for path complet
 
 [See the full docs](./configuration/completion.md#menu-draw)
 
+### Disable nerd fonts
+
+Uses text labels for the `kind` of the completion item, at the end of the line, instead of icons which require a nerd font.
+
+```lua
+completion = {
+  menu = {
+    draw = {
+      columns = { { 'label', 'label_description', gap = 1 }, { 'kind' } }
+    }
+  }
+}
+```
+
 ### Kind icon background
 
 You'll need to configure your highlights (`BlinkCmpKind` or `BlinkCmpKind<kind>`) to your desired background and foreground colors.

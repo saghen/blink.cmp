@@ -1,4 +1,4 @@
-*blink-cmp.txt*            For NVIM v0.10.0           Last change: 2026 May 04
+*blink-cmp.txt*           For NVIM v0.12.0           Last change: 2026 July 25
 
 ==============================================================================
 Table of Contents                                *blink-cmp-table-of-contents*
@@ -129,9 +129,9 @@ LAZY.NVIM                                   *blink-cmp-installation-lazy.nvim*
         'rafamadriz/friendly-snippets',
       },
       build = function()
-        -- build the fuzzy matcher, wait up to 60 seconds
+        -- build the fuzzy matcher, optionally add a timeout to `pwait(timeout_ms)`
         -- you can use `gb` in `:Lazy` to rebuild the plugin as needed
-        require('blink.cmp').build():wait(60000)
+        require('blink.cmp').build():pwait()
       end,
     
       ---@module 'blink.cmp'
@@ -172,9 +172,9 @@ VIM.PACK                                     *blink-cmp-installation-vim.pack*
 See the |blink-cmp-lazy.nvim| section for recommended configuration options.
 
 >lua
-    vim.pack.add({ 'saghen/blink.lib', 'saghen/blink.cmp' })
+    vim.pack.add({ 'https://github.com/saghen/blink.lib', 'https://github.com/saghen/blink.cmp' })
     local cmp = require('blink.cmp')
-    cmp.build():wait(60000)
+    cmp.build():pwait()
     cmp.setup()
 <
 
@@ -648,6 +648,22 @@ completion.
 COMPLETION MENU DRAWING            *blink-cmp-recipes-completion-menu-drawing*
 
 See the full docs <./configuration/completion.md#menu-draw>
+
+
+DISABLE NERD FONTS ~
+
+Uses text labels for the `kind` of the completion item, at the end of the line,
+instead of icons which require a nerd font.
+
+>lua
+    completion = {
+      menu = {
+        draw = {
+          columns = { { 'label', 'label_description', gap = 1 }, { 'kind' } }
+        }
+      }
+    }
+<
 
 
 KIND ICON BACKGROUND ~
@@ -2627,6 +2643,7 @@ completion sources. Please open a PR to add yours.
 - blink-emoji.nvim <https://github.com/moyiz/blink-emoji.nvim> by `moyiz`: Emojis
 - blink-nerdfont.nvim <https://github.com/MahanRahmati/blink-nerdfont.nvim> by `MahanRahmati`: Nerd Fonts <https://www.nerdfonts.com>
 - blink-ripgrep <https://github.com/mikavilpas/blink-ripgrep.nvim> by `mikavilpas`: Ripgrep
+- chezmoi-template.nvim <https://github.com/dpezto/chezmoi-template.nvim> by `dpezto`: chezmoi <https://chezmoi.io> template data, functions and block snippets
 - cmp-pandoc-references <https://github.com/jmbuhr/cmp-pandoc-references> by `jmbuhr`: Bibliography, reference and cross-ref items
 - cmp-wezterm <https://github.com/delphinus/cmp-wezterm> by `delphinus`: WezTerm <https://wezterm.org> terminal (also works with `nvim-cmp`)
 - css-vars.nvim <https://github.com/jdrupal-dev/css-vars.nvim> by `jdrupal-dev`: CSS variables
@@ -2819,7 +2836,7 @@ COMPLETION MENU
       max_height = 10,
       border = nil, -- Defaults to `vim.o.winborder` on nvim 0.11+
       winblend = 0,
-      winhighlight = 'Normal:BlinkCmpMenu,FloatBorder:BlinkCmpMenuBorder,CursorLine:BlinkCmpMenuSelection,Search:None',
+      winhighlight = 'Normal:BlinkCmpMenu,FloatBorder:BlinkCmpMenuBorder,CursorLine:BlinkCmpMenuSelection,Search:None,CurSearch:None',
       -- Keep the cursor X lines away from the top/bottom of the window
       scrolloff = 2,
       -- Note that the gutter will be disabled when border ~= 'none'
@@ -2988,6 +3005,8 @@ COMPLETION GHOST TEXT
       show_with_menu = true,
       -- Show the ghost text when the menu is closed
       show_without_menu = true,
+      -- Only show the first line of ghost text for multi-line suggestions
+      show_first_line_only = false,
     },
 <
 

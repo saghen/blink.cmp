@@ -34,12 +34,12 @@ function ghost_text.is_open() return ghost_text.extmark_id ~= nil end
 --- redraw it when the cursor moves/text changes
 --- @param context blink.cmp.Context
 --- @param items blink.cmp.CompletionItem[]
---- @param selection_idx? number
+--- @param selection_idx? integer
 function ghost_text.show_preview(context, items, selection_idx)
   -- check if we're supposed to show
+  local has_selection = selection_idx ~= nil
   if
-    not config.show_with_selection and selection_idx ~= nil
-    or not config.show_without_selection and selection_idx == nil
+    (has_selection and not config.show_with_selection) or (not has_selection and not config.show_without_selection)
   then
     ghost_text.clear_preview()
     return
@@ -47,7 +47,7 @@ function ghost_text.show_preview(context, items, selection_idx)
 
   -- cmdline without noice not supported
   local ghost_text_buf = utils.get_buf()
-  if ghost_text_buf == nil or not nvim.buf_is_valid(ghost_text_buf) then return end
+  if not ghost_text_buf or not nvim.buf_is_valid(ghost_text_buf) then return end
 
   -- nothing to show, clear the preview
   local selected_item = items[selection_idx or 1]
@@ -67,11 +67,11 @@ end
 --- and otherwise ignores the request
 function ghost_text.draw_preview()
   -- check if we should be showing
-  if
-    not ghost_text.enabled()
-    or (not config.show_with_menu and menu.win:is_open())
-    or (not config.show_without_menu and not menu.win:is_open())
-  then
+  local menu_open = menu.win:is_open()
+  local should_show_preview = ghost_text.enabled()
+    and ((menu_open and config.show_with_menu) or (not menu_open and config.show_without_menu))
+
+  if not should_show_preview then
     ghost_text.clear_preview()
     return
   end
@@ -79,7 +79,7 @@ function ghost_text.draw_preview()
   -- check if the state is valid
   if not ghost_text.selected_item or not ghost_text.context then return end
   local buf = utils.get_buf()
-  if buf == nil or not nvim.buf_is_valid(buf) then return end
+  if not buf or not nvim.buf_is_valid(buf) then return end
 
   -- get the text to draw
   local text_edit = text_edits_lib.get_from_item(ghost_text.selected_item)
@@ -96,11 +96,14 @@ function ghost_text.draw_preview()
 
   -- Determine the actual end position for typed text.
   -- Use cursor column if multiline, otherwise use LSP end character.
-  local typed_end_col = (range.start.line ~= range['end'].line) and ghost_text.context.get_cursor()[2] or end_col
+  local typed_end_col = (range.start.line ~= range['end'].line) and ghost_text.context.get_pos().col or end_col
   local typed_text = line:sub(start_col + 1, typed_end_col)
   local typed_length = math.max(0, math.min(vim.fn.strchars(typed_text), vim.fn.strchars(text_edit.newText)))
   local untyped_text = vim.fn.strcharpart(text_edit.newText, typed_length)
   local display_lines = vim.split(untyped_text, '\n', { plain = true })
+  if config.show_first_line_only and #display_lines > 1 then
+    display_lines = { display_lines[1] .. ' [+' .. #display_lines - 1 .. ']' }
+  end
 
   local virt_lines = {}
   for i = 2, #display_lines do

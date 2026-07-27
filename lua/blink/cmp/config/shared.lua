@@ -1,2 +1,0 @@
---- @alias blink.cmp.WindowBorderChar string | table
---- @alias blink.cmp.WindowBorder nil | 'single' | 'double' | 'rounded' | 'solid' | 'shadow' | 'bold' | 'padded' | 'none' | blink.cmp.WindowBorderChar[] When set to `nil`, uses the `vim.o.winborder` value on nvim 0.11+

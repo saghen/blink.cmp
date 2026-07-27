@@ -131,6 +131,7 @@ Here is a non-exhaustive list of third-party plugins providing additional comple
 - [blink-emoji.nvim](https://github.com/moyiz/blink-emoji.nvim) by `moyiz`: Emojis
 - [blink-nerdfont.nvim](https://github.com/MahanRahmati/blink-nerdfont.nvim) by `MahanRahmati`: [Nerd Fonts](https://www.nerdfonts.com)
 - [blink-ripgrep](https://github.com/mikavilpas/blink-ripgrep.nvim) by `mikavilpas`: Ripgrep
+- [chezmoi-template.nvim](https://github.com/dpezto/chezmoi-template.nvim) by `dpezto`: [chezmoi](https://chezmoi.io) template data, functions and block snippets
 - [cmp-pandoc-references](https://github.com/jmbuhr/cmp-pandoc-references) by `jmbuhr`: Bibliography, reference and cross-ref items
 - [cmp-wezterm](https://github.com/delphinus/cmp-wezterm) by `delphinus`: [WezTerm](https://wezterm.org) terminal (also works with `nvim-cmp`)
 - [css-vars.nvim](https://github.com/jdrupal-dev/css-vars.nvim) by `jdrupal-dev`: CSS variables

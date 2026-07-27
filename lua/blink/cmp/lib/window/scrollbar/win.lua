@@ -4,9 +4,9 @@ local nvim = require('blink.lib.nvim')
 
 --- @class blink.cmp.ScrollbarWin
 --- @field enable_gutter boolean
---- @field thumb_win? number
---- @field gutter_win? number
---- @field buf? number
+--- @field thumb_win? integer
+--- @field gutter_win? integer
+--- @field buf? integer
 ---
 --- @field new fun(opts: blink.cmp.ScrollbarConfig): blink.cmp.ScrollbarWin
 --- @field is_visible fun(self: blink.cmp.ScrollbarWin): boolean
@@ -15,7 +15,7 @@ local nvim = require('blink.lib.nvim')
 --- @field hide_thumb fun(self: blink.cmp.ScrollbarWin)
 --- @field hide_gutter fun(self: blink.cmp.ScrollbarWin)
 --- @field hide fun(self: blink.cmp.ScrollbarWin)
---- @field _make_win fun(self: blink.cmp.ScrollbarWin, geometry: blink.cmp.ScrollbarGeometry, hl_group: string): number
+--- @field _make_win fun(self: blink.cmp.ScrollbarWin, geometry: blink.cmp.ScrollbarGeometry, hl_group: string): integer
 --- @field redraw_if_needed fun(self: blink.cmp.ScrollbarWin)
 
 --- @type blink.cmp.ScrollbarWin

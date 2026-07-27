@@ -3,16 +3,18 @@ local utils = require('blink.cmp.completion.brackets.utils')
 --- @param ctx blink.cmp.Context
 --- @param filetype string
 --- @param item blink.cmp.CompletionItem
---- @return 'added' | 'check_semantic_token' | 'skipped', lsp.TextEdit | lsp.InsertReplaceEdit, number
+--- @return 'added' | 'check_semantic_token' | 'skipped', lsp.TextEdit | lsp.InsertReplaceEdit, integer
 local function add_brackets(ctx, filetype, item)
   local text_edit = item.textEdit
   assert(text_edit ~= nil, 'Got nil text edit while adding brackets via kind')
-  local brackets_for_filetype = utils.get_for_filetype(filetype, item)
 
   -- skip if we're not in default mode
   if ctx.mode ~= 'default' then return 'skipped', text_edit, 0 end
 
-  -- if there's already the correct brackets in front, skip but indicate the cursor should move in front of the bracket
+  local brackets_for_filetype = utils.get_for_filetype(filetype, item)
+
+  -- if there's already the correct brackets in front, skip but indicate the
+  -- cursor should move in front of the bracket
   -- TODO: what if the brackets_for_filetype[1] == '' or ' ' (haskell/ocaml)?
   -- TODO: should this check semantic tokens and still move the cursor in that case?
   if utils.has_brackets_in_front(text_edit, brackets_for_filetype[1]) then
@@ -21,7 +23,7 @@ local function add_brackets(ctx, filetype, item)
   end
 
   -- if the item already contains the brackets, conservatively skip adding brackets
-  -- todo: won't work for snippets when the brackets_for_filetype is { '{', '}' }
+  -- TODO: won't work for snippets when the brackets_for_filetype is { '{', '}' }
   -- I've never seen a language like that though
   if brackets_for_filetype[1] ~= ' ' and text_edit.newText:match('[\\' .. brackets_for_filetype[1] .. ']') ~= nil then
     return 'skipped', text_edit, 0
@@ -33,6 +35,8 @@ local function add_brackets(ctx, filetype, item)
   if not utils.can_have_brackets(item, brackets_for_filetype) then return 'check_semantic_token', text_edit, 0 end
 
   text_edit = vim.deepcopy(text_edit)
+  ---@cast text_edit lsp.TextEdit|lsp.InsertReplaceEdit
+
   -- For snippets, we add the cursor position between the brackets as the last placeholder
   if item.insertTextFormat == vim.lsp.protocol.InsertTextFormat.Snippet then
     local placeholders = utils.snippets_extract_placeholders(text_edit.newText)

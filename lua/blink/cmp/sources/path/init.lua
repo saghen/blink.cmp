@@ -1,4 +1,4 @@
--- credit to https://github.com/hrsh7th/cmp-path for the original implementation
+-- Credit to https://github.com/hrsh7th/cmp-path for the original implementation
 -- and https://codeberg.org/FelipeLema/cmp-async-path for the async implementation
 
 -- TODO: more advanced detection of windows vs unix paths to resolve escape sequences
@@ -10,9 +10,9 @@
 --- @field get_cwd fun(context: blink.cmp.Context): string
 --- @field show_hidden_files_by_default boolean
 --- @field ignore_root_slash boolean
---- @field max_entries number  Maximum number of files/directories to return. This limits memory use and responsiveness for very large folders. Defaults to 10000
+--- @field max_entries integer Maximum number of files/directories to return. This limits memory use and responsiveness for very large folders. Defaults to 10000
 
---- @class blink.cmp.Source
+--- @class blink.cmp.PathSource : blink.cmp.Source
 --- @field opts blink.cmp.PathOpts
 local path = {}
 
@@ -38,7 +38,7 @@ function path.new(opts)
   -- }, opts)
 
   self.opts = opts
-  return self --[[@as blink.cmp.Source]]
+  return self
 end
 
 function path:get_trigger_characters() return { '/', '.', '\\' } end

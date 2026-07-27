@@ -1,114 +1,5 @@
 -- spellchecker:off
 return {
-  arg_prefix_type = {
-    ['$'] = 'environment',
-    ['&'] = 'option',
-  },
-  commands_type = {
-    -- File completion
-    edit = 'file',
-    read = 'file',
-    write = 'file',
-    saveas = 'file',
-    source = 'file',
-    split = 'file',
-    vsplit = 'file',
-    tabedit = 'file',
-    diffsplit = 'file',
-    diffpatch = 'file',
-    explore = 'file',
-    lexplore = 'file',
-    sexplore = 'file',
-    vexplore = 'file',
-    find = 'file_in_path',
-    sfind = 'file_in_path',
-    tabfind = 'file_in_path',
-    -- Directory completion
-    cd = 'dir',
-    lcd = 'dir',
-    tcd = 'dir',
-    chdir = 'dir',
-    -- Buffer completion
-    buffer = 'buffer',
-    bdelete = 'buffer',
-    bwipeout = 'buffer',
-    bnext = 'buffer',
-    bprevious = 'buffer',
-    bfirst = 'buffer',
-    blast = 'buffer',
-    sbuffer = 'buffer',
-    sball = 'buffer',
-    diffthis = 'diff_buffer',
-    diffoff = 'diff_buffer',
-    diffupdate = 'diff_buffer',
-    -- Command completion
-    command = 'command',
-    delcommand = 'command',
-    -- Option completion
-    set = 'option',
-    setlocal = 'option',
-    setglobal = 'option',
-    -- Help completion
-    help = 'help',
-    -- Expression completion
-    substitute = 'expression',
-    global = 'expression',
-    vglobal = 'expression',
-    let = 'expression',
-    echo = 'expression',
-    -- Tag completion
-    tag = 'tag',
-    stag = 'tag',
-    tselect = 'tag',
-    tjump = 'tag',
-    tlast = 'tag',
-    tnext = 'tag',
-    tprev = 'tag',
-    tunmenu = 'tag',
-    -- Argument completion
-    args = 'arglist',
-    argadd = 'file',
-    argdelete = 'file',
-    argdo = 'file',
-    -- User completion (for user-defined functions/commands)
-    ['function'] = 'function',
-    delfunction = 'function',
-    -- Mapping completion
-    map = 'mapping',
-    noremap = 'mapping',
-    unmap = 'mapping',
-    nmap = 'mapping',
-    vmap = 'mapping',
-    imap = 'mapping',
-    cmap = 'mapping',
-    nunmap = 'mapping',
-    vunmap = 'mapping',
-    iunmap = 'mapping',
-    cunmap = 'mapping',
-    -- Autocmd completion
-    autocmd = 'event',
-    augroup = 'augroup',
-    doautocmd = 'event',
-    doautoall = 'event',
-    -- Shell command completion
-    terminal = 'shellcmd',
-    ['!'] = 'shellcmd',
-    -- Misc
-    ['='] = 'lua',
-    colorscheme = 'color',
-    compiler = 'compiler',
-    filetype = 'filetype',
-    highlight = 'highlight',
-    history = 'history',
-    lua = 'lua',
-    messages = 'messages',
-    packadd = 'packadd',
-    register = 'register',
-    runtime = 'runtime',
-    sign = 'sign',
-    syntax = 'syntax',
-    user = 'user',
-  },
   ex_search_commands = {
     substitute = true,
     global = true,
@@ -135,6 +26,34 @@ return {
   completion_types = {
     buffer = { 'buffer', 'diff_buffer' },
     path = { 'dir', 'dir_in_path', 'file', 'file_in_path', 'runtime' },
+  },
+  range_address_patterns = {
+    -- Numeric/offsets
+    '%d+[+-]?%d*', -- 1, 5+4, 5-4
+    '[+-]%d+', -- +5, -5
+    -- Special
+    '[.$][+-]?%d*', -- ., $, .+2, $-1
+    -- Marks
+    "'[a-zA-Z0-9][+-]?%d*",
+    "'%[[+-]?%d*",
+    "'%][+-]?%d*",
+    "''[+-]?%d*",
+    '\'"[+-]?%d*',
+    "'%^[+-]?%d*",
+    "'%.[+-]?%d*",
+    "'%([+-]?%d*",
+    "'%)[+-]?%d*",
+    "'{[+-]?%d*",
+    "'}[+-]?%d*",
+    "'<[+-]?%d*",
+    "'>[+-]?%d*",
+    -- Previous search/substitute
+    '\\/[+-]?%d*',
+    '\\%?[+-]?%d*',
+    '\\&[+-]?%d*',
+    -- Forward/backward search
+    '/[^/]*/[+-]?%d*',
+    '%?[^%?]*%?[+-]?%d*',
   },
 }
 -- spellchecker:on

@@ -1,4 +1,4 @@
---- @class blink.cmp.EventEmitter<T> : { event: string, autocmd?: string, listeners: table<fun(data: T)>, new: ( fun(event: string, autocmd: string): blink.cmp.EventEmitter ), on: ( fun(self: blink.cmp.EventEmitter, callback: fun(data: T)) ), off: ( fun(self: blink.cmp.EventEmitter, callback: fun(data: T)) ), emit: ( fun(self: blink.cmp.EventEmitter, data?: table) ) };
+--- @class blink.cmp.EventEmitter<T> : { event: string, autocmd?: string, listeners: table<fun(data: T)>, new: ( fun(event: string, autocmd: string): blink.cmp.EventEmitter<T>), on: ( fun(self: blink.cmp.EventEmitter<T>, callback: fun(data: T)) ), off: ( fun(self: blink.cmp.EventEmitter<T>, callback: fun(data: T)) ), emit: ( fun(self: blink.cmp.EventEmitter<T>, data?: table) ) };
 --- TODO: is there a better syntax for this?
 
 local event_emitter = {}

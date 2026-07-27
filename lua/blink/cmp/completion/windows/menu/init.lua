@@ -2,8 +2,9 @@
 --- @field win blink.cmp.Window
 --- @field items blink.cmp.CompletionItem[]
 --- @field renderer blink.cmp.Renderer
---- @field selected_item_idx? number
+--- @field selected_item_idx? integer
 --- @field context blink.cmp.Context?
+--- @field auto_show blink.cmp.CompletionMenuAutoShow
 --- @field open_emitter blink.cmp.EventEmitter<{}>
 --- @field close_emitter blink.cmp.EventEmitter<{}>
 --- @field position_update_emitter blink.cmp.EventEmitter<{}>
@@ -12,7 +13,7 @@
 --- @field open_loading fun(context: blink.cmp.Context)
 --- @field open fun()
 --- @field close fun()
---- @field set_selected_item_idx fun(idx?: number)
+--- @field set_selected_item_idx fun(idx?: integer)
 ---
 --- @field queue_auto_show fun(context: blink.cmp.Context, items: blink.cmp.CompletionItem[])
 --- @field force_auto_show fun()
@@ -20,6 +21,12 @@
 ---
 --- @field update_position fun()
 --- @field redraw_if_needed fun()
+
+--- @class blink.cmp.CompletionMenuAutoShow
+--- @field enabled boolean | fun(context: blink.cmp.Context, items: blink.cmp.CompletionItem[]): boolean
+--- @field delay_ms integer | fun(context: blink.cmp.Context, items: blink.cmp.CompletionItem[]): integer
+--- @field timer uv.uv_timer_t
+--- @field timer_key string
 
 local lib = require('blink.lib')
 local nvim = require('blink.lib.nvim')
@@ -98,7 +105,7 @@ function menu.open_loading(context)
 
       source_id = '',
       source_name = '',
-      cursor_column = 0,
+      pos = nil,
       score = 0,
       score_offset = 0,
       client_id = 0,
@@ -119,7 +126,9 @@ function menu.open()
 
   menu.win:open()
   menu.win:set_option_value('cursorline', menu.selected_item_idx ~= nil)
-  if menu.selected_item_idx ~= nil then nvim.win_set_cursor(menu.win:get_win(), { menu.selected_item_idx, 0 }) end
+
+  local menu_winnr = assert(menu.win:get_win())
+  if menu.selected_item_idx ~= nil then nvim.win_set_cursor(menu_winnr, { menu.selected_item_idx, 0 }) end
 
   menu.open_emitter:emit()
 end
@@ -148,10 +157,14 @@ end
 ---------------
 
 function menu.queue_auto_show(context, items)
-  if not menu.auto_show.enabled(context, items) then return end
+  assert(type(menu.auto_show.enabled) == 'function')
+  local is_auto_show_enabled = menu.auto_show.enabled(context, items)
+  if not is_auto_show_enabled then return end
 
   -- getting completions can take a while, so we factor in how long it's been since the context was created
-  local delay_ms = math.max(0, menu.auto_show.delay_ms(context, items) - (vim.uv.now() - context.timestamp))
+  assert(type(menu.auto_show.delay_ms) == 'function')
+  local auto_show_delay_ms = menu.auto_show.delay_ms(context, items)
+  local delay_ms = math.max(0, auto_show_delay_ms - (vim.uv.now() - context.timestamp))
 
   -- no delay, show immediately
   -- only start a new timer if the cursor has moved or the id has changed.
@@ -164,7 +177,7 @@ function menu.queue_auto_show(context, items)
 
   -- only start a new timer if the cursor has moved or the id has changed.
   -- note we should use timer, even for 0ms, to prevent synchronous geometry races
-  local timer_key = string.format('%d|%d|%d', context.id, context.cursor[1], context.cursor[2])
+  local timer_key = string.format('%d|%d|%d', context.id, context.pos.row, context.pos.col)
   if menu.auto_show.timer:is_active() and menu.auto_show.timer_key == timer_key then return end
 
   menu.auto_show.timer_key = timer_key
@@ -238,16 +251,22 @@ function menu.update_position()
     })
   -- otherwise, we use the cursor position
   else
-    local cursor_row, cursor_col = unpack(context.get_cursor())
+    -- curswant reflects the cursor's true virtual column, including virtual
+    -- space from 'virtualedit=all', unlike virtcol() on the byte cursor column.
+    -- We compute the prefix width from raw buffer text (strpart + strdisplaywidth)
+    -- rather than a screen/render-based API, so extmarks such as ghost text
+    -- are correctly ignored and don't affect menu alignment.
+    -- strpart (byte-based) + strdisplaywidth also keeps this correct for
+    -- tabs/multibyte chars before start_col.
+    local curpos = vim.fn.getcurpos()
+    local off = curpos[4]
+    local curswant = curpos[5] - 1
 
-    -- use virtcol to avoid misalignment on multibyte characters
-    local virt_cursor_col = vim.fn.virtcol({ cursor_row, cursor_col })
-    local col = vim.fn.virtcol({ cursor_row, context.bounds.start_col - 1 })
-      - alignment_start_col
-      - virt_cursor_col
-      - border_size.left
-
+    local prefix = vim.fn.strpart(context.line, 0, context.bounds.start_col - 1)
+    local offset_from_cursor = vim.fn.strdisplaywidth(prefix) - curswant
+    local col = offset_from_cursor - alignment_start_col - border_size.left
     if config.draw.align_to == 'cursor' then col = 0 end
+    if off ~= 0 then col = col + off end
 
     win:set_win_config({ relative = 'cursor', row = row, col = col })
   end

@@ -56,6 +56,13 @@
           ln -s $fuzzy_lib/lib/libblink_cmp_fuzzy.* lib/
         '';
 
+        # nvimRequireCheckHook adds the plugin to be tested to the rtp multiple
+        # times. This means blink.lib finds multiple instances of the
+        # library, causing the require checks to fail.
+        nvimSkipModules = [
+          "blink.cmp.fuzzy.rust.init"
+        ];
+
         env.fuzzy_lib = rustPlatform.buildRustPackage {
           pname = "blink-fuzzy-lib";
           inherit version;

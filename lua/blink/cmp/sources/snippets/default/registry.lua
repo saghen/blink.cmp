@@ -12,6 +12,8 @@ local registry = {
 }
 
 local utils = require('blink.cmp.sources.snippets.utils')
+
+---@type blink.cmp.SnippetsOpts
 local default_config = {
   friendly_snippets = true,
   search_paths = { vim.fn.stdpath('config') .. '/snippets' },
@@ -114,20 +116,19 @@ function registry:snippet_to_completion_item(snippet, context)
     or table.concat(snippet.body --[[@as table]], '\n')
 
   local new_text = self:expand_vars(body, context.id)
-  local cur_line, cur_col = unpack(context.cursor)
+  local pos = context.get_pos()
 
   -- Find the position of the (longest partial) prefix just before the cursor
-  local start_col
-  local line = context.get_line():sub(1, cur_col)
+  local start_col ---@type integer?
+  local line = context.get_line():sub(1, pos.col)
   for i = #snippet.prefix, 1, -1 do
-    local pos = cur_col - i + 1
-    if line:sub(pos, cur_col) == snippet.prefix:sub(1, i) then
-      start_col = pos
+    local col = pos.col - i + 1
+    if line:sub(col, pos.col) == snippet.prefix:sub(1, i) then
+      start_col = col
       break
     end
   end
 
-  ---@type blink.cmp.CompletionItem
   return {
     kind = require('blink.cmp.types').CompletionItemKind.Snippet,
     label = snippet.prefix,
@@ -138,16 +139,16 @@ function registry:snippet_to_completion_item(snippet, context)
       or nil,
     textEdit = {
       range = {
-        start = { line = cur_line - 1, character = (start_col or context.bounds.start_col) - 1 },
-        ['end'] = { line = cur_line - 1, character = cur_col },
+        start = { line = pos.row, character = (start_col or context.bounds.start_col) - 1 },
+        ['end'] = { line = pos.row, character = pos.col },
       },
       newText = new_text,
     },
-  }
+  } --[[@as blink.cmp.CompletionItem]]
 end
 
 --- @param snippet string
---- @param cache_key number
+--- @param cache_key integer
 --- @return string
 function registry:expand_vars(snippet, cache_key)
   local lazy_vars = self.builtin_vars.lazy
@@ -173,7 +174,7 @@ function registry:expand_vars(snippet, cache_key)
 
       if eager_vars[data.name] then
         replacement = eager_vars[data.name]
-      elseif lazy_vars[data.name] then
+      elseif lazy_vars[data.name] ~= nil then
         replacement = lazy_vars[data.name](cache_key, { clipboard_register = self.config.clipboard_register })
       end
 

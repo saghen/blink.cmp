@@ -1,3 +1,6 @@
+-- FIXME: Some annotations are based on an ummerged PR: https://github.com/L3MON4D3/LuaSnip/pull/1396
+---@diagnostic disable: undefined-field
+
 ---@type LuaSnip.API
 local luasnip
 local cmp = require('blink.cmp')
@@ -12,7 +15,7 @@ local kind_snippet = require('blink.cmp.types').CompletionItemKind.Snippet
 --- @field use_label_description? boolean Whether to put the snippet description in the label description
 
 ---@class blink.cmp.LuasnipItemData
----@field snip_id number
+---@field snip_id integer
 ---@field show_condition function
 ---@field raw_text string
 
@@ -23,7 +26,7 @@ local kind_snippet = require('blink.cmp.types').CompletionItemKind.Snippet
 local source = {}
 
 ---@param snippet table
----@param event number
+---@param event integer
 ---@param callback fun(table, table)
 local function add_luasnip_callback(snippet, event, callback)
   -- not defined for autosnippets
@@ -60,7 +63,12 @@ local function choice_callback(snippet, events)
           -- FIXME: Defer showing the completion menu when jumping to the next choice node.
           -- This is needed if the previous node is also a choice node. Possible race condition?
           -- e.g., previous node (menu shown) -> jump -> (menu hidden) -> next node (menu shown)
-          vim.defer_fn(function() cmp.show({ initial_selected_item_idx = index, providers = { 'snippets' } }) end, 50)
+          vim.defer_fn(function()
+            cmp.show({
+              initial_selected_item_idx = index,
+              providers = { 'snippets' },
+            } --[[@as blink.cmp.ShowOpts]])
+          end, 50)
         end,
         [events.change_choice] = function()
           -- Auto-jump after accepting the choice value
@@ -68,7 +76,7 @@ local function choice_callback(snippet, events)
         end,
         [events.leave] = function(n)
           --[[@cast n LuaSnip.ChoiceNode]]
-          n:set_text(n.active_choice.static_text)
+          if n.active_choice then n:set_text(n.active_choice.static_text) end
         end,
       }
     end
@@ -149,8 +157,6 @@ end
 
 function source:enabled() return self.has_loaded end
 
----@param ctx blink.cmp.Context
----@param callback fun(result?: blink.cmp.CompletionResponse)
 function source:get_completions(ctx, callback)
   --- @type blink.cmp.CompletionItem[]
   local items = {}
@@ -242,7 +248,7 @@ function source:get_completions(ctx, callback)
 
   -- Filter items based on show_condition, if configured
   if self.opts.use_show_condition then
-    local line_to_cursor = ctx.line:sub(0, ctx.cursor[2] - 1)
+    local line_to_cursor = ctx.line:sub(0, ctx.pos.col - 1)
     items = vim.tbl_filter(function(item) return item.data.show_condition(line_to_cursor) end, items)
   end
 
@@ -262,8 +268,6 @@ function source:get_completions(ctx, callback)
   })
 end
 
----@param item blink.cmp.CompletionItem
----@param callback fun(resolved_item?: lsp.CompletionItem)
 function source:resolve(item, callback)
   local snip = luasnip.get_id_snippet(item.data.snip_id)
 
@@ -284,8 +288,6 @@ function source:resolve(item, callback)
   callback(resolved_item)
 end
 
----@param ctx blink.cmp.Context
----@param item blink.cmp.CompletionItem
 function source:execute(ctx, item)
   if item.data.choice_index then
     luasnip.set_choice(item.data.choice_index)
@@ -298,25 +300,23 @@ function source:execute(ctx, item)
   if snip.regTrig then
     local docTrig = snip.docTrig
     snip = snip:get_pattern_expand_helper()
-    if docTrig then add_luasnip_callback(snip, events.pre_expand, function(s) regex_callback(s, docTrig) end) end
+    if docTrig ~= nil then add_luasnip_callback(snip, events.pre_expand, function(s) regex_callback(s, docTrig) end) end
   else
     add_luasnip_callback(snip, events.pre_expand, function(s) choice_callback(s, events) end)
   end
 
-  local cursor = ctx.get_cursor() --[[@as LuaSnip.BytecolBufferPosition]]
-  cursor[1] = cursor[1] - 1
-
+  local pos = ctx.get_pos()
   local range = text_edits.get_from_item(item).range
 
   ---@type LuaSnip.BufferRegion
   local clear_region = {
     from = { range.start.line, range.start.character },
-    to = cursor,
+    to = { pos.row, pos.col },
   }
 
   local line = ctx.get_line()
-  local line_to_cursor = line:sub(1, cursor[2])
-  local range_text = line:sub(range.start.character + 1, cursor[2])
+  local line_to_cursor = line:sub(1, pos.col)
+  local range_text = line:sub(range.start.character + 1, pos.col)
 
   local expand_params = snip:matches(line_to_cursor, {
     fallback_match = range_text ~= line_to_cursor and range_text or nil,
@@ -326,8 +326,7 @@ function source:execute(ctx, item)
     if expand_params.clear_region ~= nil then
       clear_region = expand_params.clear_region
     elseif expand_params.trigger ~= nil then
-      clear_region.from = { cursor[1], cursor[2] - #expand_params.trigger }
-      clear_region.to = cursor
+      clear_region.from = { pos.row, pos.col - #expand_params.trigger }
     end
   end
 

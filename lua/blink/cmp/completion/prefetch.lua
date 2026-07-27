@@ -1,9 +1,13 @@
 -- Run `resolve` on the item ahead of time to avoid delays
 -- when accepting the item or showing documentation
 
+local lib = require('blink.lib')
+
+--- @type integer?
 local last_context_id = nil
+--- @type blink.lib.Task<blink.cmp.CompletionItem>?
 local last_request = nil
-local timer = vim.uv.new_timer()
+local timer = lib.timer.new()
 
 --- @param context blink.cmp.Context
 --- @param item blink.cmp.CompletionItem

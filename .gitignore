@@ -1,9 +1,7 @@
-doc/tags
-target/
-.archive.lua
-_*.lua
+/lib
+/doc/tags
+/target
 .lazy.lua
-dual/
 result
 .direnv
 .devenv

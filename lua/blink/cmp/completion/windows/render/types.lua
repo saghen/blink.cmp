@@ -1,23 +1,23 @@
 --- @class blink.cmp.Draw
 --- @field align_to? string | 'none' | 'cursor' Align the window to the component with the given name, or to the cursor
---- @field padding? number | number[] Padding on the left and right of the grid
---- @field gap? number Gap between columns
---- @field cursorline_priority? number Priority of the background highlight for the cursorline, defaults to 10000. Setting this to 0 will render it below other highlights
+--- @field padding? integer | integer[] Padding on the left and right of the grid
+--- @field gap? integer Gap between columns
+--- @field cursorline_priority? integer Priority of the background highlight for the cursorline, defaults to 10000. Setting this to 0 will render it below other highlights
 --- @field snippet_indicator? string Appends an indicator to snippets label, `'~'` by default
 --- @field treesitter? string[] Use treesitter to highlight the label text of completions from these sources
 --- @field columns? blink.cmp.DrawColumnDefinition[] | fun(context: blink.cmp.Context): blink.cmp.DrawColumnDefinition[] Components to render, grouped by column
 --- @field components? table<string, blink.cmp.DrawComponent> Component definitions
 ---
 --- @class blink.cmp.DrawHighlight
---- @field [number] number Start and end index of the highlight
+--- @field [integer] integer Start and end index of the highlight
 --- @field group? string Highlight group
---- @field priority? number Priority of the highlight
+--- @field priority? integer Priority of the highlight
 ---
 --- @class blink.cmp.DrawWidth
---- @field fixed? number Fixed width
+--- @field fixed? integer Fixed width
 --- @field fill? boolean Fill the remaining space
---- @field min? number Minimum width
---- @field max? number Maximum width
+--- @field min? integer Minimum width
+--- @field max? integer Maximum width
 ---
 --- @class blink.cmp.DrawComponent
 --- @field width? blink.cmp.DrawWidth
@@ -25,4 +25,4 @@
 --- @field text? fun(ctx: blink.cmp.DrawItemContext): string? Renders the text of the component
 --- @field highlight? string | fun(ctx: blink.cmp.DrawItemContext, text: string): string | blink.cmp.DrawHighlight[] Renders the highlights of the component
 ---
---- @alias blink.cmp.DrawColumnDefinition { [number]: string, gap?: number }
+--- @alias blink.cmp.DrawColumnDefinition { [integer]: string, gap?: integer, overlap_components?: boolean }

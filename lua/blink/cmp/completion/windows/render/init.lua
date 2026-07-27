@@ -2,17 +2,17 @@ local nvim = require('blink.lib.nvim')
 
 --- @class blink.cmp.Renderer
 --- @field def blink.cmp.Draw
---- @field padding number[]
---- @field gap number
+--- @field padding {[1]: integer, [2]:integer}
+--- @field gap integer
 --- @field columns blink.cmp.DrawColumn[]
---- @field bufnr number?
+--- @field bufnr? integer
 ---
 --- @field new fun(draw: blink.cmp.Draw): blink.cmp.Renderer
---- @field draw fun(self: blink.cmp.Renderer, context: blink.cmp.Context, bufnr: number, items: blink.cmp.CompletionItem[], draw: blink.cmp.Draw): blink.cmp.DrawColumn[]
+--- @field draw fun(self: blink.cmp.Renderer, context: blink.cmp.Context, bufnr: integer, items: blink.cmp.CompletionItem[], draw: blink.cmp.Draw)
 --- @field get_columns fun(self: blink.cmp.Renderer, context: blink.cmp.Context, draw: blink.cmp.Draw): blink.cmp.DrawColumn[]
---- @field get_component_column_location fun(self: blink.cmp.Renderer, columns: blink.cmp.DrawColumn[], component_name: string): { column_idx: number, component_idx: number }
---- @field get_component_start_col fun(self: blink.cmp.Renderer, columns: blink.cmp.DrawColumn[], component_name: string): number
---- @field get_alignment_start_col fun(self: blink.cmp.Renderer): number
+--- @field get_component_column_location fun(self: blink.cmp.Renderer, columns: blink.cmp.DrawColumn[], component_name: string): { [1]: integer, [2]: integer }
+--- @field get_component_start_col fun(self: blink.cmp.Renderer, columns: blink.cmp.DrawColumn[], component_name: string): integer
+--- @field get_alignment_start_col fun(self: blink.cmp.Renderer): integer
 
 local ns = nvim.create_namespace('blink_cmp_renderer')
 
@@ -22,7 +22,6 @@ local renderer = {}
 
 function renderer.new(draw)
   local padding = type(draw.padding) == 'number' and { draw.padding, draw.padding } or draw.padding
-  --- @cast padding number[]
 
   local self = setmetatable({}, { __index = renderer })
   self.padding = padding
@@ -35,7 +34,7 @@ function renderer.new(draw)
   nvim.set_decoration_provider(ns, {
     on_win = function(_, _, win_bufnr) return self.bufnr == win_bufnr end,
     on_line = function(_, _, _, line)
-      local offset = self.padding[1]
+      local offset = self.padding[1] or 0
       for _, column in ipairs(self.columns) do
         local text = column:get_line_text(line + 1)
         if #text > 0 then
@@ -70,9 +69,9 @@ function renderer:get_columns(context, draw)
   local columns_definitions = vim.tbl_map(function(column)
     local components = {}
     for _, component_name in ipairs(column) do
-      local component = draw.components[component_name]
+      local component = draw.components and draw.components[component_name]
       assert(component ~= nil, 'No component definition found for component: "' .. component_name .. '"')
-      table.insert(components, draw.components[component_name])
+      table.insert(components, component)
     end
     return {
       component_names = column,
@@ -145,11 +144,13 @@ function renderer:get_component_start_col(columns, component_name)
   -- add previous columns
   local start_col = self.padding[1]
   for i = 1, column_idx - 1 do
-    start_col = start_col + columns[i].width + self.gap
+    local column = assert(columns[i])
+    start_col = start_col + column.width + self.gap
   end
 
   -- add previous components
-  local line = columns[column_idx].lines[1]
+  local column = assert(columns[column_idx])
+  local line = column.lines[1]
   if not line then return start_col end
   for i = 1, component_idx - 1 do
     start_col = start_col + #line[i]

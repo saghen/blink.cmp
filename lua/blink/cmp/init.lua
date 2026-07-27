@@ -1,12 +1,18 @@
-local success, err = pcall(require, 'blink.lib')
-if not success then
-  error('blink.cmp v2 requires blink.lib ("saghen/blink.lib") installed via your package manager: ' .. err)
-end
 if vim.fn.has('nvim-0.12') == 0 then error('blink.cmp v2 requires nvim 0.12+, consider pinning to v1') end
 
-local lib = require('blink.lib')
+local success, mod = pcall(require, 'blink.lib')
+if not success then error('blink.cmp v2 requires "saghen/blink.lib" installed via your package manager: ' .. mod) end
+---@module "blink.lib"
+local lib = mod
+
 local logger = require('blink.cmp.logger')
 local config = require('blink.cmp.config')
+local native = require('blink.lib.native.managed').new({
+  module_name = 'blink.cmp',
+  library_name = 'blink_cmp_fuzzy',
+  current_file_path = debug.getinfo(1, 'S').source:sub(2),
+  logger = logger,
+})
 
 --- @class blink.cmp.API
 local cmp = {}
@@ -46,6 +52,7 @@ function cmp.setup(opts)
 
   -- configuration
   opts = opts or {}
+  ---@type blink.cmp.Config
   opts = lib.tbl.copy(opts)
   if opts.cmdline then
     config(lib.tbl.omit(opts.cmdline, { 'enabled', 'keymap' }), { mode = 'cmdline' })
@@ -64,13 +71,15 @@ function cmp.setup(opts)
         logger:notify(vim.log.levels.WARN, 'Rust fuzzy matcher not available, falling back to Lua implementation.')
         logger:notify(vim.log.levels.WARN, {
           { 'V2 uses a new build/download system for the native library. Please add ' },
-          { " build = function() require('blink.cmp').build():wait(60000) end ", 'DiagnosticVirtualTextInfo' },
+          { " build = function() require('blink.cmp').build():pwait() end ", 'DiagnosticVirtualTextInfo' },
           { ' to your lazy.nvim config. See ' },
           { ' :h blink-cmp-installation ', 'DiagnosticVirtualTextInfo' },
           { ' for more information.' },
         })
       elseif config.fuzzy.implementation == 'rust' then
-        error('Rust fuzzy matcher not available')
+        error(
+          'Rust fuzzy matcher not available, did you forget to add build = function() require("blink.cmp").build():pwait() end to your lazy.nvim config?'
+        )
       end
     else
       require('blink.cmp.fuzzy').set_implementation('rust')
@@ -86,87 +95,40 @@ end
 
 -------- Native Library --------
 
-function cmp.library_available()
-  local current_file_path = debug.getinfo(1, 'S').source:sub(2)
-  local git_commit = lib.native.try_git_commit(current_file_path)
+function cmp.get_repo_root() return native.repo_root end
+function cmp.get_library_name() return native.library_name end
+function cmp.library_available() return native:library_available() end
 
-  return lib.native.resolve('blink_cmp_fuzzy', git_commit) ~= nil
-end
-
---- Builds the precompiled library if it's not already available
+--- Builds the native library if it's not already available
 --- @param opts? { force?: boolean, dev?: boolean }
 --- @return blink.lib.Task
 function cmp.build(opts)
-  return lib.task
-    .resolve()
-    :map(function()
-      opts = opts or {}
-      if not opts.force and cmp.library_available() then return end
-
-      logger:notify(vim.log.levels.INFO, 'Building blink.cmp native library...')
-
-      local platform = lib.native.platform()
-      local current_file_path = debug.getinfo(1, 'S').source:sub(2)
-
-      local repo_root = lib.native.git_repo_root(current_file_path)
-      if repo_root == nil then error('Missing git repo root, did you install via a package manager?') end
-
-      return lib.native.exec_async(repo_root, { 'cargo', 'build', '--release' }, logger):map(function(_system)
-        -- TODO: move non-lib prefix for windows msvc
-        lib.native.mv(
-          repo_root .. '/target/release/libblink_cmp_fuzzy' .. platform.lib_extension,
-          lib.native.library_path(
-            'blink_cmp_fuzzy',
-              -- store without hash for dev builds
-            not opts.dev and lib.native.git_commit(current_file_path) or nil
-          )
-        )
-        if not lib.native.load('blink_cmp_fuzzy', lib.native.git_commit(current_file_path)) then
-          error('Failed to load built blink.cmp native library')
-        end
-        logger:notify(vim.log.levels.INFO, 'Successfully loaded built blink.cmp fuzzy matcher library')
-      end)
-    end)
-    :catch(function(build_err)
-      logger:notify(vim.log.levels.ERROR, 'Failed to build blink.cmp fuzzy matcher library: ' .. build_err)
-      error(build_err)
-    end)
+  return native:build(
+    { 'cargo', 'build', '--release' },
+    function(repo_root, platform)
+      return {
+        repo_root .. '/target/release/libblink_cmp_fuzzy' .. platform.lib_extension,
+        repo_root .. '/target/release/blink_cmp_fuzzy' .. platform.lib_extension,
+      }
+    end,
+    opts
+  )
 end
 
---- Downloads the precompiled library if it's not already available
+--- Downloads the native library if it's not already available
 --- @param opts? { force?: boolean, match?: string }
 --- @return blink.lib.Task
 function cmp.download(opts)
-  return lib.task
-    .new(function(resolve, _reject)
-      opts = opts or {}
-      if not opts.force and cmp.library_available() then return resolve() end
-
-      logger:notify(vim.log.levels.INFO, 'Downloading blink.cmp precompiled library')
-
-      local current_file_path = debug.getinfo(1, 'S').source:sub(2)
-      local git_tag = lib.native.git_tag(current_file_path, opts.match)
-      if git_tag == nil then error('Missing git tag, have you pinned the version?') end
-
-      local platform = lib.native.platform()
-      if platform.triple == nil then error('Unknown platform: ' .. platform.triple) end
-
-      local url = 'https://github.com/saghen/blink.cmp'
-      url = url .. '/releases/download/' .. git_tag .. '/' .. platform.triple .. platform.lib_extension
-      local git_commit = lib.native.git_commit(current_file_path)
-      local library_path = lib.native.library_path('blink_cmp_fuzzy', git_commit)
-
-      return lib.native.download_async(url, library_path):map(function()
-        if not lib.native.load('blink_cmp_fuzzy', lib.native.git_commit(current_file_path)) then
-          error('Failed to load downloaded blink.cmp precompiled library')
-        end
-        logger:notify(vim.log.levels.INFO, 'Successfully downloaded blink.cmp precompiled library')
-      end)
-    end)
-    :catch(function(download_err)
-      logger:notify(vim.log.levels.ERROR, 'Failed to download blink.cmp precompiled library: ' .. download_err)
-      error(download_err)
-    end)
+  return native:download(
+    function(git_tag, platform)
+      return 'https://github.com/saghen/blink.cmp/releases/download/'
+        .. git_tag
+        .. '/'
+        .. platform.triple
+        .. platform.lib_extension
+    end,
+    opts
+  )
 end
 
 ------- Public API -------
@@ -192,7 +154,7 @@ function cmp.is_documentation_visible() return require('blink.cmp.completion.win
 
 --- @class blink.cmp.ShowOpts
 --- @field providers? string[] List of providers to show
---- @field initial_selected_item_idx? number The index of the item to select initially
+--- @field initial_selected_item_idx? integer The index of the item to select initially
 --- @field callback? fun() Called after the menu is shown
 
 --- Show the completion window
@@ -385,7 +347,7 @@ function cmp.get_context() return require('blink.cmp.completion.list').context e
 function cmp.get_selected_item() return require('blink.cmp.completion.list').get_selected_item() end
 
 --- Gets the currently selected completion item index
---- @return number?
+--- @return integer?
 function cmp.get_selected_item_idx() return require('blink.cmp.completion.list').selected_item_idx end
 
 --- Gets the sorted list of completion items
@@ -418,7 +380,7 @@ function cmp.hide_documentation()
 end
 
 --- Scroll the documentation window up
---- @param count? number
+--- @param count? integer
 --- @return boolean
 function cmp.scroll_documentation_up(count)
   local documentation = require('blink.cmp.completion.windows.documentation')
@@ -428,7 +390,7 @@ function cmp.scroll_documentation_up(count)
 end
 
 --- Scroll the documentation window down
---- @param count? number
+--- @param count? integer
 --- @return boolean
 function cmp.scroll_documentation_down(count)
   local documentation = require('blink.cmp.completion.windows.documentation')
@@ -460,7 +422,7 @@ function cmp.hide_signature()
 end
 
 --- Scroll the signature window up
---- @param count? number
+--- @param count? integer
 --- @return boolean
 function cmp.scroll_signature_up(count)
   local signature = require('blink.cmp.signature.window')
@@ -470,7 +432,7 @@ function cmp.scroll_signature_up(count)
 end
 
 --- Scroll the signature window down
---- @param count? number
+--- @param count? integer
 --- @return boolean
 function cmp.scroll_signature_down(count)
   local signature = require('blink.cmp.signature.window')
@@ -480,7 +442,7 @@ function cmp.scroll_signature_down(count)
 end
 
 --- Check if a snippet is active, optionally filtering by direction
---- @param filter? { direction?: number }
+--- @param filter? { direction?: integer }
 --- @return boolean
 function cmp.snippet_active(filter) return config.snippets.active(filter) end
 

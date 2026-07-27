@@ -16,9 +16,9 @@
     'rafamadriz/friendly-snippets',
   },
   build = function()
-    -- build the fuzzy matcher, wait up to 60 seconds
+    -- build the fuzzy matcher, optionally add a timeout to `pwait(timeout_ms)`
     -- you can use `gb` in `:Lazy` to rebuild the plugin as needed
-    require('blink.cmp').build():wait(60000)
+    require('blink.cmp').build():pwait()
   end,
 
   ---@module 'blink.cmp'
@@ -58,8 +58,8 @@
 See the [lazy.nvim](#lazy.nvim) section for recommended configuration options.
 
 ```lua
-vim.pack.add({ 'saghen/blink.lib', 'saghen/blink.cmp' })
+vim.pack.add({ 'https://github.com/saghen/blink.lib', 'https://github.com/saghen/blink.cmp' })
 local cmp = require('blink.cmp')
-cmp.build():wait(60000)
+cmp.build():pwait()
 cmp.setup()
 ```

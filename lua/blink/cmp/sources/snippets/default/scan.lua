@@ -8,7 +8,7 @@ function scan.register_snippets(search_paths)
     local files = scan.load_package_json(path) or scan.scan_for_snippets(path)
     for ft, file in pairs(files) do
       local key
-      if type(ft) == 'number' then
+      if type(ft) == 'number' and files[ft] then
         key = vim.fn.fnamemodify(files[ft], ':t:r')
       else
         key = ft
@@ -28,10 +28,11 @@ function scan.register_snippets(search_paths)
   return registry
 end
 
----@type fun(self: utils, dir: string, result?: string[]): string[]
+---@param dir string
+---@param result string[]?
 ---@return string[]
 function scan.scan_for_snippets(dir, result)
-  result = result or {}
+  result = result or {} --[[@as string[] ]]
 
   local stat = vim.uv.fs_stat(dir)
   if not stat then return result end
@@ -68,7 +69,7 @@ end
 ---@param path string
 function scan.load_package_json(path)
   local file = path .. '/package.json'
-  -- todo: ideally this is async, although it takes 0.5ms on my system so it might not matter
+  -- TODO: ideally this is async, although it takes 0.5ms on my system so it might not matter
   local data = utils.read_file(file)
   if not data then return end
 

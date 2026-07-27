@@ -13,7 +13,7 @@ For complete details and up-to-date usage, refer to the full documentation: http
 
 ### Build
 
-- Build via your package manager: `'cargo build --release'` -> `require('blink.cmp').build():wait(60000)`
+- Build via your package manager: `'cargo build --release'` -> `require('blink.cmp').build():pwait()`
 - Rust library path changed: `target/release/` -> `lib/`
 
 ### Options
@@ -22,10 +22,10 @@ For complete details and up-to-date usage, refer to the full documentation: http
 
 - Removed `prebuilt_binaries`
 
-If you need to manage the rust binary manually, use:
+If you need to manage the rust binary manually, use the new `:download()` function:
 
 ```lua
-require('blink.cmp').download({ force = true, tags = '*' }):wait(60000)
+require('blink.cmp').download({ force = true, tags = '*' }):pwait()
 ```
 
 #### Keymap

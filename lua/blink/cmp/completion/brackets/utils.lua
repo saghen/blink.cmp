@@ -33,6 +33,7 @@ end
 function utils.should_run_resolution(ctx, filetype, resolution_method)
   -- resolution method specific
   if not config[resolution_method .. '_resolution'].enabled then return false end
+  ---@type string[]
   local resolution_blocked_filetypes = config[resolution_method .. '_resolution'].blocked_filetypes
   if vim.tbl_contains(resolution_blocked_filetypes, filetype) then return false end
 
@@ -50,7 +51,7 @@ function utils.should_run_resolution(ctx, filetype, resolution_method)
     and not vim.tbl_contains(brackets.blocked_filetypes, filetype)
 end
 
---- @param text_edit lsp.TextEdit | lsp.InsertReplaceEdit
+--- @param text_edit lsp.TextEdit
 --- @param bracket string
 --- @return boolean
 function utils.has_brackets_in_front(text_edit, bracket)

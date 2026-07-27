@@ -1,4 +1,3 @@
-local task = require('blink.lib.task')
 local regex = require('blink.cmp.sources.path.regex')
 local lib = require('blink.lib')
 
@@ -66,62 +65,62 @@ function path_lib.candidates(context, dirname, include_hidden, opts)
         local kind = entry.type == 'directory' and ranges.directory or ranges.file
         return path_lib.entry_to_completion_item(entry, dirname, kind, opts)
       end
-    end, entries)
-  end)
+    end)
+  end) --[[@as blink.lib.Task<blink.lib.fs.DirEntry[]>]]
 end
 
 function path_lib.is_slash_comment()
   local commentstring = vim.bo.commentstring or ''
   local no_filetype = vim.bo.filetype == ''
-  local is_slash_comment = false
-  is_slash_comment = is_slash_comment or commentstring:match('/%*')
-  is_slash_comment = is_slash_comment or commentstring:match('//')
+  local is_slash_comment = commentstring:match('/%*') ~= nil
+  is_slash_comment = is_slash_comment or commentstring:match('//') ~= nil
   return is_slash_comment and not no_filetype
 end
 
 --- @param entry { name: string, type: string, stat: table }
 --- @param dirname string
 --- @param range lsp.Range
---- @param opts table
---- @return blink.cmp.CompletionItem[]
+--- @param opts blink.cmp.PathOpts
+--- @return blink.cmp.CompletionItem
 function path_lib.entry_to_completion_item(entry, dirname, range, opts)
   local is_dir = entry.type == 'directory'
   local CompletionItemKind = require('blink.cmp.types').CompletionItemKind
   local insert_text = is_dir and opts.trailing_slash and entry.name .. '/' or entry.name
+
   return {
-    label = (opts.label_trailing_slash and is_dir) and entry.name .. '/' or entry.name,
+    label = opts.label_trailing_slash and is_dir and entry.name .. '/' or entry.name,
     kind = is_dir and CompletionItemKind.Folder or CompletionItemKind.File,
     insertText = insert_text,
     textEdit = { newText = insert_text, range = range },
     sortText = (is_dir and '1' or '2') .. entry.name:lower(), -- Sort directories before files
     data = { path = entry.name, full_path = dirname .. '/' .. entry.name, type = entry.type },
-  }
+  } --[[@as blink.cmp.CompletionItem]]
 end
 
 --- @param context blink.cmp.Context
 --- @return { file: lsp.Range, directory: lsp.Range }
 function path_lib.get_text_edit_ranges(context)
-  local line_before_cursor = context.line:sub(1, context.cursor[2])
-  local next_letter_is_slash = context.line:sub(context.cursor[2] + 1, context.cursor[2] + 1) == '/'
+  local line_before_cursor = context.line:sub(1, context.pos.col)
+  local next_letter_is_slash = context.line:sub(context.pos.col + 1, context.pos.col + 1) == '/'
 
   local last_part_idx = path_lib.get_last_path_part(line_before_cursor)
 
   -- TODO: return the insert and replace ranges, instead of only the insert range
   return {
     file = {
-      start = { line = context.cursor[1] - 1, character = last_part_idx - 1 },
-      ['end'] = { line = context.cursor[1] - 1, character = context.cursor[2] },
+      start = { line = context.pos.row, character = last_part_idx - 1 },
+      ['end'] = { line = context.pos.row, character = context.pos.col },
     },
     directory = {
-      start = { line = context.cursor[1] - 1, character = last_part_idx - 1 },
+      start = { line = context.pos.row, character = last_part_idx - 1 },
       -- replace the slash after the cursor, if it exists
-      ['end'] = { line = context.cursor[1] - 1, character = context.cursor[2] + (next_letter_is_slash and 1 or 0) },
+      ['end'] = { line = context.pos.row, character = context.pos.col + (next_letter_is_slash and 1 or 0) },
     },
   }
 end
 
 --- @param path string
---- @return number
+--- @return integer
 function path_lib.get_last_path_part(path)
   local i = #path
   local start_pos = 1
@@ -199,7 +198,7 @@ end
 function path_lib:compute_unique_suffixes(paths)
   local is_windows = vim.fn.has('win32') == 1
   local sep = is_windows and '\\' or '/'
-  if is_windows then paths = vim.tbl_map(function(path) return path:gsub('/', '\\') end, paths) end
+  if is_windows then paths = vim.tbl_map(function(path) return (path:gsub('/', '\\')) end, paths) end
 
   -- if not enough paths, return as is
   local n = #paths
@@ -210,10 +209,10 @@ function path_lib:compute_unique_suffixes(paths)
   end
 
   -- reverse the paths and sort so that similar suffixes are adjacent
-  local reversed_paths = {}
-  local original_to_reversed = {}
+  local reversed_paths = {} ---@type string[]
+  local original_to_reversed = {} ---@type table<string, string>
   for i = 1, n do
-    local path = paths[i]
+    local path = assert(paths[i])
     local rev = path:reverse()
     table.insert(reversed_paths, rev)
     original_to_reversed[path] = rev
@@ -221,14 +220,14 @@ function path_lib:compute_unique_suffixes(paths)
   table.sort(reversed_paths)
 
   -- find minimum suffix length for each path
-  local min_lengths = {}
+  local min_lengths = {} ---@type table<string, integer>
   for i = 1, n do
-    local rev = reversed_paths[i]
+    local rev = assert(reversed_paths[i])
     local max_common = 0
 
     -- check previous neighbor
     if i > 1 then
-      local prev = reversed_paths[i - 1]
+      local prev = assert(reversed_paths[i - 1])
       local common = 0
       local min_len = math.min(#rev, #prev)
       while common < min_len and rev:byte(common + 1) == prev:byte(common + 1) do
@@ -239,7 +238,7 @@ function path_lib:compute_unique_suffixes(paths)
 
     -- check next neighbor
     if i < n then
-      local next = reversed_paths[i + 1]
+      local next = assert(reversed_paths[i + 1])
       local common = 0
       local min_len = math.min(#rev, #next)
       while common < min_len and rev:byte(common + 1) == next:byte(common + 1) do
@@ -264,15 +263,11 @@ function path_lib:compute_unique_suffixes(paths)
   -- build mapping of original_str -> unique_suffix_str
   local result = {}
   for i = 1, n do
-    local path = paths[i]
+    local path = assert(paths[i])
     local rev = original_to_reversed[path]
-
     local suffix_len = min_lengths[rev]
-    if suffix_len > #path then
-      result[path] = path
-    else
-      result[path] = path:sub(#path - suffix_len + 1)
-    end
+
+    result[path] = suffix_len > #path and path or path:sub(#path - suffix_len + 1)
   end
 
   return result

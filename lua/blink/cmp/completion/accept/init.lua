@@ -64,12 +64,9 @@ local function apply_item(ctx, item)
 
     -- OR Normal: Apply the text edit and move the cursor
   else
-    local new_cursor = text_edits_lib.get_apply_end_position(item.textEdit, all_text_edits)
-    new_cursor[2] = new_cursor[2]
-
+    local new_pos = text_edits_lib.get_apply_end_position(item.textEdit, all_text_edits)
     text_edits_lib.apply(item.textEdit, all_text_edits)
-
-    ctx.set_cursor(new_cursor)
+    ctx.set_cursor(new_pos)
     text_edits_lib.move_cursor_in_dot_repeat(offset)
   end
 
@@ -107,6 +104,7 @@ local function accept(ctx, item, callback)
     :map(function(resolved_item)
       -- Updates the text edit based on the cursor position and converts it to utf-8
       resolved_item = vim.deepcopy(resolved_item)
+      ---@cast resolved_item blink.cmp.CompletionItem
       resolved_item.textEdit = text_edits_lib.get_from_item(resolved_item)
 
       return sources.execute(

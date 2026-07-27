@@ -1,19 +1,19 @@
 --- @class blink.cmp.FuzzyImplementation
---- @field init_db fun(path: string, use_unsafe_no_lock: boolean)
+--- @field init_db fun(path: string)
 --- @field destroy_db fun()
 --- @field access fun(item: blink.cmp.CompletionItem)
 --- @field get_words fun(text: string): string[]
 --- @field set_provider_items fun(provider_id: string, items: blink.cmp.CompletionItem[])
---- @field fuzzy fun(line: string, cursor_col: number, provider_ids: string[], opts: blink.cmp.FuzzyOptions): number[], number[], number[], boolean[]
---- @field fuzzy_matched_indices fun(line: string, cursor_col: number, haystack: string[], match_suffix: boolean): number[][]
---- @field get_keyword_range fun(line: string, col: number, match_suffix: boolean): number, number
---- @field guess_edit_range fun(item: blink.cmp.CompletionItem, line: string, cursor_col: number, match_suffix: boolean): number, number
+--- @field fuzzy fun(line: string, cursor_col: integer, provider_ids: string[], opts: blink.cmp.FuzzyOptions): integer[], integer[], integer[], boolean[]
+--- @field fuzzy_matched_indices fun(line: string, cursor_col: integer, haystack: string[], match_suffix: boolean): integer[][]
+--- @field get_keyword_range fun(line: string, col: integer, match_suffix: boolean): integer, integer
+--- @field guess_edit_range fun(item: blink.cmp.CompletionItem, line: string, cursor_col: integer, match_suffix: boolean): integer, integer
 
 --- @class blink.cmp.FuzzyOptions
 --- @field match_suffix boolean
---- @field max_typos number
+--- @field max_typos integer
 --- @field use_frecency boolean
 --- @field use_proximity boolean
 --- @field nearby_words string[]
---- @field snippet_score_offset number
+--- @field snippet_score_offset integer
 --- @field sorts? blink.cmp.Sort[]

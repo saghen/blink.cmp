@@ -1,5 +1,5 @@
 local nvim = require('blink.lib.nvim')
-
+local utils = require('blink.cmp.lib.utils')
 local Kind = require('blink.cmp.types').CompletionItemKind
 
 ---@class blink.cmp.CompleteFuncOpts
@@ -37,7 +37,8 @@ function Source.new(_, config)
 end
 
 function Source:enabled()
-  return not vim.tbl_contains({ nil, '' }, self.opts.complete_func()) and nvim.get_mode().mode == 'i'
+  local complete_func = self.opts.complete_func()
+  return complete_func ~= nil and complete_func ~= '' and nvim.get_mode().mode == 'i'
 end
 
 ---Invoke an complete_func handling `v:lua.*`
@@ -45,21 +46,23 @@ end
 ---@overload fun(func: string, findstart: 1, base: ''): integer
 ---@overload fun(func: string, findstart: 0, base: string): table<{ words: blink.cmp.CompleteFuncWords, refresh: string }> | blink.cmp.CompleteFuncWords
 local function invoke_complete_func(func, findstart, base)
-  local prev_pos = nvim.win_get_cursor(0)
+  local prev_pos = utils.get_vim_pos_cursor(0)
 
-  local _, result = pcall(function()
-    local args = { findstart, base }
-    local match = func:match('^v:lua%.(.+)')
+  local result
+  local match = func:match('^v:lua%.(.+)')
 
-    if match then
-      return vim.fn.luaeval(string.format('%s(_A[1], _A[2], _A[3])', match), args)
-    else
-      return nvim.call_function(func, args)
-    end
-  end)
+  -- The call here used to be done in a pcall. However if the complete function errored, the 2nd return value of the
+  -- pcall would be a string and cause following code to error anyways. Letting the error propagate makes issues easier
+  -- to debug.
+  if match then
+    local fn = assert(loadstring('return ' .. match))()
+    result = fn(findstart, base)
+  else
+    result = nvim.call_function(func, { findstart, base })
+  end
 
-  local next_pos = nvim.win_get_cursor(0)
-  if prev_pos[1] ~= next_pos[1] or prev_pos[2] ~= next_pos[2] then nvim.win_set_cursor(0, prev_pos) end
+  local next_pos = utils.get_vim_pos_cursor(0)
+  if next_pos ~= prev_pos then nvim.win_set_cursor(0, utils.vim_pos_to_cursor(prev_pos)) end
 
   return result
 end
@@ -88,31 +91,29 @@ function Source:get_completions(context, resolve)
     return nil
   end
 
-  local cur_line, cur_col = unpack(context.cursor)
+  local pos = context.get_pos()
 
   -- TODO: differentiate between staying in (-2) vs leaving (-3) completion mode?
   if start_col == -2 or start_col == -3 then
     resolve()
     return nil
-  elseif start_col < 0 or start_col > cur_col then
-    start_col = cur_col
+  elseif start_col < 0 or start_col > pos.col then
+    start_col = pos.col
   end
 
   -- for info on complete-func results see `:h complete-items`
   -- get the actual complete-func completion results
-  local cmp_results = invoke_complete_func(complete_func, 0, string.sub(context.line, start_col + 1, cur_col))
+  local cmp_results = invoke_complete_func(complete_func, 0, string.sub(context.line, start_col + 1, pos.col))
+  if type(cmp_results) ~= 'table' then
+    resolve()
+    return nil
+  end
   cmp_results = cmp_results['words'] or cmp_results
   ---@cast cmp_results blink.cmp.CompleteFuncWords
 
   local range = {
-    ['start'] = {
-      line = cur_line - 1,
-      character = start_col,
-    },
-    ['end'] = {
-      line = cur_line - 1,
-      character = cur_col,
-    },
+    ['start'] = { line = pos.row, character = start_col },
+    ['end'] = { line = pos.row, character = pos.col },
   }
 
   local items = {} ---@type blink.cmp.CompletionItem[]

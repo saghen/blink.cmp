@@ -10,7 +10,7 @@
 ---
 --- @field new fun(opts: blink.cmp.ScrollbarConfig): blink.cmp.Scrollbar
 --- @field is_visible fun(self: blink.cmp.Scrollbar): boolean
---- @field update fun(self: blink.cmp.Scrollbar, target_win: number | nil)
+--- @field update fun(self: blink.cmp.Scrollbar, target_win: integer?)
 
 --- @type blink.cmp.Scrollbar
 --- @diagnostic disable-next-line: missing-fields

@@ -23,9 +23,9 @@ function keyword.with_constant_is_keyword(cb)
 end
 
 --- @param line string
---- @param col number
+--- @param col integer
 --- @param match_suffix boolean
---- @return number, number
+--- @return integer, integer
 function keyword.get_keyword_range(line, col, match_suffix)
   return keyword.with_constant_is_keyword(function()
     local before_match_start = BACKWARD_REGEX:match_str(line:sub(1, col))
@@ -43,11 +43,11 @@ function keyword.get_keyword_range(line, col, match_suffix)
   end)
 end
 
---- @param keyword_start number
---- @param keyword_end number
+--- @param keyword_start integer
+--- @param keyword_end integer
 --- @param word string
 --- @param line string
---- @return number, number
+--- @return integer, integer
 function keyword.guess_keyword_range(keyword_start, keyword_end, word, line)
   keyword_start = keyword_start + 1
   local og_keyword_start = keyword_start
@@ -83,8 +83,8 @@ function keyword.guess_keyword_range(keyword_start, keyword_end, word, line)
   return keyword_start - 1, keyword_end
 end
 
---- @param keyword_start number
---- @param keyword_end number
+--- @param keyword_start integer
+--- @param keyword_end integer
 --- @param word string
 --- @param line string
 --- @return string
