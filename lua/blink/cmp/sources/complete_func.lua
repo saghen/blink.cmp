@@ -37,7 +37,8 @@ function Source.new(_, config)
 end
 
 function Source:enabled()
-  return not vim.tbl_contains({ nil, '' }, self.opts.complete_func()) and nvim.get_mode().mode == 'i'
+  local complete_func = self.opts.complete_func()
+  return complete_func ~= nil and complete_func ~= '' and nvim.get_mode().mode == 'i'
 end
 
 ---Invoke an complete_func handling `v:lua.*`
