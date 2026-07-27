@@ -140,12 +140,19 @@ end
 
 function list.fuzzy(ctx, items_by_source)
   local fuzzy = require('blink.cmp.fuzzy')
-  local filtered_items = fuzzy.fuzzy(
-    ctx.get_line(),
-    ctx.get_pos().col,
-    items_by_source,
-    require('blink.cmp.config').completion.keyword.range
-  )
+  local line = ctx.get_line()
+  local col = ctx.get_pos().col
+
+  -- Range prefixes in cmdline are not part of the keyword used for filtering
+  if ctx.mode == 'cmdline' then
+    local range_prefix = require('blink.cmp.sources.cmdline.utils').get_range_prefix(line)
+    if range_prefix and #line > #range_prefix then
+      line = line:sub(#range_prefix + 1)
+      col = math.max(0, col - #range_prefix)
+    end
+  end
+
+  local filtered_items = fuzzy.fuzzy(line, col, items_by_source, require('blink.cmp.config').completion.keyword.range)
 
   -- apply the per source max_items
   filtered_items = require('blink.cmp.sources.lib').apply_max_items_for_completions(ctx, filtered_items)
