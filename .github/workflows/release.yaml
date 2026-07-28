@@ -129,7 +129,7 @@ jobs:
         with:
           operating_system: openbsd
           architecture: ${{ matrix.arch }}
-          version: '7.8'
+          version: '7.9'
           memory: 4G
           sync_files: true  # Sync files between runner/VM in both directions
 
