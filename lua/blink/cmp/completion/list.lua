@@ -143,12 +143,16 @@ function list.fuzzy(ctx, items_by_source)
   local line = ctx.get_line()
   local col = ctx.get_pos().col
 
-  -- Range prefixes in cmdline are not part of the keyword used for filtering
-  if ctx.mode == 'cmdline' then
-    local range_prefix = require('blink.cmp.sources.cmdline.utils').get_range_prefix(line)
-    if range_prefix and #line > #range_prefix then
-      line = line:sub(#range_prefix + 1)
-      col = math.max(0, col - #range_prefix)
+  -- Range prefixes in cmdline/cmdwin are not part of the keyword used for filtering
+  -- TODO: Remove when #657 is implemented
+  if ctx.mode == 'cmdline' or ctx.mode == 'cmdwin' then
+    local cmdline_utils = require('blink.cmp.sources.cmdline.utils')
+    if cmdline_utils.get_completion_type(ctx) == 'command' then
+      local range_prefix = cmdline_utils.get_range_prefix(line)
+      if range_prefix and #line > #range_prefix then
+        -- Preserve byte offsets while keeping the range out of the fuzzy matching keyword
+        line = string.rep(' ', #range_prefix) .. line:sub(#range_prefix + 1)
+      end
     end
   end
 
