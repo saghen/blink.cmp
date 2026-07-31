@@ -25,7 +25,7 @@ local utils = require('blink.cmp.lib.utils')
 ---
 --- @field new fun(opts: blink.cmp.ContextOpts): blink.cmp.Context
 --- @field get_keyword fun(): string
---- @field within_query_bounds fun(self: blink.cmp.Context, include_start_bound?: boolean): boolean
+--- @field within_query_bounds fun(self: blink.cmp.Context, pos: vim.Pos, include_start_bound?: boolean): boolean
 ---
 --- @field get_mode fun(): blink.cmp.Mode
 --- @field get_pos fun(): vim.Pos
@@ -92,10 +92,11 @@ function context.get_keyword()
   return string.sub(context.get_line(), range.start_col, range.start_col + range.length - 1)
 end
 
+--- @param pos vim.Pos
 --- @param include_start_bound? boolean Whether to include the start boundary as inside of the query. E.g. start_col = 1 (one indexed), cursor[2] = 0 (zero indexed) would be considered within the query bounds with this flag enabled.
 --- @return boolean
-function context:within_query_bounds(include_start_bound)
-  local pos, bounds = context.get_pos(), self.bounds
+function context:within_query_bounds(pos, include_start_bound)
+  local bounds = self.bounds
   if pos.row + 1 ~= bounds.line_number then return false end
 
   local cursor_col = pos.col + 1

@@ -97,7 +97,7 @@ local function on_cursor_moved(event, is_ignored, is_backspace, last_event)
   if
     trigger.context ~= nil
     and trigger.context.trigger.kind ~= 'prefetch'
-    and trigger.context:within_query_bounds(trigger.is_trigger_character(char_under_cursor))
+    and trigger.context:within_query_bounds(pos, trigger.is_trigger_character(char_under_cursor))
   then
     trigger.show({ trigger_kind = 'keyword' })
 
