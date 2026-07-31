@@ -95,7 +95,7 @@ end
 --- @param include_start_bound? boolean Whether to include the start boundary as inside of the query. E.g. start_col = 1 (one indexed), cursor[2] = 0 (zero indexed) would be considered within the query bounds with this flag enabled.
 --- @return boolean
 function context:within_query_bounds(include_start_bound)
-  local pos, bounds = self.pos, self.bounds
+  local pos, bounds = context.get_pos(), self.bounds
   if pos.row + 1 ~= bounds.line_number then return false end
 
   local cursor_col = pos.col + 1
