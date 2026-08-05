@@ -24,8 +24,10 @@ local function apply_callback(mode, key, commands, callback)
   local consume_fallback_keys = function(mapping_only)
     mapping_only = mapping_only or false
     local keys = do_fallback(mapping_only)
-    for _, k in ipairs(keys) do
-      utils.feedkeys(k.key, k.mode)
+    for i = #keys, 1, -1 do
+      local k = keys[i]
+      -- Feed before the typeahead so the re-fed key keeps its original position
+      utils.feedkeys(k.key, k.mode .. 'i')
     end
   end
 
@@ -48,8 +50,8 @@ local function apply_callback(mode, key, commands, callback)
         local result = command(cmp)
         if type(result) == 'string' then
           if result ~= '' then
-            -- Allow key composition using mode 't', e.g. '<C-n>'
-            utils.feedkeys(vim.keycode(result), 't')
+            -- Allow key composition using mode 't', e.g. '<C-n>' and insert before typeahead.
+            utils.feedkeys(vim.keycode(result), 'ti')
             return
           end
         elseif result then
