@@ -40,7 +40,8 @@ function fallback.wrap(mode, key)
       local pending = {}
       while true do
         local char = vim.fn.getcharstr(0)
-        if char == '' then break end
+        -- typeahead contains <Esc> if included in a command (e.g. `:normal i<Esc>`).
+        if char == '' or char == normalized_raw then break end
         pending[#pending + 1] = char
       end
       if #pending > 0 then return single_key(normalized_raw .. table.concat(pending)) end
