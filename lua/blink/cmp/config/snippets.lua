@@ -1,6 +1,6 @@
 --- @class (exact) blink.cmp.SnippetsConfig
 --- @field preset 'default' | 'luasnip' | 'mini_snippets' | 'vsnip'
---- @field expand fun(snippet: string) Function to use when expanding LSP provided snippets
+--- @field expand fun(snippet: string, opts?: { adjust_indentation?: boolean }) Function to use when expanding LSP provided snippets
 --- @field active fun(filter?: { direction?: integer }): boolean Function to use when checking if a snippet is active
 --- @field jump fun(direction: integer): boolean Function to use when jumping between tab stops in a snippet, where direction can be negative or positive
 --- @field score_offset integer Offset to the score of all snippet items
@@ -30,7 +30,7 @@ return {
   -- NOTE: we wrap `vim.snippet` calls to reduce startup by 1-2ms
   expand = {
     by_preset({
-      default = function(snippet) vim.snippet.expand(snippet) end,
+      default = function(snippet, opts) vim.snippet.expand(snippet, opts) end,
       luasnip = function(snippet) require('luasnip').lsp_expand(snippet) end,
       mini_snippets = function(snippet)
         if not _G.MiniSnippets then error('mini.snippets has not been setup') end

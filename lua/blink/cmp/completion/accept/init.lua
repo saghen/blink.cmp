@@ -60,7 +60,9 @@ local function apply_item(ctx, item)
     text_edits_lib.apply(temp_text_edit, all_text_edits)
 
     -- Expand the snippet
-    require('blink.cmp.config').snippets.expand(item.textEdit.newText)
+    require('blink.cmp.config').snippets.expand(item.textEdit.newText, {
+      adjust_indentation = item.insertTextMode ~= vim.lsp.protocol.InsertTextMode.asIs,
+    })
 
     -- OR Normal: Apply the text edit and move the cursor
   else
