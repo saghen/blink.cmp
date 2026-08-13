@@ -26,7 +26,7 @@ local function apply_callback(mode, key, commands, callback)
     local keys = do_fallback(mapping_only)
     for i = #keys, 1, -1 do
       local k = keys[i]
-      -- Feed before the typeahead so the re-fed key keeps its original position
+      -- Feed before the typeahead so fallback keys keep their original order
       utils.feedkeys(k.key, k.mode .. 'i')
     end
   end
