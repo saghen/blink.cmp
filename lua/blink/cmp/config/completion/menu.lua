@@ -54,7 +54,7 @@ return {
     -- Aligns the keyword you've typed to a component in the menu
     align_to = { 'label', config.types.validator('known component', function() return true end) },
     -- Left and right padding, optionally { left, right } for different padding on each side
-    padding = { 1, 'number' },
+    padding = { 1, { 'number', config.types.table({ 'number', 'number' }) } },
     -- Gap between columns
     gap = { 1, 'number' },
     -- Priority of the cursorline highlight, setting this to 0 will render it below other highlights
