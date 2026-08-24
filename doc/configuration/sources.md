@@ -104,6 +104,7 @@ Here is a non-exhaustive list of third-party plugins providing additional comple
 - [blink-cmp-ctags](https://github.com/netmute/blink-cmp-ctags) by `netmute`: Ctags
 - [blink-cmp-dap](https://github.com/mayromr/blink-cmp-dap) by `mayromr`: DAP repl
 - [blink-cmp-dat-word](https://github.com/xieyonn/blink-cmp-dat-word) by `xieyonn`: Word
+- [blink-cmp-deps](https://github.com/Mestane/blink-cmp-deps) by `Mestane`: Maven dependency coordinates and versions
 - [blink-cmp-dictionary](https://github.com/Kaiser-Yang/blink-cmp-dictionary) by `Kaiser-Yang`: Word
 - [blink-cmp-env](https://github.com/bydlw98/blink-cmp-env) by `bydlw98`: Environment variables
 - [blink-cmp-emoji](https://github.com/timrydefalk/blink-cmp-emoji) by `timrydefalk`: Unicode Emoji v17.0 glyphs sans Zero Width Joiner
