@@ -48,7 +48,12 @@ function lsp:get_completions(context, callback)
   local completion_lib = require('blink.cmp.sources.lsp.completion')
   local clients = vim.tbl_filter(function(client)
     local caps = client.server_capabilities
-    return caps ~= nil and caps.completionProvider ~= nil
+    if caps == nil or caps.completionProvider == nil then return false end
+
+    local trigger_character = context.trigger.character
+    if trigger_character == nil then return true end
+
+    return vim.tbl_contains(caps.completionProvider.triggerCharacters or {}, trigger_character)
   end, vim.lsp.get_clients({ bufnr = 0, method = 'textDocument/completion' }))
 
   -- TODO: implement a timeout before returning the menu as-is. In the future, it would be neat
