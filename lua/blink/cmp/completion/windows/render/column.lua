@@ -48,13 +48,14 @@ function column:render(context, ctxs)
       max_component_widths[component_idx] =
         math.max(max_component_widths[component_idx] or 0, vim.api.nvim_strwidth(text))
     end
-    column_width = math.max(column_width, vim.api.nvim_strwidth(table.concat(line, string.rep(' ', self.gap))))
+    if self.overlap_components then
+      column_width = math.max(column_width, vim.api.nvim_strwidth(table.concat(line, string.rep(' ', self.gap))))
+    end
     table.insert(lines, line)
   end
 
   if not self.overlap_components then
     --- get the total width of the column
-    column_width = 0
     for _, max_component_width in ipairs(max_component_widths) do
       column_width = column_width + max_component_width + self.gap
     end
