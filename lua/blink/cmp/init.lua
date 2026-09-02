@@ -72,7 +72,9 @@ function cmp.setup(opts)
         logger:notify(vim.log.levels.WARN, {
           { 'V2 uses a new build/download system for the native library. Please add ' },
           { " build = function() require('blink.cmp').build():pwait() end ", 'DiagnosticVirtualTextInfo' },
-          { ' to your lazy.nvim config. See ' },
+          { ' to your lazy.nvim config. Then re-run the build via ' },
+          { ' :Lazy build blink.cmp ', 'DiagnosticVirtualTextInfo' },
+          { ' See ' },
           { ' :h blink-cmp-installation ', 'DiagnosticVirtualTextInfo' },
           { ' for more information.' },
         })
