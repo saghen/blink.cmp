@@ -33,7 +33,7 @@
 
 local nvim = require('blink.lib.nvim')
 local root_config = require('blink.cmp.config')
-local config = require('blink.cmp.config').signature.trigger
+local function config() return root_config.signature.trigger end
 local utils = require('blink.cmp.lib.utils')
 local fuzzy = require('blink.cmp.fuzzy')
 
@@ -49,7 +49,7 @@ local trigger = {
 
 function trigger.activate()
   trigger.buffer_events = require('blink.cmp.lib.buffer_events').new({
-    show_in_snippet = true,
+    show_in_snippet = function() return true end,
     has_context = function() return trigger.context ~= nil end,
   })
   trigger.buffer_events:listen({
@@ -59,12 +59,12 @@ function trigger.activate()
       -- ignore if disabled
       if not require('blink.cmp').is_enabled() then
         return trigger.hide()
-      elseif not config.enabled and trigger.context == nil then
+      elseif not config().enabled and trigger.context == nil then
         return
-      elseif config.show_on_keyword and fuzzy.is_keyword_character(char_under_cursor) then
+      elseif config().show_on_keyword and fuzzy.is_keyword_character(char_under_cursor) then
         return trigger.show({ trigger_character = char_under_cursor })
       -- character forces a trigger according to the sources, refresh the existing context if it exists
-      elseif config.show_on_trigger_character and trigger.is_trigger_character(char_under_cursor) then
+      elseif config().show_on_trigger_character and trigger.is_trigger_character(char_under_cursor) then
         return trigger.show({ trigger_character = char_under_cursor })
       -- character forces a re-trigger according to the sources, show if we have a context
       elseif trigger.is_trigger_character(char_under_cursor, true) and trigger.context ~= nil then
@@ -75,13 +75,13 @@ function trigger.activate()
       local char_under_cursor = utils.get_char_at_cursor()
       local is_on_trigger = trigger.is_trigger_character(char_under_cursor)
 
-      if not config.enabled and trigger.context == nil then
+      if not config().enabled and trigger.context == nil then
         return
-      elseif config.show_on_insert_on_trigger_character and is_on_trigger and event == 'InsertEnter' then
+      elseif config().show_on_insert_on_trigger_character and is_on_trigger and event == 'InsertEnter' then
         trigger.show({ trigger_character = char_under_cursor })
       elseif event == 'CursorMoved' and trigger.context ~= nil then
         trigger.show()
-      elseif event == 'InsertEnter' and config.show_on_insert then
+      elseif event == 'InsertEnter' and config().show_on_insert then
         trigger.show()
       end
     end,
@@ -89,17 +89,17 @@ function trigger.activate()
     on_complete_changed = function() require('blink.cmp.signature.window').update_position() end,
   })
 
-  if config.show_on_accept then
-    require('blink.cmp.completion.list').accept_emitter:on(function(ev)
-      local cursor_col = ev.context.get_pos().col
-      local char_under_cursor = nvim.get_current_line():sub(cursor_col, cursor_col)
+  require('blink.cmp.completion.list').accept_emitter:on(function(ev)
+    if not config().show_on_accept then return end
 
-      local is_on_trigger = trigger.is_trigger_character(char_under_cursor)
-      local opts = is_on_trigger and { trigger_character = char_under_cursor } or nil
+    local cursor_col = ev.context.get_pos().col
+    local char_under_cursor = nvim.get_current_line():sub(cursor_col, cursor_col)
 
-      trigger.show(opts)
-    end)
-  end
+    local is_on_trigger = trigger.is_trigger_character(char_under_cursor)
+    local opts = is_on_trigger and { trigger_character = char_under_cursor } or nil
+
+    trigger.show(opts)
+  end)
 end
 
 function trigger.is_trigger_character(char, is_retrigger)
@@ -109,8 +109,8 @@ function trigger.is_trigger_character(char, is_retrigger)
   local trigger_characters = is_retrigger and res.retrigger_characters or res.trigger_characters
   local is_trigger = vim.tbl_contains(trigger_characters, char)
 
-  local blocked_trigger_characters = is_retrigger and config.blocked_retrigger_characters
-    or config.blocked_trigger_characters
+  local blocked_trigger_characters = is_retrigger and config().blocked_retrigger_characters
+    or config().blocked_trigger_characters
   local is_blocked = vim.tbl_contains(blocked_trigger_characters, char)
 
   return is_trigger and not is_blocked
@@ -118,7 +118,7 @@ end
 
 function trigger.show_if_on_trigger_character()
   if require('blink.cmp.completion.trigger.context').get_mode() ~= 'default' then return end
-  if not config.enabled or not trigger.context then return end
+  if not config().enabled or not trigger.context then return end
 
   local cursor_col = trigger.context.pos.col
   local char_under_cursor = nvim.get_current_line():sub(cursor_col, cursor_col)
@@ -128,7 +128,7 @@ end
 function trigger.show(opts)
   opts = opts or {}
 
-  if not opts.force and (not config.enabled or not root_config.signature.enabled) and trigger.context == nil then
+  if not opts.force and (not config().enabled or not root_config.signature.enabled) and trigger.context == nil then
     return
   end
 

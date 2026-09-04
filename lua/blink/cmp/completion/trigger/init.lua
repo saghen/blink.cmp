@@ -29,7 +29,7 @@
 --- @field initial_selected_item_idx? integer
 
 local root_config = require('blink.cmp.config')
-local config = root_config.completion.trigger
+local function config() return root_config.completion.trigger end
 local context = require('blink.cmp.completion.trigger.context')
 local utils = require('blink.cmp.lib.utils')
 local fuzzy = require('blink.cmp.fuzzy')
@@ -49,12 +49,12 @@ local function on_char_added(char, is_ignored)
     if trigger.context ~= nil then trigger.show({ send_upstream = false, trigger_kind = 'keyword' }) end
 
   -- character forces a trigger according to the sources, create a fresh context
-  elseif trigger.is_trigger_character(char) and (config.show_on_trigger_character or trigger.context ~= nil) then
+  elseif trigger.is_trigger_character(char) and (config().show_on_trigger_character or trigger.context ~= nil) then
     trigger.context = nil
     trigger.show({ trigger_kind = 'trigger_character', trigger_character = char })
 
   -- character is part of a keyword
-  elseif fuzzy.is_keyword_character(char) and (config.show_on_keyword or trigger.context ~= nil) then
+  elseif fuzzy.is_keyword_character(char) and (config().show_on_keyword or trigger.context ~= nil) then
     -- typed after auto insertion, refresh the menu
     if require('blink.cmp.completion.list').preview_undo ~= nil then trigger.context = nil end
 
@@ -88,8 +88,8 @@ local function on_cursor_moved(event, is_ignored, is_backspace, last_event)
 
   -- TODO: doesn't handle `a` where the cursor moves immediately after
   -- Reproducible with `example.|a` and pressing `a`, should not show the menu
-  local insert_enter_on_trigger_character = config.show_on_trigger_character
-    and config.show_on_insert_on_trigger_character
+  local insert_enter_on_trigger_character = config().show_on_trigger_character
+    and config().show_on_insert_on_trigger_character
     and is_enter_event
     and trigger.is_trigger_character(char_under_cursor, true)
 
@@ -112,27 +112,27 @@ local function on_cursor_moved(event, is_ignored, is_backspace, last_event)
     trigger.show({ trigger_kind = 'keyword' })
 
   -- show after entering insert mode
-  elseif is_enter_event and config.show_on_insert then
+  elseif is_enter_event and config().show_on_insert then
     trigger.show({ trigger_kind = 'keyword' })
 
   -- prefetch completions without opening window after entering insert mode
-  elseif is_enter_event and config.prefetch_on_insert then
+  elseif is_enter_event and config().prefetch_on_insert then
     trigger.show({ trigger_kind = 'prefetch' })
 
   -- show after backspacing
-  elseif config.show_on_backspace and is_backspace then
+  elseif config().show_on_backspace and is_backspace then
     trigger.show({ trigger_kind = 'keyword' })
 
   -- show after backspacing into a keyword
-  elseif config.show_on_backspace_in_keyword and is_backspace and is_keyword then
+  elseif config().show_on_backspace_in_keyword and is_backspace and is_keyword then
     trigger.show({ trigger_kind = 'keyword' })
 
   -- show after entering insert or term mode and backspacing into a keyword
-  elseif config.show_on_backspace_after_insert_enter and is_backspace and last_event == 'enter' and is_keyword then
+  elseif config().show_on_backspace_after_insert_enter and is_backspace and last_event == 'enter' and is_keyword then
     trigger.show({ trigger_kind = 'keyword' })
 
   -- show after accepting a completion and then backspacing into a keyword
-  elseif config.show_on_backspace_after_accept and is_backspace and last_event == 'accept' and is_keyword then
+  elseif config().show_on_backspace_after_accept and is_backspace and last_event == 'accept' and is_keyword then
     trigger.show({ trigger_kind = 'keyword' })
 
   -- otherwise hide
@@ -145,7 +145,7 @@ function trigger.activate()
   trigger.buffer_events = require('blink.cmp.lib.buffer_events').new({
     -- TODO: should this ignore trigger.kind == 'prefetch'?
     has_context = function() return trigger.context ~= nil end,
-    show_in_snippet = config.show_in_snippet,
+    show_in_snippet = function() return config().show_in_snippet end,
   })
 
   trigger.buffer_events:listen({
@@ -186,13 +186,13 @@ function trigger.is_trigger_character(char, is_show_on_x)
   -- ignore a-z and A-Z characters
   if char:match('%a') then return false end
 
-  local show_on_blocked_trigger_characters = type(config.show_on_blocked_trigger_characters) == 'function'
-      and config.show_on_blocked_trigger_characters()
-    or config.show_on_blocked_trigger_characters
+  local show_on_blocked_trigger_characters = type(config().show_on_blocked_trigger_characters) == 'function'
+      and config().show_on_blocked_trigger_characters()
+    or config().show_on_blocked_trigger_characters
   --- @cast show_on_blocked_trigger_characters string[]
-  local show_on_x_blocked_trigger_characters = type(config.show_on_x_blocked_trigger_characters) == 'function'
-      and config.show_on_x_blocked_trigger_characters()
-    or config.show_on_x_blocked_trigger_characters
+  local show_on_x_blocked_trigger_characters = type(config().show_on_x_blocked_trigger_characters) == 'function'
+      and config().show_on_x_blocked_trigger_characters()
+    or config().show_on_x_blocked_trigger_characters
   --- @cast show_on_x_blocked_trigger_characters string[]
 
   local is_blocked = vim.tbl_contains(show_on_blocked_trigger_characters, char)
@@ -218,7 +218,7 @@ end
 function trigger.show_if_on_trigger_character(opts)
   if
     (opts and opts.is_accept)
-    and (not config.show_on_trigger_character or not config.show_on_accept_on_trigger_character)
+    and (not config().show_on_trigger_character or not config().show_on_accept_on_trigger_character)
   then
     return
   end

@@ -1,5 +1,5 @@
 local nvim = require('blink.lib.nvim')
-local config = require('blink.cmp.config').completion.ghost_text
+local function config() return require('blink.cmp.config').completion.ghost_text end
 local highlight_ns = require('blink.cmp.config').appearance.highlight_ns
 
 local text_edits_lib = require('blink.cmp.lib.text_edits')
@@ -24,8 +24,8 @@ nvim.create_autocmd({ 'CursorMovedI' }, {
 })
 
 function ghost_text.enabled()
-  if type(config.enabled) == 'function' then return config.enabled() end
-  return config.enabled
+  if type(config().enabled) == 'function' then return config().enabled() end
+  return config().enabled
 end
 
 function ghost_text.is_open() return ghost_text.extmark_id ~= nil end
@@ -39,7 +39,7 @@ function ghost_text.show_preview(context, items, selection_idx)
   -- check if we're supposed to show
   local has_selection = selection_idx ~= nil
   if
-    (has_selection and not config.show_with_selection) or (not has_selection and not config.show_without_selection)
+    (has_selection and not config().show_with_selection) or (not has_selection and not config().show_without_selection)
   then
     ghost_text.clear_preview()
     return
@@ -69,7 +69,7 @@ function ghost_text.draw_preview()
   -- check if we should be showing
   local menu_open = menu.win:is_open()
   local should_show_preview = ghost_text.enabled()
-    and ((menu_open and config.show_with_menu) or (not menu_open and config.show_without_menu))
+    and ((menu_open and config().show_with_menu) or (not menu_open and config().show_without_menu))
 
   if not should_show_preview then
     ghost_text.clear_preview()
@@ -101,7 +101,7 @@ function ghost_text.draw_preview()
   local typed_length = math.max(0, math.min(vim.fn.strchars(typed_text), vim.fn.strchars(text_edit.newText)))
   local untyped_text = vim.fn.strcharpart(text_edit.newText, typed_length)
   local display_lines = vim.split(untyped_text, '\n', { plain = true })
-  if config.show_first_line_only and #display_lines > 1 then
+  if config().show_first_line_only and #display_lines > 1 then
     display_lines = { display_lines[1] .. ' [+' .. #display_lines - 1 .. ']' }
   end
 

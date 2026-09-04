@@ -8,7 +8,7 @@ local nvim = require('blink.lib.nvim')
 --- @field bufnr? integer
 ---
 --- @field new fun(draw: blink.cmp.Draw): blink.cmp.Renderer
---- @field draw fun(self: blink.cmp.Renderer, context: blink.cmp.Context, bufnr: integer, items: blink.cmp.CompletionItem[], draw: blink.cmp.Draw)
+--- @field draw fun(self: blink.cmp.Renderer, context: blink.cmp.Context, bufnr: integer, items: blink.cmp.CompletionItem[], draw?: blink.cmp.Draw)
 --- @field get_columns fun(self: blink.cmp.Renderer, context: blink.cmp.Context, draw: blink.cmp.Draw): blink.cmp.DrawColumn[]
 --- @field get_component_column_location fun(self: blink.cmp.Renderer, columns: blink.cmp.DrawColumn[], component_name: string): { [1]: integer, [2]: integer }
 --- @field get_component_start_col fun(self: blink.cmp.Renderer, columns: blink.cmp.DrawColumn[], component_name: string): integer
@@ -21,7 +21,8 @@ local ns = nvim.create_namespace('blink_cmp_renderer')
 local renderer = {}
 
 function renderer.new(draw)
-  local padding = type(draw.padding) == 'number' and { draw.padding, draw.padding } or draw.padding
+  local padding = type(draw.padding) == 'number' and { draw.padding, draw.padding }
+    or { draw.padding[1] or 0, draw.padding[2] or draw.padding[1] or 0 }
 
   local self = setmetatable({}, { __index = renderer })
   self.padding = padding
@@ -90,9 +91,16 @@ function renderer:get_columns(context, draw)
   )
 end
 
-function renderer:draw(context, bufnr, items)
-  local columns = self:get_columns(context, self.def)
-  local draw_contexts = require('blink.cmp.completion.windows.render.context').get_from_items(context, self.def, items)
+function renderer:draw(context, bufnr, items, draw)
+  -- the draw config may change at runtime (per buffer/mode), so prefer the one passed by the caller
+  draw = draw or self.def
+  self.def = draw
+  self.padding = type(draw.padding) == 'number' and { draw.padding, draw.padding }
+    or { draw.padding[1] or 0, draw.padding[2] or draw.padding[1] or 0 }
+  self.gap = draw.gap or 0
+
+  local columns = self:get_columns(context, draw)
+  local draw_contexts = require('blink.cmp.completion.windows.render.context').get_from_items(context, draw, items)
 
   -- render the columns
   for _, column in ipairs(columns) do

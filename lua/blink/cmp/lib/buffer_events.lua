@@ -3,12 +3,12 @@
 --- Unlike in regular neovim, ctrl + c and buffer switching will trigger "insert leave"
 
 local nvim = require('blink.lib.nvim')
-local snippet = require('blink.cmp.config').snippets
+local function snippet_config() return require('blink.cmp.config').snippets end
 local utils = require('blink.cmp.lib.utils')
 
 --- @class blink.cmp.BufferEvents
 --- @field has_context fun(): boolean
---- @field show_in_snippet boolean
+--- @field show_in_snippet fun(): boolean
 --- @field ignore_next_text_changed boolean
 --- @field ignore_next_cursor_moved boolean
 --- @field last_char string
@@ -23,7 +23,7 @@ local utils = require('blink.cmp.lib.utils')
 
 --- @class blink.cmp.BufferEventsOptions
 --- @field has_context fun(): boolean
---- @field show_in_snippet boolean
+--- @field show_in_snippet fun(): boolean
 
 --- @class blink.cmp.BufferEventsListener
 --- @field on_char_added? fun(char: string, is_ignored: boolean)
@@ -97,7 +97,7 @@ local function make_cursor_moved(self, on_cursor_moved)
     --- @cast ev vim.api.keyset.create_autocmd.callback_args
     --- @cast ev.event 'CursorMoved' | 'CursorMovedI' | 'InsertEnter'
 
-    local in_snippet_context = self.has_context() and snippet.active()
+    local in_snippet_context = self.has_context() and snippet_config().active()
 
     -- only fire a CursorMoved event (notable not CursorMovedI)
     -- when jumping between tab stops in a snippet while showing the menu
@@ -240,6 +240,8 @@ function buffer_events:suppress_events_for_callback(cb)
   if not cursor_moved then vim.defer_fn(function() self.ignore_next_cursor_moved = false end, 10) end
 end
 
-function buffer_events:hide_in_snippet() return not self.show_in_snippet and not self.has_context() and snippet.active() end
+function buffer_events:hide_in_snippet()
+  return not self.show_in_snippet() and not self.has_context() and snippet_config().active()
+end
 
 return buffer_events

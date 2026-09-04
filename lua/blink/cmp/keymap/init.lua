@@ -82,12 +82,11 @@ function keymap.get_mappings(keymap_config, mode)
 
   -- Inherit preset from default, if needed
   if mappings.preset == 'inherit' and mode ~= 'default' then
-    ---@diagnostic disable-next-line: undefined-field
     ---@type blink.cmp.ConfigStrict
-    local snapshot = config.snapshot()
+    local root = config.get()
 
-    mappings = vim.tbl_deep_extend('force', snapshot.keymap, mappings)
-    mappings.preset = snapshot.keymap.preset
+    mappings = vim.tbl_deep_extend('force', root.keymap, mappings)
+    mappings.preset = root.keymap.preset
   end
 
   -- Remove unused keys, but keep keys set to false or empty tables (to disable them)
@@ -119,9 +118,8 @@ function keymap.get_mappings(keymap_config, mode)
 end
 
 function keymap.setup()
-  ---@diagnostic disable-next-line: undefined-field
   ---@type blink.cmp.ConfigStrict
-  local cfg = config.snapshot()
+  local cfg = config.get()
 
   -- Load keymaps per mode
   keymap.mappings = {

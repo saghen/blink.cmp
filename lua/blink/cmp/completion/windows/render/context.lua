@@ -15,6 +15,8 @@
 --- @field source_name string
 
 local lib = require('blink.lib')
+local kinds = require('blink.cmp.types').CompletionItemKind
+local function config() return require('blink.cmp.config').appearance end
 
 local draw_context = {}
 
@@ -30,29 +32,29 @@ function draw_context.get_from_items(context, draw, items)
     require('blink.cmp.config').completion.keyword.range
   )
 
+  local appearance = config()
   local ctxs = {}
   for idx, item in ipairs(items) do
     local matched_idx = matched_indices[idx]
     assert(matched_idx, 'No index ' .. idx .. ' found in fuzzy_matched_indices')
-    ctxs[idx] = draw_context.new(draw, idx, item, matched_idx)
+    ctxs[idx] = draw_context.new(draw, idx, item, matched_idx, appearance)
   end
   return ctxs
 end
-
-local config = require('blink.cmp.config').appearance
-local kinds = require('blink.cmp.types').CompletionItemKind
 
 --- @param draw blink.cmp.Draw
 --- @param item_idx integer
 --- @param item blink.cmp.CompletionItem
 --- @param matched_indices integer[]
+--- @param appearance? blink.cmp.AppearanceConfig
 --- @return blink.cmp.DrawItemContext
-function draw_context.new(draw, item_idx, item, matched_indices)
+function draw_context.new(draw, item_idx, item, matched_indices, appearance)
+  appearance = appearance or config()
   local kind = item.kind_name or kinds[item.kind] or 'Unknown'
-  local kind_icon = item.kind_icon or config.kind_icons[kind] or config.kind_icons.Field
+  local kind_icon = item.kind_icon or appearance.kind_icons[kind] or appearance.kind_icons.Field
   local kind_hl = item.kind_hl or ('BlinkCmpKind' .. (kinds[item.kind] or 'Unknown'))
 
-  local icon_spacing = config.nerd_font_variant == 'mono' and '' or ' '
+  local icon_spacing = appearance.nerd_font_variant == 'mono' and '' or ' '
 
   -- Some LSPs can return labels with newlines
   -- Escape them to avoid errors in nvim_buf_set_lines when rendering the completion menu
@@ -83,7 +85,7 @@ function draw_context.new(draw, item_idx, item, matched_indices)
     kind = kind,
     kind_icon = kind_icon,
     kind_hl = kind_hl,
-    icon_gap = config.nerd_font_variant == 'mono' and '' or ' ',
+    icon_gap = icon_spacing,
     deprecated = (lib.is_not_nil(item.deprecated) and item.deprecated)
       or (lib.is_not_nil(item.tags) and vim.tbl_contains(item.tags or {}, 1))
       or false,

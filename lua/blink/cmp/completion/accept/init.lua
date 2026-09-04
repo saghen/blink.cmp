@@ -1,4 +1,3 @@
-local config = require('blink.cmp.config').completion.accept
 local logger = require('blink.cmp.logger')
 local text_edits_lib = require('blink.cmp.lib.text_edits')
 local brackets_lib = require('blink.cmp.completion.brackets')
@@ -98,7 +97,9 @@ local function accept(ctx, item, callback)
   sources
     .resolve(ctx, item)
     -- Some LSPs may take a long time to resolve the item, so we timeout
-    :timeout(config.resolve_timeout_ms)
+    :timeout(
+      require('blink.cmp.config').completion.accept.resolve_timeout_ms
+    )
     -- and use the item as-is
     :catch(function() return item end)
     :map(function(resolved_item)

@@ -30,24 +30,36 @@
 
 local lib = require('blink.lib')
 local nvim = require('blink.lib.nvim')
-local config = require('blink.cmp.config').completion.menu
+local function config() return require('blink.cmp.config').completion.menu end
 local event_emitter = require('blink.cmp.lib.event_emitter')
 local auto_wrap = require('blink.cmp.completion.windows.menu.auto_wrap')
+
+local function default_auto_show_enabled(context, items)
+  local auto_show = config().auto_show
+  if type(auto_show) == 'function' then return auto_show(context, items) end
+  return auto_show
+end
+
+local function default_auto_show_delay_ms(context, items)
+  local delay_ms = config().auto_show_delay_ms
+  if type(delay_ms) == 'function' then return delay_ms(context, items) end
+  return delay_ms
+end
 
 --- @type blink.cmp.CompletionMenu
 --- @diagnostic disable-next-line: missing-fields
 local menu = {
   win = require('blink.cmp.lib.window').new('menu', {
-    min_width = config.min_width,
-    max_height = config.max_height,
+    min_width = config().min_width,
+    max_height = config().max_height,
     default_border = 'none',
-    border = config.border,
-    winblend = config.winblend,
-    winhighlight = config.winhighlight,
+    border = config().border,
+    winblend = config().winblend,
+    winhighlight = config().winhighlight,
     cursorline = false,
-    cursorline_priority = config.draw.cursorline_priority,
-    scrolloff = config.scrolloff,
-    scrollbar = config.scrollbar,
+    cursorline_priority = config().draw.cursorline_priority,
+    scrolloff = config().scrolloff,
+    scrollbar = config().scrollbar,
     filetype = 'blink-cmp-menu',
   }),
 
@@ -55,9 +67,8 @@ local menu = {
   items = {},
 
   auto_show = {
-    enabled = type(config.auto_show) == 'function' and config.auto_show or function() return config.auto_show end,
-    delay_ms = type(config.auto_show_delay_ms) == 'function' and config.auto_show_delay_ms
-      or function() return config.auto_show_delay_ms end,
+    enabled = default_auto_show_enabled,
+    delay_ms = default_auto_show_delay_ms,
     timer = lib.timer.new(),
     timer_key = '',
   },
@@ -80,8 +91,8 @@ function menu.open_with_items(context, items)
   menu.items = items
   menu.set_selected_item_idx(menu.selected_item_idx ~= nil and math.min(menu.selected_item_idx, #items) or nil)
 
-  if not menu.renderer then menu.renderer = require('blink.cmp.completion.windows.render').new(config.draw) end
-  menu.renderer:draw(context, menu.win:get_buf(), items, {})
+  if not menu.renderer then menu.renderer = require('blink.cmp.completion.windows.render').new(config().draw) end
+  menu.renderer:draw(context, menu.win:get_buf(), items, config().draw)
 
   menu.queue_auto_show(context, items)
 end
@@ -91,7 +102,7 @@ function menu.open_loading(context)
   menu.items = {}
   menu.set_selected_item_idx(nil)
 
-  if not menu.renderer then menu.renderer = require('blink.cmp.completion.windows.render').new(config.draw) end
+  if not menu.renderer then menu.renderer = require('blink.cmp.completion.windows.render').new(config().draw) end
   menu.renderer:draw(context, menu.win:get_buf(), {
     {
       label = 'Loading...',
@@ -111,7 +122,7 @@ function menu.open_loading(context)
       client_id = 0,
       client_name = '',
     },
-  }, {})
+  }, config().draw)
 
   menu.queue_auto_show(context, {})
 end
@@ -149,7 +160,7 @@ function menu.set_selected_item_idx(idx)
   -- user may want to reposition on the menu based on the selected item
   -- https://github.com/Saghen/blink.cmp/issues/2000
   -- https://github.com/Saghen/blink.cmp/issues/1801
-  if type(config.direction_priority) == 'function' then menu.update_position() end
+  if type(config().direction_priority) == 'function' then menu.update_position() end
 end
 
 ---------------
@@ -204,10 +215,8 @@ function menu.force_auto_show()
 end
 
 function menu.reset_auto_show()
-  menu.auto_show.enabled = type(config.auto_show) == 'function' and config.auto_show
-    or function() return config.auto_show end
-  menu.auto_show.delay_ms = type(config.auto_show_delay_ms) == 'function' and config.auto_show_delay_ms
-    or function() return config.auto_show_delay_ms end
+  menu.auto_show.enabled = default_auto_show_enabled
+  menu.auto_show.delay_ms = default_auto_show_delay_ms
   menu.auto_show.timer:stop()
   menu.auto_show.timer_key = ''
 end
@@ -227,7 +236,7 @@ function menu.update_position()
   win:update_size()
 
   local border_size = win:get_border_size()
-  local pos = win:get_vertical_direction_and_height(config.direction_priority, config.max_height)
+  local pos = win:get_vertical_direction_and_height(config().direction_priority, config().max_height)
 
   -- couldn't find anywhere to place the window
   if not pos then
@@ -243,7 +252,7 @@ function menu.update_position()
 
   -- in cmdline mode, we get the position from a function to support UI plugins like noice
   if nvim.get_mode().mode == 'c' then
-    local cmdline_position = config.cmdline_position()
+    local cmdline_position = config().cmdline_position()
     win:set_win_config({
       relative = 'editor',
       row = cmdline_position[1] + row,
@@ -265,7 +274,7 @@ function menu.update_position()
     local prefix = vim.fn.strpart(context.line, 0, context.bounds.start_col - 1)
     local offset_from_cursor = vim.fn.strdisplaywidth(prefix) - curswant
     local col = offset_from_cursor - alignment_start_col - border_size.left
-    if config.draw.align_to == 'cursor' then col = 0 end
+    if config().draw.align_to == 'cursor' then col = 0 end
     if off ~= 0 then col = col + off end
 
     win:set_win_config({ relative = 'cursor', row = row, col = col })

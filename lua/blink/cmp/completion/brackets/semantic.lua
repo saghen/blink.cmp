@@ -1,6 +1,6 @@
 local nvim = require('blink.lib.nvim')
 local task = require('blink.lib.task')
-local config = require('blink.cmp.config').completion.accept.auto_brackets
+local function config() return require('blink.cmp.config').completion.accept.auto_brackets end
 local lib_utils = require('blink.cmp.lib.utils')
 local utils = require('blink.cmp.completion.brackets.utils')
 
@@ -117,7 +117,7 @@ function semantic.add_brackets_via_semantic_token(ctx, filetype, item)
     end
 
     -- listen for LspTokenUpdate events until timeout
-    semantic.timer:start(config.semantic_token_resolution.timeout_ms, 0, semantic.finish_request)
+    semantic.timer:start(config().semantic_token_resolution.timeout_ms, 0, semantic.finish_request)
   end) --[[@as blink.lib.Task<boolean>]]
 end
 

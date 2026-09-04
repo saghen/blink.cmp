@@ -12,8 +12,7 @@
 
 local lib = require('blink.lib')
 local nvim = require('blink.lib.nvim')
-local config = require('blink.cmp.config').completion.documentation
-local win_config = config.window
+local function config() return require('blink.cmp.config').completion.documentation end
 
 local logger = require('blink.cmp.logger')
 local sources = require('blink.cmp.sources.lib')
@@ -23,14 +22,14 @@ local menu = require('blink.cmp.completion.windows.menu')
 --- @diagnostic disable-next-line: missing-fields
 local docs = {
   win = require('blink.cmp.lib.window').new('documentation', {
-    min_width = win_config.min_width,
-    max_width = win_config.max_width,
-    max_height = win_config.max_height,
+    min_width = config().window.min_width,
+    max_width = config().window.max_width,
+    max_height = config().window.max_height,
     default_border = 'padded',
-    border = win_config.border,
-    winblend = win_config.winblend,
-    winhighlight = win_config.winhighlight,
-    scrollbar = win_config.scrollbar,
+    border = config().window.border,
+    winblend = config().window.winblend,
+    winhighlight = config().window.winhighlight,
+    scrollbar = config().window.scrollbar,
     wrap = true,
     linebreak = true,
     filetype = 'blink-cmp-documentation',
@@ -45,11 +44,11 @@ menu.close_emitter:on(function() docs.close() end)
 function docs.auto_show_item(context, item)
   docs.auto_show_timer:stop()
   if docs.win:is_open() then
-    docs.auto_show_timer:start(config.update_delay_ms, 0, function()
+    docs.auto_show_timer:start(config().update_delay_ms, 0, function()
       vim.schedule(function() docs.show_item(context, item) end)
     end)
-  elseif config.auto_show then
-    docs.auto_show_timer:start(config.auto_show_delay_ms, 0, function()
+  elseif config().auto_show then
+    docs.auto_show_timer:start(config().auto_show_delay_ms, 0, function()
       vim.schedule(function() docs.show_item(context, item) end)
     end)
   end
@@ -82,17 +81,17 @@ function docs.show_item(context, item)
           detail = resolved_item.detail,
           documentation = resolved_item.documentation,
           max_width = docs.win.config.max_width or docs.win:get_content_width(),
-          use_treesitter_highlighting = config and config.treesitter_highlighting,
+          use_treesitter_highlighting = config().treesitter_highlighting,
         }
         -- allow the provider to override the drawing optionally
         -- TODO: should the default_implementation be the configured draw function instead of the built-in?
-        local draw = type(resolved_item.documentation) == 'table' and resolved_item.documentation.draw or config.draw
+        local draw = type(resolved_item.documentation) == 'table' and resolved_item.documentation.draw or config().draw
 
         nvim.set_option_value('modifiable', true, { buf = docs_buf })
         draw({
           item = resolved_item,
           window = docs.win,
-          config = config,
+          config = config(),
           default_implementation = function(opts)
             opts = opts or {}
             ---@type blink.cmp.RenderDetailAndDocumentationOpts
@@ -159,8 +158,8 @@ function docs.update_position()
 
   -- decide direction priority based on the menu window's position
   local menu_win_is_up = menu_win_config.row - cursor_win_row < 0
-  local direction_priority = menu_win_is_up and win_config.direction_priority.menu_north
-    or win_config.direction_priority.menu_south
+  local direction_priority = menu_win_is_up and config().window.direction_priority.menu_north
+    or config().window.direction_priority.menu_south
 
   -- remove the direction priority of the signature window if it's open
   local signature = require('blink.cmp.signature.window')
@@ -173,8 +172,8 @@ function docs.update_position()
 
   -- decide direction, width and height of window
   local pos = docs.win:get_direction_with_window_constraints(menu.win, direction_priority, {
-    width = win_config.desired_min_width,
-    height = win_config.desired_min_height,
+    width = config().window.desired_min_width,
+    height = config().window.desired_min_height,
   })
 
   -- couldn't find anywhere to place the window
