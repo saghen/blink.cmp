@@ -17,6 +17,7 @@
 --- @field is_trigger_character fun(char: string, is_show_on_x?: boolean): boolean
 --- @field suppress_events_for_callback fun(cb: fun())
 --- @field show_if_on_trigger_character fun(opts?: { is_accept?: boolean })
+--- @field _handle_ignored_cursor_moved fun(char_under_cursor: string)
 --- @field show fun(opts?: blink.cmp.CompletionTriggerShowOptions): blink.cmp.Context?
 --- @field hide fun()
 
@@ -75,14 +76,7 @@ local function on_cursor_moved(event, is_ignored, is_backspace, last_event)
   -- we were told to ignore the cursor moved event, so we update the context
   -- but don't send an on_show event upstream
   if is_ignored and event == 'CursorMoved' then
-    if trigger.context ~= nil then
-      -- If we `auto_insert` with the `path` source, we may end up on a trigger character, e.g. `downloads/`
-      -- If we naively update the context, we'll show the menu with the existing context
-      -- TODO: is this still needed since we handle this in char added?
-      if require('blink.cmp.completion.list').preview_undo ~= nil then trigger.context = nil end
-
-      trigger.show({ send_upstream = false, trigger_kind = 'keyword' })
-    end
+    if trigger.context ~= nil then trigger._handle_ignored_cursor_moved(char_under_cursor) end
     return
   end
 
@@ -229,6 +223,37 @@ function trigger.show_if_on_trigger_character(opts)
   if trigger.is_trigger_character(char_under_cursor, true) then
     trigger.show({ trigger_kind = 'trigger_character', trigger_character = char_under_cursor })
   end
+end
+
+--- Internal helper used by `on_cursor_moved`'s `is_ignored` branch (see
+--- #2609). Refreshes the completion context after `auto_insert` moved the
+--- cursor. If `auto_insert` left a preview that placed the cursor on a
+--- trigger character (e.g. the trailing `/` of an auto-inserted directory),
+--- re-emit a `trigger_character` show so the sources refresh for the new
+--- directory, gated like the accept path (`show_if_on_trigger_character`).
+--- Otherwise fall back to a `keyword` show with `send_upstream=false` to
+--- keep the existing menu in sync without bouncing an event upstream.
+--- @param char_under_cursor string
+function trigger._handle_ignored_cursor_moved(char_under_cursor)
+  -- If we `auto_insert` with the `path` source, we may end up on a trigger
+  -- character, e.g. `downloads/`. If we naively update the context, we'll
+  -- show the menu with the existing context. Clear the stale context and,
+  -- if the cursor now sits on a trigger character, re-fire a
+  -- `trigger_character` show so the sources refresh for the new directory.
+  if require('blink.cmp.completion.list').preview_undo ~= nil then
+    trigger.context = nil
+
+    if
+      config.show_on_trigger_character
+      and config.show_on_accept_on_trigger_character
+      and trigger.is_trigger_character(char_under_cursor, true)
+    then
+      trigger.show({ trigger_kind = 'trigger_character', trigger_character = char_under_cursor })
+      return
+    end
+  end
+
+  trigger.show({ send_upstream = false, trigger_kind = 'keyword' })
 end
 
 function trigger.show(opts)
