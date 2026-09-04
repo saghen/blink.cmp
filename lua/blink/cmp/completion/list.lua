@@ -1,6 +1,5 @@
 --- Manages most of the state for the completion list such that downstream consumers can be mostly stateless
 --- @class (exact) blink.cmp.CompletionList
---- @field config blink.cmp.CompletionListConfig
 --- @field show_emitter blink.cmp.EventEmitter<blink.cmp.CompletionListShowEvent>
 --- @field hide_emitter blink.cmp.EventEmitter<blink.cmp.CompletionListHideEvent>
 --- @field select_emitter blink.cmp.EventEmitter<blink.cmp.CompletionListSelectEvent>
@@ -74,10 +73,12 @@ local lib = require('blink.lib')
 local context = require('blink.cmp.completion.trigger.context')
 local event_emitter = require('blink.cmp.lib.event_emitter')
 
+--- @return blink.cmp.CompletionListConfig
+local function config() return require('blink.cmp.config').completion.list end
+
 --- @type blink.cmp.CompletionList
 --- @diagnostic disable-next-line: missing-fields
 local list = {
-  config = require('blink.cmp.config').completion.list,
   context = nil,
   items = {},
   is_explicitly_selected = false,
@@ -163,7 +164,7 @@ function list.fuzzy(ctx, items_by_source)
   filtered_items = require('blink.cmp.sources.lib').apply_max_items_for_completions(ctx, filtered_items)
 
   -- apply the global max_items
-  return lib.list.slice(filtered_items, 1, list.config.max_items)
+  return lib.list.slice(filtered_items, 1, config().max_items)
 end
 
 function list.hide()
@@ -181,11 +182,11 @@ function list.get_selected_item() return list.selected_item_idx and list.items[l
 function list.get_selection_mode(ctx)
   assert(ctx ~= nil, 'Context must be set before getting selection mode')
 
-  local preselect = list.config.selection.preselect
+  local preselect = config().selection.preselect
   if type(preselect) == 'function' then preselect = preselect(ctx) end
   --- @cast preselect boolean
 
-  local auto_insert = list.config.selection.auto_insert
+  local auto_insert = config().selection.auto_insert
   if type(auto_insert) == 'function' then auto_insert = auto_insert(ctx) end
   --- @cast auto_insert boolean
 
@@ -232,7 +233,7 @@ function list.select_next(opts)
     if not select_mode.preselect or select_mode.auto_insert then return list.select(nil, opts) end
 
     -- cycling around has been disabled, ignore
-    if not list.config.cycle.from_bottom then return false end
+    if not config().cycle.from_bottom then return false end
 
     -- otherwise, we cycle around
     return list.select(1, opts)
@@ -251,7 +252,7 @@ function list.select_prev(opts)
 
   -- haven't selected anything yet, select the last item, if cycling enabled
   if list.selected_item_idx == nil then
-    if not list.config.cycle.from_top then return false end
+    if not config().cycle.from_top then return false end
 
     return list.select(#list.items, opts)
   end
@@ -263,7 +264,7 @@ function list.select_prev(opts)
     if not select_mode.preselect or select_mode.auto_insert then return list.select(nil, opts) end
 
     -- cycling around has been disabled, ignore
-    if not list.config.cycle.from_top then return false end
+    if not config().cycle.from_top then return false end
 
     -- otherwise, we cycle around
     return list.select(#list.items, opts)
@@ -316,14 +317,10 @@ function list.jump_by(dir, opts)
 
   if dir == 1 then
     if try_jump(list.selected_item_idx + 1, #list.items, 1) then return true end
-    if list.config and list.config.cycle and list.config.cycle.from_bottom then
-      return try_jump(1, list.selected_item_idx - 1, 1)
-    end
+    if config().cycle.from_bottom then return try_jump(1, list.selected_item_idx - 1, 1) end
   elseif dir == -1 then
     if try_jump(list.selected_item_idx - 1, 1, -1) then return true end
-    if list.config and list.config.cycle and list.config.cycle.from_top then
-      return try_jump(#list.items, list.selected_item_idx + 1, -1)
-    end
+    if config().cycle.from_top then return try_jump(#list.items, list.selected_item_idx + 1, -1) end
   end
 
   return false

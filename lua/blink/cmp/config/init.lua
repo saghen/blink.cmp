@@ -18,7 +18,7 @@
 --- @field enabled boolean
 --- @field keymap blink.cmp.KeymapConfig
 
---- @type blink.cmp.ConfigStrict
+--- @type blink.cmp.ConfigStrict | blink.lib.Config
 local config = require('blink.lib.config').new({
   enabled = { true, { 'boolean', 'function' } },
   keymap = require('blink.cmp.config.keymap').get('default'),
@@ -41,10 +41,10 @@ local config = require('blink.lib.config').new({
     enabled = { true, 'boolean' },
     keymap = require('blink.cmp.config.keymap').get('inherit'),
   },
-}, { global_key = 'blink_cmp', validate = false })
+}, { validate = false })
 
 -- cmdline override
-config({
+config.set({
   sources = { default = { 'buffer', 'cmdline' } },
   completion = {
     trigger = { show_on_blocked_trigger_characters = {}, show_on_x_blocked_trigger_characters = {} },
@@ -54,17 +54,8 @@ config({
   },
 }, { mode = 'cmdline', validate = false })
 
--- cmdwin override
-config({
-  sources = { default = { 'buffer', 'cmdline' } },
-  completion = {
-    menu = { auto_show = true },
-    ghost_text = { enabled = true },
-  },
-}, { mode = 'cmdwin', validate = false })
-
 -- term override
-config({
+config.set({
   sources = { default = {} },
   completion = {
     trigger = {

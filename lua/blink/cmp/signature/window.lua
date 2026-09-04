@@ -9,20 +9,20 @@
 --- @field update_position fun()
 
 local nvim = require('blink.lib.nvim')
-local config = require('blink.cmp.config').signature.window
+local function config() return require('blink.cmp.config').signature.window end
 local sources = require('blink.cmp.sources.lib')
 local menu = require('blink.cmp.completion.windows.menu')
 
 local signature = {
   win = require('blink.cmp.lib.window').new('signature', {
-    min_width = config.min_width,
-    max_width = config.max_width,
-    max_height = config.max_height,
+    min_width = config().min_width,
+    max_width = config().max_width,
+    max_height = config().max_height,
     default_border = 'padded',
-    border = config.border,
-    winblend = config.winblend,
-    winhighlight = config.winhighlight,
-    scrollbar = config.scrollbar,
+    border = config().border,
+    winblend = config().winblend,
+    winhighlight = config().winhighlight,
+    scrollbar = config().scrollbar,
     wrap = true,
     filetype = 'blink-cmp-signature',
   }),
@@ -59,9 +59,9 @@ function signature.open_with_signature_help(context, signature_help)
     require('blink.cmp.lib.window.docs').render_detail_and_documentation({
       bufnr = signature.win:get_buf(),
       detail = labels,
-      documentation = config.show_documentation and active_signature.documentation or nil,
-      max_width = config.max_width,
-      use_treesitter_highlighting = config.treesitter_highlighting,
+      documentation = config().show_documentation and active_signature.documentation or nil,
+      max_width = config().max_width,
+      use_treesitter_highlighting = config().treesitter_highlighting,
     })
   end
   signature.shown_signature = active_signature
@@ -131,7 +131,7 @@ function signature.update_position()
 
   local menu_winnr = menu.win:get_win()
   local menu_win_config = menu_winnr and nvim.win_get_config(menu_winnr)
-  local direction_priority = config.direction_priority
+  local direction_priority = config().direction_priority
 
   -- if the menu window is open, we want to place the signature window on the opposite side
   if menu.win:is_open() then
@@ -149,7 +149,7 @@ function signature.update_position()
     direction_priority = popupmenu_is_up and { 's' } or { 'n' }
   end
 
-  local pos = win:get_vertical_direction_and_height(direction_priority, config.max_height)
+  local pos = win:get_vertical_direction_and_height(direction_priority, config().max_height)
 
   -- couldn't find anywhere to place the window
   if not pos then
