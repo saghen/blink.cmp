@@ -38,6 +38,20 @@ nvim.create_autocmd({ 'CursorMovedI', 'WinScrolled', 'WinResized' }, {
   end,
 })
 
+--- @param labels string[]
+--- @param label string
+--- @return integer 0-indexed
+local function get_label_line(labels, label)
+  local docs = require('blink.cmp.lib.window.docs')
+
+  local line = 0
+  for _, other_label in ipairs(require('blink.lib').list.dedup(labels)) do
+    if other_label == label then break end
+    line = line + #docs.split_lines(other_label)
+  end
+  return line
+end
+
 --- @param context blink.cmp.SignatureHelpContext
 --- @param signature_help lsp.SignatureHelp
 function signature.open_with_signature_help(context, signature_help)
@@ -74,9 +88,11 @@ function signature.open_with_signature_help(context, signature_help)
     sources.get_signature_help_trigger_characters(mode).trigger_characters
   )
   if active_highlight ~= nil then
-    local start_line = active_highlight[1] - 1
+    local line_offset = get_label_line(labels, active_signature.label) - 1
+
+    local start_line = active_highlight[1] + line_offset
     local start_col = active_highlight[2]
-    local end_line = active_highlight[3] - 1
+    local end_line = active_highlight[3] + line_offset
     local end_col = active_highlight[4]
     nvim.buf_set_extmark(
       signature.win:get_buf(),

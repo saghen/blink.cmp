@@ -30,12 +30,21 @@
 --- @class blink.cmp.SignatureTriggerShowOpts
 --- @field trigger_character? string
 --- @field force? boolean
+--- @field is_manual? boolean
 
 local nvim = require('blink.lib.nvim')
 local root_config = require('blink.cmp.config')
 local function config() return root_config.signature.trigger end
 local utils = require('blink.cmp.lib.utils')
 local fuzzy = require('blink.cmp.fuzzy')
+
+--- `vim.lsp.protocol` doesn't expose this one
+--- @enum lsp.SignatureHelpTriggerKind
+local SignatureHelpTriggerKind = {
+  Invoked = 1,
+  TriggerCharacter = 2,
+  ContentChange = 3,
+}
 
 --- @type blink.cmp.SignatureTrigger
 --- @diagnostic disable-next-line: missing-fields
@@ -142,8 +151,9 @@ function trigger.show(opts)
     pos = pos,
     line = nvim.buf_get_lines(0, pos.row, pos.row + 1, false)[1] or '',
     trigger = {
-      kind = opts.trigger_character and vim.lsp.protocol.CompletionTriggerKind.TriggerCharacter
-        or vim.lsp.protocol.CompletionTriggerKind.Invoked,
+      kind = opts.is_manual and SignatureHelpTriggerKind.Invoked
+        or opts.trigger_character and SignatureHelpTriggerKind.TriggerCharacter
+        or SignatureHelpTriggerKind.ContentChange,
       character = opts.trigger_character,
     },
     is_retrigger = trigger.context ~= nil,
