@@ -97,7 +97,10 @@ local function resolve_with_timeout(ctx, item)
   return ok and resolved or item
 end
 
---- Runs the completion item's command, if any
+--- Runs the completion item's command
+---
+--- Client-side commands (`client.commands`, `vim.lsp.commands`) run synchronously,
+--- `workspace/executeCommand` is awaited
 --- @async
 --- @param ctx blink.cmp.Context
 --- @param item blink.cmp.CompletionItem
@@ -106,6 +109,14 @@ local function execute_command(ctx, item)
   if command == nil or command == vim.NIL or item.client_id == nil then return end
   local client = vim.lsp.get_client_by_id(item.client_id)
   if client == nil then return end
+
+  local provider = client.server_capabilities.executeCommandProvider
+  local server_commands = type(provider) == 'table' and provider.commands or {}
+  local is_client_command = client.commands[command.command] ~= nil or vim.lsp.commands[command.command] ~= nil
+  if is_client_command or not vim.list_contains(server_commands, command.command) then
+    client:exec_cmd(command, { bufnr = ctx.bufnr })
+    return
+  end
 
   async.await(function(callback)
     client:exec_cmd(command, { bufnr = ctx.bufnr }, function() callback() end)
