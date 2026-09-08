@@ -186,17 +186,8 @@ function trigger.is_trigger_character(char, is_show_on_x)
   -- ignore a-z and A-Z characters
   if char:match('%a') then return false end
 
-  local show_on_blocked_trigger_characters = type(config().show_on_blocked_trigger_characters) == 'function'
-      and config().show_on_blocked_trigger_characters()
-    or config().show_on_blocked_trigger_characters
-  --- @cast show_on_blocked_trigger_characters string[]
-  local show_on_x_blocked_trigger_characters = type(config().show_on_x_blocked_trigger_characters) == 'function'
-      and config().show_on_x_blocked_trigger_characters()
-    or config().show_on_x_blocked_trigger_characters
-  --- @cast show_on_x_blocked_trigger_characters string[]
-
-  local is_blocked = vim.tbl_contains(show_on_blocked_trigger_characters, char)
-    or (is_show_on_x and vim.tbl_contains(show_on_x_blocked_trigger_characters, char))
+  local is_blocked = vim.tbl_contains(config().show_on_blocked_trigger_characters, char)
+    or (is_show_on_x and vim.tbl_contains(config().show_on_x_blocked_trigger_characters, char))
 
   return is_trigger and not is_blocked
 end
