@@ -15,9 +15,9 @@ local utils = require('blink.cmp.keymap.utils')
 local keymap = {
   bufkey_prefix = 'blink_cmp_keymap_',
   ---@type table<blink.cmp.Mode, blink.cmp.KeymapList>
-  mappings = { default = {}, cmdline = {}, term = {} },
+  mappings = { default = {}, cmdline = {} },
   ---@type table<string, blink.cmp.Mode>
-  mode_map = { i = 'default', s = 'default', c = 'cmdline', t = 'term' },
+  mode_map = { i = 'default', s = 'default', c = 'cmdline' },
 }
 
 --- @return blink.cmp.KeymapContext?
@@ -125,13 +125,12 @@ function keymap.setup()
   keymap.mappings = {
     default = keymap.get_mappings(cfg.keymap, 'default'),
     cmdline = keymap.get_mappings(cfg.cmdline.keymap, 'cmdline'),
-    term = keymap.get_mappings(cfg.term.keymap, 'term'),
   }
 
   -- Ensure blink.cmp keymaps are (still) applied
   nvim.create_autocmd('ModeChanged', {
     group = nvim.create_augroup('BlinkCmpKeymap', { clear = true }),
-    pattern = { 'n:i', 'n:c', 'n:t', 'no:i', 'v:s', 'v:i', 'nt:c' },
+    pattern = { 'n:i', 'n:c', 'no:i', 'v:s', 'v:i', 'nt:c' },
     callback = vim.schedule_wrap(keymap.ensure_mappings),
   })
 
