@@ -3,18 +3,12 @@
 --- @field keymap blink.cmp.KeymapConfig
 --- @field completion blink.cmp.CompletionConfig
 --- @field fuzzy blink.cmp.FuzzyConfig
---- @field sources blink.cmp.SourceConfig
 --- @field signature blink.cmp.SignatureConfig
 --- @field snippets blink.cmp.SnippetsConfig
 --- @field appearance blink.cmp.AppearanceConfig
 --- @field cmdline blink.cmp.CmdlineConfig
---- @field term blink.cmp.TermConfig
 
 --- @class blink.cmp.CmdlineConfig
---- @field enabled boolean
---- @field keymap blink.cmp.KeymapConfig
-
---- @class blink.cmp.TermConfig
 --- @field enabled boolean
 --- @field keymap blink.cmp.KeymapConfig
 
@@ -24,7 +18,6 @@ local config = require('blink.lib.config').new({
   keymap = require('blink.cmp.config.keymap').get('default'),
   completion = require('blink.cmp.config.completion'),
   fuzzy = require('blink.cmp.config.fuzzy'),
-  sources = require('blink.cmp.config.sources'),
   signature = require('blink.cmp.config.signature'),
   snippets = require('blink.cmp.config.snippets'),
   appearance = require('blink.cmp.config.appearance'),
@@ -37,15 +30,10 @@ local config = require('blink.lib.config').new({
   cmdwin = {
     enabled = { true, 'boolean' },
   },
-  term = {
-    enabled = { true, 'boolean' },
-    keymap = require('blink.cmp.config.keymap').get('inherit'),
-  },
 }, { validate = false })
 
 -- cmdline override
 config.set({
-  sources = { default = { 'buffer', 'cmdline' } },
   completion = {
     trigger = { show_on_blocked_trigger_characters = {}, show_on_x_blocked_trigger_characters = {} },
     list = { selection = { preselect = true, auto_insert = true } },
@@ -53,20 +41,5 @@ config.set({
     ghost_text = { enabled = true },
   },
 }, { mode = 'cmdline', validate = false })
-
--- term override
-config.set({
-  sources = { default = {} },
-  completion = {
-    trigger = {
-      show_on_blocked_trigger_characters = {},
-    },
-    menu = {
-      draw = {
-        columns = { { 'label', 'label_description', gap = 1 } },
-      },
-    },
-  },
-}, { mode = 'terminal', validate = false })
 
 return config

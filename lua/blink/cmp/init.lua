@@ -17,11 +17,29 @@ local native = require('blink.lib.native.managed').new({
 --- @class blink.cmp.API
 local cmp = {}
 
+--- Configure blink.cmp specific options for LSPs: `cmp.lsp.config(name, opts)` and `cmp.lsp.enable(name, enable)`
+cmp.lsp = require('blink.cmp.lsp')
+
+--- Built-in in-process servers, enabled in `setup`. Engine servers are enabled when their engine is loaded.
+local builtin_servers = { 'blink_cmp_buffer', 'blink_cmp_path', 'blink_cmp_omnifunc' }
+local engine_servers = {
+  blink_cmp_luasnip = function() return package.loaded.luasnip ~= nil end,
+  blink_cmp_mini_snippets = function() return _G.MiniSnippets ~= nil end,
+  blink_cmp_vsnip = function() return vim.g.loaded_vsnip == 1 end,
+}
+
+--- Options removed in v2, rejected with a pointer to the upgrade guide
+local removed_options = {
+  sources = "in v2, completion sources are in-process LSP servers. Configure them with `vim.lsp.config(name, { settings })` and `require('blink.cmp').lsp.config(name, {...})`. A compatibility layer is coming soon in `blink.compat`",
+  term = 'terminal completion is not available yet in v2',
+}
+
 function cmp.is_enabled()
   local mode = vim.api.nvim_get_mode().mode
 
-  if mode == 'c' or vim.fn.getcmdwintype() ~= '' then return config.cmdline.enabled end
-  if mode == 't' then return config.term.enabled end
+  -- cmdline completion is wired to the in-process servers in the next commit, terminal completion
+  -- returns in a later version
+  if mode:sub(1, 1) == 'c' or mode:sub(1, 1) == 't' or vim.fn.getcmdwintype() ~= '' then return false end
 
   -- Disable in macros
   if vim.fn.reg_recording() ~= '' or vim.fn.reg_executing() ~= '' then return false end
@@ -31,10 +49,8 @@ function cmp.is_enabled()
   -- User explicitly ignores default conditions
   if user_enabled == 'force' then return true end
 
-  -- Buffer explicitly set completion to true, always enable
+  -- Buffer explicitly set completion to true/false
   if user_enabled and vim.b.completion == true then return true end
-
-  -- Buffer explicitly set completion to false, always disable
   if vim.b.completion == false then return false end
 
   -- Exceptions
@@ -43,26 +59,45 @@ function cmp.is_enabled()
   return user_enabled and vim.bo.buftype ~= 'prompt' and vim.b.completion ~= false
 end
 
+--- Applies the configuration, forwarding `opts.lsp` to `cmp.lsp.config` and `cmp.lsp.enable`
+--- @param opts blink.cmp.Config
+local function apply_config(opts)
+  -- per server policy
+  for name, lsp_opts in pairs(opts.lsp or {}) do
+    lsp_opts = lib.tbl.copy(lsp_opts)
+    if lsp_opts.enabled ~= nil then
+      cmp.lsp.enable(name, lsp_opts.enabled)
+      lsp_opts.enabled = nil
+    end
+    cmp.lsp.config(name, lsp_opts)
+  end
+  opts.lsp = nil
+
+  config.set(opts)
+end
+
 local has_setup = false
 --- Initializes blink.cmp with the given configuration
 --- @param opts? blink.cmp.Config
 function cmp.setup(opts)
-  if has_setup then return end
+  if has_setup then error("ran `require('blink.cmp').setup()` twice") end
   has_setup = true
 
   -- configuration
   opts = opts or {}
   ---@type blink.cmp.Config
   opts = lib.tbl.copy(opts)
+  for key, reason in pairs(removed_options) do
+    if vim.tbl_get(opts, unpack(vim.split(key, '.', { plain = true }))) ~= nil then
+      error(('[blink.cmp] %s. See UPGRADE.md'):format(key, reason))
+    end
+  end
+
   if opts.cmdline then
     config.set(lib.tbl.omit(opts.cmdline, { 'enabled', 'keymap' }), { mode = 'cmdline' })
     opts.cmdline = lib.tbl.pick(opts.cmdline, { 'enabled', 'keymap' })
   end
-  if opts.term then
-    config.set(lib.tbl.omit(opts.term, { 'enabled', 'keymap' }), { mode = 'terminal' })
-    opts.term = lib.tbl.pick(opts.term, { 'enabled', 'keymap' })
-  end
-  config.set(opts)
+  apply_config(opts)
 
   -- setup native library
   if config.fuzzy.implementation ~= 'lua' then
@@ -93,6 +128,46 @@ function cmp.setup(opts)
   require('blink.cmp.keymap').setup()
   require('blink.cmp.completion').setup()
   require('blink.cmp.signature').setup()
+  cmp.setup_builtin_lsps()
+end
+
+--- Enables the built-in in-process LSPs
+function cmp.setup_builtin_lsps()
+  vim.lsp.enable(builtin_servers)
+
+  local function enable_engine_servers()
+    for name, is_loaded in pairs(engine_servers) do
+      if is_loaded() and not vim.lsp.is_enabled(name) then vim.lsp.enable(name) end
+    end
+  end
+  enable_engine_servers()
+
+  --- @param bufnr integer
+  local function start_in_skipped_buffer(bufnr)
+    local buftype = vim.bo[bufnr].buftype
+    if buftype == '' or buftype == 'help' then return end
+
+    local names = vim.list_extend(vim.deepcopy(builtin_servers), vim.tbl_keys(engine_servers))
+    for _, name in ipairs(names) do
+      if vim.lsp.is_enabled(name) then
+        local server_config = vim.lsp.config[name]
+        local filetypes = server_config.filetypes
+        if filetypes == nil or vim.list_contains(filetypes, vim.bo[bufnr].filetype) then
+          -- reuses the running client when there is one
+          vim.lsp.start(server_config, { bufnr = bufnr })
+        end
+      end
+    end
+  end
+
+  vim.api.nvim_create_autocmd('InsertEnter', {
+    group = vim.api.nvim_create_augroup('BlinkCmpServers', { clear = true }),
+    callback = function(ev)
+      if not cmp.is_enabled() then return end
+      enable_engine_servers()
+      start_in_skipped_buffer(ev.buf)
+    end,
+  })
 end
 
 -------- Native Library --------
@@ -103,7 +178,7 @@ function cmp.library_available() return native:library_available() end
 
 --- Builds the native library if it's not already available
 --- @param opts? { force?: boolean, dev?: boolean }
---- @return blink.lib.Task
+--- @return vim.async.Task
 function cmp.build(opts)
   return native:build({ 'cargo', 'build', '--release' }, function(repo_root, platform)
     local target_dir = vim.uv.os_getenv('CARGO_TARGET_DIR') or repo_root .. '/target'
@@ -116,7 +191,7 @@ end
 
 --- Downloads the native library if it's not already available
 --- @param opts? { force?: boolean, match?: string }
---- @return blink.lib.Task
+--- @return vim.async.Task
 function cmp.download(opts)
   return native:download(
     function(git_tag, platform)
@@ -152,7 +227,7 @@ function cmp.is_ghost_text_visible() return require('blink.cmp.completion.window
 function cmp.is_documentation_visible() return require('blink.cmp.completion.windows.documentation').win:is_open() end
 
 --- @class blink.cmp.ShowOpts
---- @field providers? string[] List of providers to show
+--- @field lsp? string[] Optional custom list of LSPs to query
 --- @field initial_selected_item_idx? integer The index of the item to select initially
 --- @field callback? fun() Called after the menu is shown
 
@@ -163,11 +238,11 @@ function cmp.show(opts)
   opts = opts or {}
 
   if require('blink.cmp.completion.windows.menu').win:is_open() then
-    if not opts.providers then return false end
+    if not opts.lsp then return false end
 
-    -- Skip when passing the same list of providers
+    -- Skip when passing the same list of clients
     local ctx = require('blink.cmp.completion.list').context
-    if ctx and vim.deep_equal(ctx.providers, opts.providers) then return false end
+    if ctx and vim.deep_equal(ctx.lsp, opts.lsp) then return false end
   end
 
   require('blink.cmp.completion.windows.menu').force_auto_show()
@@ -189,7 +264,7 @@ function cmp.show(opts)
 
   context = require('blink.cmp.completion.trigger').show({
     force = true,
-    providers = opts and opts.providers,
+    lsp = opts.lsp,
     trigger_kind = 'manual',
     initial_selected_item_idx = opts.initial_selected_item_idx,
   })
@@ -466,36 +541,12 @@ end
 --- Ensures that blink.cmp will be notified last when a user adds a character
 function cmp.resubscribe() require('blink.cmp.completion.trigger').resubscribe() end
 
---- Tells the sources to reload a specific provider or all providers (when nil)
---- @param provider? string
-function cmp.reload(provider) require('blink.cmp.sources.lib').reload(provider) end
-
 --- Gets the capabilities to pass to the LSP client
 --- @param override? lsp.ClientCapabilities Overrides blink.cmp's default capabilities
 --- @param include_nvim_defaults? boolean Whether to include nvim's default capabilities
 --- @return lsp.ClientCapabilities
 function cmp.get_lsp_capabilities(override, include_nvim_defaults)
-  return require('blink.cmp.sources.lib').get_lsp_capabilities(override, include_nvim_defaults)
-end
-
---- Add a new source provider at runtime
---- Equivalent to adding the source via `sources.providers.<source_id> = <source_config>`
---- @param source_id string
---- @param source_config blink.cmp.SourceProviderConfig
-function cmp.add_source_provider(source_id, source_config)
-  assert(config.sources.providers[source_id] == nil, 'Provider with id ' .. source_id .. ' already exists')
-  config.sources.providers[source_id] = source_config
-end
-
---- Adds a source provider to the list of enabled sources for a given filetype
----
---- Equivalent to adding the source via `sources.per_filetype.<filetype> = { <source_id>, inherit_defaults = true }`
---- in the config, appending to the existing list.
---- If the user already has a source defined for the filetype, `inherit_defaults` will default to `false`.
---- @param filetype string
---- @param source_id string
-function cmp.add_filetype_source(filetype, source_id)
-  require('blink.cmp.sources.lib').add_filetype_provider_id(filetype, source_id)
+  return require('blink.cmp.lsp.capabilities')(override, include_nvim_defaults)
 end
 
 return cmp

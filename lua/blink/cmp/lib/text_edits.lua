@@ -13,10 +13,7 @@ function text_edits.apply(text_edit, additional_text_edits)
   additional_text_edits = additional_text_edits or {}
 
   local mode = context.get_mode()
-  assert(
-    lib.list.contains({ 'default', 'cmdline', 'cmdwin', 'term' }, mode),
-    'Unsupported mode for text edits: ' .. mode
-  )
+  assert(lib.list.contains({ 'default', 'cmdline', 'cmdwin' }, mode), 'Unsupported mode for text edits: ' .. mode)
 
   if mode == 'default' or mode == 'cmdwin' then
     -- writing to dot repeat may fail in command-line window
@@ -39,18 +36,6 @@ function text_edits.apply(text_edit, additional_text_edits)
     -- FIXME: for some reason, we have to set the cursor here, instead of later,
     -- because this will override the cursor position set later
     vim.fn.setcmdline(edited_line, text_edit.range.start.character + #text_edit.newText + 1)
-  end
-
-  -- TODO: apply dot repeat
-  if mode == 'term' then
-    assert(#additional_text_edits == 0, 'Terminal mode only supports one text edit. Contributions welcome!')
-
-    if vim.bo.channel and vim.bo.channel ~= 0 then
-      local n_replaced = utils.get_vim_pos_cursor(0).col - text_edit.range.start.character
-      local backspace_keycode = '\8'
-
-      vim.fn.chansend(vim.bo.channel, backspace_keycode:rep(n_replaced) .. text_edit.newText)
-    end
   end
 end
 

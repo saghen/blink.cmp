@@ -1,5 +1,4 @@
 local nvim = require('blink.lib.nvim')
-local task = require('blink.lib.task')
 local function config() return require('blink.cmp.config').completion.accept.auto_brackets end
 local lib_utils = require('blink.cmp.lib.utils')
 local utils = require('blink.cmp.completion.brackets.utils')
@@ -72,53 +71,51 @@ end
 --- @param ctx blink.cmp.Context
 --- @param filetype string
 --- @param item blink.cmp.CompletionItem
---- @return blink.lib.Task<boolean>
-function semantic.add_brackets_via_semantic_token(ctx, filetype, item)
-  return task.new(function(resolve)
-    if not utils.should_run_resolution(ctx, filetype, 'semantic_token') then return resolve(false) end
+--- @param callback fun(added?: boolean)
+function semantic.add_brackets_via_semantic_token(ctx, filetype, item, callback)
+  if not utils.should_run_resolution(ctx, filetype, 'semantic_token') then return callback(false) end
 
-    assert(item.textEdit ~= nil, 'Got nil text edit while adding brackets via semantic tokens')
-    assert(item.client_id ~= nil, 'Got nil client_id while adding brackets via semantic tokens')
-    local client = vim.lsp.get_client_by_id(item.client_id)
-    if client == nil then return resolve() end
+  assert(item.textEdit ~= nil, 'Got nil text edit while adding brackets via semantic tokens')
+  assert(item.client_id ~= nil, 'Got nil client_id while adding brackets via semantic tokens')
+  local client = vim.lsp.get_client_by_id(item.client_id)
+  if client == nil then return callback() end
 
-    local capabilities = client.server_capabilities and client.server_capabilities.semanticTokensProvider
-    if not capabilities or not capabilities.legend or (not capabilities.range and not capabilities.full) then
-      return resolve(false)
-    end
+  local capabilities = client.server_capabilities and client.server_capabilities.semanticTokensProvider
+  if not capabilities or not capabilities.legend or (not capabilities.range and not capabilities.full) then
+    return callback(false)
+  end
 
-    local highlighter = vim.lsp.semantic_tokens.__STHighlighter.active[ctx.bufnr]
-    if highlighter == nil then return resolve(false) end
+  local highlighter = vim.lsp.semantic_tokens.__STHighlighter.active[ctx.bufnr]
+  if highlighter == nil then return callback(false) end
 
-    semantic.timer:stop()
-    local pos = lib_utils.get_vim_pos_cursor(0)
-    semantic.request = {
-      pos = pos,
-      filetype = filetype,
-      item = item,
-      callback = resolve,
-    } --[[@as blink.cmp.SemanticRequest]]
+  semantic.timer:stop()
+  local pos = lib_utils.get_vim_pos_cursor(0)
+  semantic.request = {
+    pos = pos,
+    filetype = filetype,
+    item = item,
+    callback = callback,
+  } --[[@as blink.cmp.SemanticRequest]]
 
-    -- semantic tokens debounced, so manually request a refresh to avoid latency
-    highlighter:send_request(client.id)
+  -- semantic tokens debounced, so manually request a refresh to avoid latency
+  highlighter:send_request(client.id)
 
-    -- First check if a current semantic token already exists at the cursor position.
-    -- We get the token 1 character before the cursor (`bar|` would check `r`).
-    -- Ignore cached tokens from an older document version.
-    local current_result = highlighter.client_state[client.id].current_result
-    if current_result.version == vim.lsp.util.buf_versions[ctx.bufnr] then
-      local tokens = vim.lsp.semantic_tokens.get_at_pos(0, pos.row, pos.col - 1)
-      if tokens ~= nil then semantic.process_request(tokens) end
-    end
+  -- First check if a current semantic token already exists at the cursor position.
+  -- We get the token 1 character before the cursor (`bar|` would check `r`).
+  -- Ignore cached tokens from an older document version.
+  local current_result = highlighter.client_state[client.id].current_result
+  if current_result.version == vim.lsp.util.buf_versions[ctx.bufnr] then
+    local tokens = vim.lsp.semantic_tokens.get_at_pos(0, pos.row, pos.col - 1)
+    if tokens ~= nil then semantic.process_request(tokens) end
+  end
 
-    if semantic.request == nil then
-      -- a matching token exists, and brackets were added
-      return resolve(true)
-    end
+  if semantic.request == nil then
+    -- a matching token exists, and brackets were added
+    return callback(true)
+  end
 
-    -- listen for LspTokenUpdate events until timeout
-    semantic.timer:start(config().semantic_token_resolution.timeout_ms, 0, semantic.finish_request)
-  end) --[[@as blink.lib.Task<boolean>]]
+  -- listen for LspTokenUpdate events until timeout
+  semantic.timer:start(config().semantic_token_resolution.timeout_ms, 0, vim.schedule_wrap(semantic.finish_request))
 end
 
 return semantic.add_brackets_via_semantic_token

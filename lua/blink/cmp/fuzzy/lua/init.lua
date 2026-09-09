@@ -53,7 +53,7 @@ function fuzzy.fuzzy(line, cursor_col, provider_ids, opts)
       local score, exact = match(keyword, item.filterText or item.label)
 
       if score ~= nil then
-        score = score + (item.score_offset or 0)
+        score = score + (item.blink and item.blink.score_offset or 0)
         if item.kind == require('blink.cmp.types').CompletionItemKind.Snippet then
           score = score + opts.snippet_score_offset
         end

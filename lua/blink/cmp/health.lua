@@ -1,5 +1,14 @@
 local health = {}
 
+local builtin_servers = {
+  'blink_cmp_buffer',
+  'blink_cmp_path',
+  'blink_cmp_omnifunc',
+  'blink_cmp_luasnip',
+  'blink_cmp_mini_snippets',
+  'blink_cmp_vsnip',
+}
+
 function health.report_system()
   vim.health.start('System')
 
@@ -30,53 +39,37 @@ function health.report_system()
   end
 end
 
-function health.report_sources()
-  vim.health.start('Sources')
+function health.report_servers()
+  vim.health.start('In-process servers')
+  vim.health.info('Servers attach through `vim.lsp.enable`, see `:checkhealth vim.lsp` and `:lsp restart <name>`')
 
-  local sources = require('blink.cmp.sources.lib')
-
-  local all_providers = sources.get_all_providers()
-  local default_providers = sources.get_enabled_provider_ids('default')
-  local cmdline_providers = sources.get_enabled_provider_ids('cmdline')
-
-  local bufnr = vim.api.nvim_create_buf(false, true)
-  vim.bo[bufnr].filetype = 'checkhealth'
-
-  vim.health.warn('Some providers may show up as "disabled" but are enabled dynamically (e.g. cmdline)')
-
-  --- @type string[]
-  local disabled_providers = {}
-  for provider_id, _ in pairs(all_providers) do
-    if
-      not vim.list_contains(default_providers, provider_id) and not vim.list_contains(cmdline_providers, provider_id)
-    then
-      table.insert(disabled_providers, provider_id)
-    end
+  for _, name in ipairs(builtin_servers) do
+    local enabled = vim.lsp.is_enabled(name)
+    local clients = vim.lsp.get_clients({ name = name })
+    local report = enabled and vim.health.ok or vim.health.info
+    report(('%s: %s, %d running client(s)'):format(name, enabled and 'enabled' or 'disabled', #clients))
   end
 
-  health.report_sources_list('Default sources', default_providers)
-  health.report_sources_list('Cmdline sources', cmdline_providers)
-  health.report_sources_list('Disabled sources', disabled_providers)
+  local attached = vim.tbl_map(
+    function(client) return client.name end,
+    vim.lsp.get_clients({ bufnr = 0, method = 'textDocument/completion' })
+  )
+  vim.health.info(
+    'Completion clients attached to the current buffer: ' .. (#attached > 0 and table.concat(attached, ', ') or 'none')
+  )
 end
 
---- @param header string
---- @param provider_ids string[]
-function health.report_sources_list(header, provider_ids)
-  if #provider_ids == 0 then return end
-
-  vim.health.start(header)
-  local all_providers = require('blink.cmp.sources.lib').get_all_providers()
-  for _, provider_id in ipairs(provider_ids) do
-    ---@type blink.cmp.SourceProvider
-    ---@diagnostic disable-next-line: undefined-field
-    local source_provider = all_providers[provider_id]
-    vim.health.info(('%s (%s)'):format(provider_id, source_provider.config.module))
-  end
+function health.report_async()
+  if type(vim.async._inspect_tree) ~= 'function' then return end
+  vim.health.start('Async tasks')
+  local tree = vim.async._inspect_tree()
+  vim.health.info(tree ~= '' and tree or 'No running tasks')
 end
 
 function health.check()
   health.report_system()
-  health.report_sources()
+  health.report_servers()
+  health.report_async()
 end
 
 return health

@@ -15,7 +15,7 @@ local nvim = require('blink.lib.nvim')
 local function config() return require('blink.cmp.config').completion.documentation end
 
 local logger = require('blink.cmp.logger')
-local sources = require('blink.cmp.sources.lib')
+local lsp = require('blink.cmp.lsp.completion')
 local menu = require('blink.cmp.completion.windows.menu')
 
 --- @type blink.cmp.CompletionDocumentationWindow
@@ -60,56 +60,57 @@ function docs.show_item(context, item)
 
   -- TODO: cancellation
   -- TODO: only resolve if documentation does not exist
-  sources
-    .resolve(context, item)
-    :map(function(resolved_item)
-      ---@cast resolved_item blink.cmp.CompletionItem
-      local valid_documentation = type(resolved_item.documentation) == 'table'
-        or type(resolved_item.documentation) == 'string'
-      local valid_detail = type(resolved_item.detail) == 'string'
+  lsp.resolve(context, item):on_complete(function(err, resolved_item)
+    if err ~= nil then
+      if err ~= 'closed' then logger:notify(vim.log.levels.ERROR, tostring(err)) end
+      return
+    end
+    ---@cast resolved_item blink.cmp.CompletionItem
+    local valid_documentation = type(resolved_item.documentation) == 'table'
+      or type(resolved_item.documentation) == 'string'
+    local valid_detail = type(resolved_item.detail) == 'string'
 
-      if not valid_documentation and not valid_detail then
-        docs.close()
-        return
-      end
+    if not valid_documentation and not valid_detail then
+      docs.close()
+      return
+    end
 
-      if docs.shown_item ~= resolved_item then
-        local docs_buf = docs.win:get_buf()
-        --- @type blink.cmp.RenderDetailAndDocumentationOpts
-        local default_render_opts = {
-          bufnr = docs_buf,
-          detail = resolved_item.detail,
-          documentation = resolved_item.documentation,
-          max_width = docs.win.config.max_width or docs.win:get_content_width(),
-          use_treesitter_highlighting = config().treesitter_highlighting,
-        }
-        -- allow the provider to override the drawing optionally
-        -- TODO: should the default_implementation be the configured draw function instead of the built-in?
-        local draw = type(resolved_item.documentation) == 'table' and resolved_item.documentation.draw or config().draw
+    if docs.shown_item ~= resolved_item then
+      local docs_buf = docs.win:get_buf()
+      --- @type blink.cmp.RenderDetailAndDocumentationOpts
+      local default_render_opts = {
+        bufnr = docs_buf,
+        detail = resolved_item.detail,
+        documentation = resolved_item.documentation,
+        max_width = docs.win.config.max_width or docs.win:get_content_width(),
+        use_treesitter_highlighting = config().treesitter_highlighting,
+      }
+      -- allow the provider to override the drawing optionally
+      -- TODO: should the default_implementation be the configured draw function instead of the built-in?
+      local draw = type(resolved_item.documentation) == 'table' and resolved_item.documentation.draw or config().draw
 
-        nvim.set_option_value('modifiable', true, { buf = docs_buf })
-        draw({
-          item = resolved_item,
-          window = docs.win,
-          config = config(),
-          default_implementation = function(opts)
-            opts = opts or {}
-            ---@type blink.cmp.RenderDetailAndDocumentationOpts
-            opts = vim.tbl_extend('force', default_render_opts, opts)
-            require('blink.cmp.lib.window.docs').render_detail_and_documentation(opts)
-          end,
-        })
-        nvim.set_option_value('modifiable', false, { buf = docs_buf })
-      end
-      docs.shown_item = resolved_item
+      nvim.set_option_value('modifiable', true, { buf = docs_buf })
+      draw({
+        item = resolved_item,
+        window = docs.win,
+        config = config(),
+        default_implementation = function(opts)
+          opts = opts or {}
+          ---@type blink.cmp.RenderDetailAndDocumentationOpts
+          opts = vim.tbl_extend('force', default_render_opts, opts)
+          require('blink.cmp.lib.window.docs').render_detail_and_documentation(opts)
+        end,
+      })
+      nvim.set_option_value('modifiable', false, { buf = docs_buf })
+    end
+    docs.shown_item = resolved_item
 
-      if menu.win:get_win() then
-        docs.win:open()
-        docs.win:set_cursor({ 1, 0 }) -- reset scroll
-        docs.update_position()
-      end
-    end)
-    :catch(function(err) logger:notify(vim.log.levels.ERROR, tostring(err)) end)
+    if menu.win:get_win() then
+      docs.win:open()
+      docs.win:set_cursor({ 1, 0 }) -- reset scroll
+      docs.update_position()
+    end
+  end)
 end
 
 -- TODO: compensate for wrapped lines

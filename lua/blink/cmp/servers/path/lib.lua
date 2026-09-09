@@ -1,0 +1,277 @@
+local regex = require('blink.cmp.servers.path.regex')
+local lib = require('blink.lib')
+
+local path_lib = {}
+
+--- @param opts blink.cmp.PathSettings
+--- @param bufnr integer
+--- @param line_before_cursor string
+function path_lib.dirname(opts, bufnr, line_before_cursor)
+  local s = regex.PATH:match_str(line_before_cursor)
+  if not s then return nil end
+
+  local dirname = string.gsub(string.sub(line_before_cursor, s + 2), regex.NAME .. '*$', '') -- exclude '/'
+  local prefix = string.sub(line_before_cursor, 1, s + 1) -- include '/'
+
+  local buf_dirname = opts.get_cwd(bufnr)
+  if prefix:match('%.%./$') then return vim.fn.resolve(buf_dirname .. '/../' .. dirname) end
+  if prefix:match('%./$') or prefix:match('"$') or prefix:match("'$") then
+    return vim.fn.resolve(buf_dirname .. '/' .. dirname)
+  end
+  if prefix:match('~/$') then return vim.fn.resolve(vim.fn.expand('~') .. '/' .. dirname) end
+  local env_var_name = prefix:match('%${([%w_]+)}/$') or prefix:match('%$([%w_]+)/$')
+  if env_var_name then
+    local env_var_value = vim.fn.getenv(env_var_name)
+    if env_var_value ~= vim.NIL then return vim.fn.resolve(env_var_value .. '/' .. dirname) end
+  end
+  if prefix:match('/$') then
+    local accept = true
+    -- Ignore URL components
+    accept = accept and not prefix:match('%a/$')
+    -- Ignore URL scheme
+    accept = accept and not prefix:match('%a+:/$') and not prefix:match('%a+://$')
+    -- Ignore HTML closing tags
+    accept = accept and not prefix:match('</$')
+    -- Ignore math calculation
+    accept = accept and not prefix:match('[%d%)]%s*/$')
+    -- Ignore / comment
+    accept = accept and (not prefix:match('^[%s/]*$') or not path_lib.is_slash_comment(bufnr))
+    if accept then
+      if opts.ignore_root_slash then
+        return vim.fn.resolve(buf_dirname .. '/' .. dirname)
+      else
+        return vim.fn.resolve('/' .. dirname)
+      end
+    end
+  end
+  -- Windows drive letter (C:/)
+  if prefix:match('(%a:)[/\\]$') then return vim.fn.resolve(prefix:match('(%a:)[/\\]$') .. '/' .. dirname) end
+  return nil
+end
+
+--- @async
+--- @param dirname string
+--- @param include_hidden boolean
+--- @param ranges { file: lsp.Range, directory: lsp.Range }
+--- @param opts blink.cmp.PathSettings
+--- @return blink.cmp.CompletionItem[]
+function path_lib.candidates(dirname, include_hidden, ranges, opts)
+  local entries = require('blink.lib.fs').list_dir(dirname, opts.max_entries)
+  vim.async.await(vim.schedule)
+
+  return lib.list.filter_map(entries, function(entry)
+    if include_hidden or entry.name:sub(1, 1) ~= '.' then
+      local kind = entry.type == 'directory' and ranges.directory or ranges.file
+      return path_lib.entry_to_completion_item(entry, dirname, kind, opts)
+    end
+  end)
+end
+
+--- @param bufnr integer
+function path_lib.is_slash_comment(bufnr)
+  local commentstring = vim.bo[bufnr].commentstring or ''
+  local no_filetype = vim.bo[bufnr].filetype == ''
+  local is_slash_comment = commentstring:match('/%*') ~= nil
+  is_slash_comment = is_slash_comment or commentstring:match('//') ~= nil
+  return is_slash_comment and not no_filetype
+end
+
+--- @param entry { name: string, type: string, stat: table }
+--- @param dirname string
+--- @param range lsp.Range
+--- @param opts blink.cmp.PathSettings
+--- @return blink.cmp.CompletionItem
+function path_lib.entry_to_completion_item(entry, dirname, range, opts)
+  local is_dir = entry.type == 'directory'
+  local CompletionItemKind = require('blink.cmp.types').CompletionItemKind
+  local insert_text = is_dir and opts.trailing_slash and entry.name .. '/' or entry.name
+
+  return {
+    label = opts.label_trailing_slash and is_dir and entry.name .. '/' or entry.name,
+    kind = is_dir and CompletionItemKind.Folder or CompletionItemKind.File,
+    insertText = insert_text,
+    textEdit = { newText = insert_text, range = range },
+    sortText = (is_dir and '1' or '2') .. entry.name:lower(), -- Sort directories before files
+    data = { path = entry.name, full_path = dirname .. '/' .. entry.name, type = entry.type },
+  } --[[@as blink.cmp.CompletionItem]]
+end
+
+--- @param line string
+--- @param row integer
+--- @param col integer
+--- @return { file: lsp.Range, directory: lsp.Range }
+function path_lib.get_text_edit_ranges(line, row, col)
+  local line_before_cursor = line:sub(1, col)
+  local next_letter_is_slash = line:sub(col + 1, col + 1) == '/'
+
+  local last_part_idx = path_lib.get_last_path_part(line_before_cursor)
+
+  -- TODO: return the insert and replace ranges, instead of only the insert range
+  return {
+    file = {
+      start = { line = row, character = last_part_idx - 1 },
+      ['end'] = { line = row, character = col },
+    },
+    directory = {
+      start = { line = row, character = last_part_idx - 1 },
+      -- replace the slash after the cursor, if it exists
+      ['end'] = { line = row, character = col + (next_letter_is_slash and 1 or 0) },
+    },
+  }
+end
+
+--- @param path string
+--- @return integer
+function path_lib.get_last_path_part(path)
+  local i = #path
+  local start_pos = 1
+  while i > 0 do
+    local char = path:sub(i, i)
+
+    -- Forward slash (linux/mac delimiter)
+    if char == '/' then
+      start_pos = i + 1
+      break
+
+    -- Backslash (windows delimiter or escape sequence)
+    elseif char == '\\' then
+      if i ~= #path then
+        -- if the next character is a special character, it's likely
+        -- an escape sequence
+        local next_char = path:sub(i + 1, i + 1)
+        if not next_char:match('[ "\'`$&*(){}[]|;:<>?]') then
+          start_pos = i + 1
+          break
+        end
+      else
+        start_pos = i + 1
+        break
+      end
+    end
+
+    i = i - 1
+  end
+
+  return start_pos
+end
+
+--- Get the basename of a path, preserving trailing separator for directories.
+---@param path string
+---@return string
+function path_lib.basename_with_sep(path)
+  local sep = package.config:sub(1, 1)
+  local last_char = path:sub(-1)
+  -- on Windows, both '/' and '\\' are accepted as path separators
+  local is_dir = last_char == '/' or last_char == '\\'
+  local basename = vim.fs.basename(is_dir and path:sub(1, -2) or path)
+  if is_dir then basename = basename .. sep end
+  return basename
+end
+
+--- Splits a string on spaces, but only when the space is not escaped by a backslash.
+-- For example: 'foo bar\ baz' -> { 'foo', 'bar\ baz' }
+---@param str string
+---@return table
+function path_lib:split_unescaped(str)
+  local result, current, escaping = {}, '', false
+  for i = 1, #str do
+    local c = str:sub(i, i)
+    if c == '\\' and not escaping then
+      escaping = true
+      current = current .. c
+    elseif c == ' ' and not escaping then
+      table.insert(result, current)
+      current = ''
+    else
+      current = current .. c
+      escaping = false
+    end
+  end
+  table.insert(result, current)
+  return result
+end
+
+--- Given a list of file paths, compute the shortest unique suffix for each
+--- For example: 'foo/src/mod.rs', 'foo/test/mod.rs', 'foo/src/bar.rs'
+--- Returns:     'src/mod.rs',     'test/mod.rs',     'bar.rs'
+--- @param paths string[]
+--- @return table<string, string> -- <path, unique_prefix>
+function path_lib:compute_unique_suffixes(paths)
+  local is_windows = vim.fn.has('win32') == 1
+  local sep = is_windows and '\\' or '/'
+  if is_windows then paths = vim.tbl_map(function(path) return (path:gsub('/', '\\')) end, paths) end
+
+  -- if not enough paths, return as is
+  local n = #paths
+  if n <= 1 then
+    local result = {}
+    if n == 1 then result[paths[1]] = paths[1] end
+    return result
+  end
+
+  -- reverse the paths and sort so that similar suffixes are adjacent
+  local reversed_paths = {} ---@type string[]
+  local original_to_reversed = {} ---@type table<string, string>
+  for i = 1, n do
+    local path = assert(paths[i])
+    local rev = path:reverse()
+    table.insert(reversed_paths, rev)
+    original_to_reversed[path] = rev
+  end
+  table.sort(reversed_paths)
+
+  -- find minimum suffix length for each path
+  local min_lengths = {} ---@type table<string, integer>
+  for i = 1, n do
+    local rev = assert(reversed_paths[i])
+    local max_common = 0
+
+    -- check previous neighbor
+    if i > 1 then
+      local prev = assert(reversed_paths[i - 1])
+      local common = 0
+      local min_len = math.min(#rev, #prev)
+      while common < min_len and rev:byte(common + 1) == prev:byte(common + 1) do
+        common = common + 1
+      end
+      max_common = math.max(max_common, common)
+    end
+
+    -- check next neighbor
+    if i < n then
+      local next = assert(reversed_paths[i + 1])
+      local common = 0
+      local min_len = math.min(#rev, #next)
+      while common < min_len and rev:byte(common + 1) == next:byte(common + 1) do
+        common = common + 1
+      end
+      max_common = math.max(max_common, common)
+    end
+
+    -- find the next separator after the common part
+    local suffix_start = max_common + 1
+    while suffix_start < #rev do
+      suffix_start = suffix_start + 1
+      if rev:byte(suffix_start) == sep:byte() then
+        suffix_start = suffix_start - 1
+        break
+      end
+    end
+
+    min_lengths[rev] = suffix_start
+  end
+
+  -- build mapping of original_str -> unique_suffix_str
+  local result = {}
+  for i = 1, n do
+    local path = assert(paths[i])
+    local rev = original_to_reversed[path]
+    local suffix_len = min_lengths[rev]
+
+    result[path] = suffix_len > #path and path or path:sub(#path - suffix_len + 1)
+  end
+
+  return result
+end
+
+return path_lib

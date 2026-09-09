@@ -8,7 +8,7 @@ local function preview(item)
   local text_edit = text_edits_lib.get_from_item(item)
 
   if item.insertTextFormat == vim.lsp.protocol.InsertTextFormat.Snippet then
-    local expanded_snippet = require('blink.cmp.sources.snippets.utils').safe_parse(text_edit.newText)
+    local expanded_snippet = require('blink.cmp.snippet.utils').safe_parse(text_edit.newText)
     local snippet = expanded_snippet and tostring(expanded_snippet) or text_edit.newText
     local get_prefix_before_brackets_and_quotes = require('blink.cmp.completion.accept.prefix')
     text_edit.newText = get_prefix_before_brackets_and_quotes(snippet)

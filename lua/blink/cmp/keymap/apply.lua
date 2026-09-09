@@ -105,10 +105,6 @@ local keymaps_per_mode = {
     -- cmdline mode: uses only insert commands
     set_keymaps_for_mode('c', keys_to_commands, apply.has_insert_command, function(command) return not vim.tbl_contains(snippet_commands, command) end)
   end,
-  term = function(keys_to_commands)
-    -- terminal mode: uses only insert commands
-    set_keymaps_for_mode('t', keys_to_commands, apply.has_insert_command, function(command) return not vim.tbl_contains(snippet_commands, command) end)
-  end,
 }
 
 --- @param commands blink.cmp.KeymapCommand[]

@@ -110,15 +110,10 @@ function menu.open_loading(context)
       documentation = '',
 
       kind = require('blink.cmp.types').CompletionItemKind.Function,
-      kind_name = '',
-      kind_icon = '󰒡',
-      kind_hl = '',
+      blink = { kind_name = '', kind_icon = '󰒡', kind_hl = '' },
 
-      source_id = '',
-      source_name = '',
       pos = nil,
       score = 0,
-      score_offset = 0,
       client_id = 0,
       client_name = '',
     },

@@ -40,7 +40,7 @@ pub struct LspItem {
     pub insert_text: Option<String>,
     pub kind: u32,
     pub score_offset: i32,
-    pub source_id: String,
+    pub client_name: String,
 }
 
 impl Into<Hash> for &LspItem {
@@ -48,7 +48,7 @@ impl Into<Hash> for &LspItem {
         blake3::Hasher::new()
             .update(&self.label.as_bytes())
             .update(&[self.kind as u8])
-            .update(&self.source_id.as_bytes())
+            .update(&self.client_name.as_bytes())
             .finalize()
     }
 }
@@ -75,8 +75,12 @@ impl FromLua for LspItem {
                 .or_else(|| tab.get::<mlua::String>("insertText").ok())
                 .map(|s| s.to_string_lossy());
             let kind = tab.get("kind").unwrap_or_default();
-            let score_offset = tab.get("score_offset").unwrap_or(0);
-            let source_id = tab.get("source_id").unwrap_or_default();
+            // client-side extensions live under `item.blink`
+            let score_offset = tab
+                .get::<LuaTable>("blink")
+                .and_then(|blink| blink.get::<i32>("score_offset"))
+                .unwrap_or(0);
+            let client_name = tab.get("client_name").unwrap_or_default();
 
             Ok(LspItem {
                 label,
@@ -85,7 +89,7 @@ impl FromLua for LspItem {
                 insert_text,
                 kind,
                 score_offset,
-                source_id,
+                client_name,
             })
         } else {
             Err(mlua::Error::FromLuaConversionError {
