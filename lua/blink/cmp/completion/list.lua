@@ -166,16 +166,13 @@ function list.fuzzy(ctx, items_by_client, clients)
   local line = ctx.get_line()
   local col = ctx.get_pos().col
 
-  -- Range prefixes in cmdline/cmdwin are not part of the keyword used for filtering
-  -- TODO: Remove when #657 is implemented
-  if ctx.mode == 'cmdline' or ctx.mode == 'cmdwin' then
-    local cmdline_utils = require('blink.cmp.sources.cmdline.utils')
-    if cmdline_utils.get_completion_type(ctx) == 'command' then
-      local range_prefix = cmdline_utils.get_range_prefix(line)
-      if range_prefix and #line > #range_prefix then
-        -- Preserve byte offsets while keeping the range out of the fuzzy matching keyword
-        line = string.rep(' ', #range_prefix) .. line:sub(#range_prefix + 1)
-      end
+  -- Command ranges (`:'<,'>s`, `:%s`, `:5,10d`) are not part of the keyword used for filtering
+  -- TODO: remove when matching on the item's edit range (#657)
+  if ctx.mode == 'cmdline' and vim.fn.getcmdcompltype() == 'command' then
+    local range_prefix = require('blink.cmp.servers.cmdline.utils').get_range_prefix(line)
+    if range_prefix and #line > #range_prefix then
+      -- Preserve byte offsets while keeping the range out of the fuzzy matching keyword
+      line = string.rep(' ', #range_prefix) .. line:sub(#range_prefix + 1)
     end
   end
 

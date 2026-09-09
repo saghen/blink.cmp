@@ -10,7 +10,7 @@
 --- @class blink.cmp.lsp
 local M = {}
 
---- @alias blink.cmp.Mode 'cmdline' | 'cmdwin' | 'default'
+--- @alias blink.cmp.Mode 'default' | 'cmdline'
 
 --- @class blink.cmp.LspFilter
 --- @field bufnr? integer
@@ -218,5 +218,18 @@ function M.is_enabled(name, filter)
 
   return true
 end
+
+-- In cmdline, servers are opt in
+M.enable('*', false, { mode = 'cmdline' })
+M.enable(
+  'blink_cmp_buffer',
+  function() return vim.list_contains({ '/', '?' }, vim.fn.getcmdtype()) end,
+  { mode = 'cmdline' }
+)
+M.enable(
+  'blink_cmp_cmdline',
+  function() return vim.list_contains({ ':', '@' }, vim.fn.getcmdtype()) end,
+  { mode = 'cmdline' }
+)
 
 return M
