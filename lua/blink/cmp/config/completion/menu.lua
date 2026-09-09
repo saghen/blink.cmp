@@ -61,7 +61,7 @@ return {
     cursorline_priority = { 10000, 'number' },
     -- Appends an indicator to snippets label, `'~'` by default
     snippet_indicator = { '~', 'string' },
-    -- Use treesitter to highlight the label text of completions from these sources
+    -- Use treesitter to highlight the label text of completions from these clients (names, or `'*'` for all)
     treesitter = { {}, config.types.list('string') },
     -- Components to render, grouped by column
     columns = {
@@ -102,7 +102,10 @@ return {
               table.insert(highlights, { #label, #label + #ctx.label_detail, group = 'BlinkCmpLabelDetail' })
             end
 
-            if vim.list_contains(ctx.self.treesitter, ctx.source_id) and not ctx.deprecated then
+            if
+              (vim.list_contains(ctx.self.treesitter, '*') or vim.list_contains(ctx.self.treesitter, ctx.client_name))
+              and not ctx.deprecated
+            then
               -- add treesitter highlights
               vim.list_extend(highlights, require('blink.cmp.completion.windows.render.treesitter').highlight(ctx))
             end
@@ -122,15 +125,9 @@ return {
           highlight = 'BlinkCmpLabelDescription',
         },
 
-        source_name = {
+        client_name = {
           width = { max = 30 },
-          text = function(ctx) return ctx.source_name end,
-          highlight = 'BlinkCmpSource',
-        },
-
-        source_id = {
-          width = { max = 30 },
-          text = function(ctx) return ctx.source_id end,
+          text = function(ctx) return ctx.client_name or '' end,
           highlight = 'BlinkCmpSource',
         },
       },
