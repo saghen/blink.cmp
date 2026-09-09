@@ -1,5 +1,23 @@
 # Command line (cmdline)
 
+The command line has no buffer, so blink keeps a hidden mirror buffer (`blink://cmdline`, filetype `blink-cmdline`) in sync with the text you type. Servers attach to it like to any other buffer, and the completion pipeline is the same one used in insert mode. Two built-in servers do the work:
+
+- `blink_cmp_cmdline` completes commands, their arguments and `input()` prompts (`:` and `@`) from nvim's own completion (`getcompletion()`)
+- `blink_cmp_buffer` completes words from the current buffer while searching (`/` and `?`)
+
+Every other server is disabled while editing the command line. Enable one there with:
+
+```lua
+require('blink.cmp').lsp.enable('blink_cmp_path', true, { mode = 'cmdline' })
+```
+
+An LSP server attaches to the mirror like to any other buffer, so it also needs the filetype. For `vimls` on `:` commands:
+
+```lua
+vim.lsp.config('vimls', { filetypes = { 'vim', 'blink-cmdline' } })
+require('blink.cmp').lsp.enable('vimls', function() return vim.fn.getcmdtype() == ':' end, { mode = 'cmdline' })
+```
+
 ::: info
 If you want cmdline's behavior to match the default mode, try the following config:
 
@@ -82,17 +100,15 @@ cmdline = {
     ['<CR>'] = { 'accept_and_enter', 'fallback' },
   },
   -- (optionally) automatically show the menu
-  completion = { menu = { auto_show = true } }
-},
-sources = {
-  providers = {
-    cmdline = {
+  completion = { menu = { auto_show = true } },
+  lsp = {
+    blink_cmp_cmdline = {
       min_keyword_length = function(ctx)
         -- when typing a command, only show when the keyword is 3 characters or longer
-        if ctx.mode == 'cmdline' and string.find(ctx.line, ' ') == nil then return 3 end
+        if string.find(ctx.line, ' ') == nil then return 3 end
         return 0
-      end
-    }
-  }
+      end,
+    },
+  },
 }
 ```

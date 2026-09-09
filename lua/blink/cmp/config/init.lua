@@ -1,5 +1,5 @@
 --- @class (exact) blink.cmp.ConfigStrict
---- @field enabled fun(): boolean | 'force' Enables keymaps, completions and signature help when true (doesn't apply to cmdline or term). If the function returns 'force', the default conditions for disabling the plugin will be ignored
+--- @field enabled fun(): boolean | 'force' Enables keymaps, completions and signature help when true (doesn't apply to cmdline). If the function returns 'force', the default conditions for disabling the plugin will be ignored
 --- @field keymap blink.cmp.KeymapConfig
 --- @field completion blink.cmp.CompletionConfig
 --- @field fuzzy blink.cmp.FuzzyConfig
@@ -26,9 +26,6 @@ local config = require('blink.lib.config').new({
   cmdline = {
     enabled = { true, 'boolean' },
     keymap = require('blink.cmp.config.keymap').get('cmdline'),
-  },
-  cmdwin = {
-    enabled = { true, 'boolean' },
   },
 }, { validate = false })
 

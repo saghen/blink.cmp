@@ -18,8 +18,7 @@ local function apply_item(ctx, item)
 
   -- Create an undo point, if it's not a snippet, since the snippet engine should handle undo
   if
-    ctx.mode == 'default'
-    and require('blink.cmp.config').completion.accept.create_undo_point
+    require('blink.cmp.config').completion.accept.create_undo_point
     and item.insertTextFormat ~= vim.lsp.protocol.InsertTextFormat.Snippet
   then
     -- setting the undolevels forces neovim to create an undo point
@@ -47,13 +46,12 @@ local function apply_item(ctx, item)
   end
 
   -- Add brackets to the text edit, if needed
-  local brackets_status, text_edit_with_brackets, offset = brackets_lib.add_brackets(ctx, vim.bo.filetype, item)
+  local brackets_status, text_edit_with_brackets, offset =
+    brackets_lib.add_brackets(ctx, vim.bo[ctx.bufnr].filetype, item)
   item.textEdit = text_edit_with_brackets
 
   -- Snippet
   if item.insertTextFormat == vim.lsp.protocol.InsertTextFormat.Snippet then
-    assert(ctx.mode == 'default', 'Snippets are only supported in default mode')
-
     -- We want to handle offset_encoding and the text edit api can do this for us
     -- so we empty the newText and apply
     local temp_text_edit = vim.deepcopy(item.textEdit)
@@ -76,7 +74,7 @@ local function apply_item(ctx, item)
 
   -- Check semantic tokens for brackets, if needed, asynchronously
   if brackets_status == 'check_semantic_token' then
-    brackets_lib.add_brackets_via_semantic_token(ctx, vim.bo.filetype, item, function(added_brackets)
+    brackets_lib.add_brackets_via_semantic_token(ctx, vim.bo[ctx.bufnr].filetype, item, function(added_brackets)
       if added_brackets then
         require('blink.cmp.completion.trigger').show_if_on_trigger_character({ is_accept = true })
         require('blink.cmp.signature.trigger').show_if_on_trigger_character()

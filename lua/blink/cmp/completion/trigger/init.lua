@@ -5,7 +5,6 @@
 -- This can be used downstream to determine if we should make new requests to the sources or not.
 --- @class blink.cmp.CompletionTrigger
 --- @field buffer_events blink.cmp.BufferEvents
---- @field cmdline_events blink.cmp.CmdlineEvents
 --- @field current_context_id integer
 --- @field context? blink.cmp.Context
 --- @field show_emitter blink.cmp.EventEmitter<{ context: blink.cmp.Context }>
@@ -156,14 +155,11 @@ function trigger.activate()
     end,
   })
 
-  trigger.cmdline_events = require('blink.cmp.lib.cmdline_events').new()
-  if root_config.cmdline.enabled then
-    trigger.cmdline_events:listen({
-      on_char_added = on_char_added,
-      on_cursor_moved = on_cursor_moved,
-      on_leave = function() trigger.hide() end,
-    })
-  end
+  require('blink.cmp.cmdline').listen({
+    on_char_added = on_char_added,
+    on_cursor_moved = on_cursor_moved,
+    on_leave = function() trigger.hide() end,
+  })
 end
 
 function trigger.resubscribe() trigger.buffer_events:resubscribe({ on_char_added = on_char_added }) end
@@ -172,7 +168,8 @@ function trigger.is_trigger_character(char, is_show_on_x)
   -- ignore a-z and A-Z characters
   if char:match('%a') then return false end
 
-  local trigger_characters = require('blink.cmp.lsp.completion').get_trigger_characters(vim.api.nvim_get_current_buf())
+  local trigger_characters =
+    require('blink.cmp.lsp.completion').get_trigger_characters(context.get_bufnr(), context.get_mode())
   local is_trigger = vim.tbl_contains(trigger_characters, char)
 
   local is_blocked = vim.tbl_contains(config().show_on_blocked_trigger_characters, char)
@@ -183,14 +180,10 @@ end
 
 --- Suppresses on_hide and on_show events for the duration of the callback
 function trigger.suppress_events_for_callback(cb)
-  local mode = vim.api.nvim_get_mode().mode
-  mode = (vim.api.nvim_get_mode().mode == 'c' and 'cmdline') or 'default'
-
-  local events = (mode == 'default' and trigger.buffer_events) or trigger.cmdline_events
-
-  if not events then return cb() end
-
-  events:suppress_events_for_callback(cb)
+  -- cmdline edits go through `blink.cmp.cmdline`, which ignores its own events
+  if require('blink.cmp.cmdline').active() then return cb() end
+  if not trigger.buffer_events then return cb() end
+  trigger.buffer_events:suppress_events_for_callback(cb)
 end
 
 function trigger.show_if_on_trigger_character(opts)

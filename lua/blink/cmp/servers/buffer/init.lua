@@ -9,7 +9,7 @@ local parser = require('blink.cmp.servers.buffer.parser')
 local buf_utils = require('blink.cmp.servers.buffer.utils')
 
 --- @class blink.cmp.BufferSettings
---- @field get_bufnrs fun(): integer[] Buffers to collect words from, defaults to the visible, non-`nofile` buffers
+--- @field get_bufnrs fun(bufnr: integer): integer[] Buffers to collect words from, given the buffer being completed. Defaults to the visible, non-`nofile` buffers, or the current buffer for command line searches
 --- @field max_sync_buffer_size integer Maximum total number of characters (in an individual buffer) for which buffer completion runs synchronously. Above this, asynchronous processing is used.
 --- @field max_async_buffer_size integer Maximum total number of characters (in an individual buffer) for which buffer completion runs asynchronously. Above this, the buffer will be skipped.
 --- @field max_total_buffer_size integer Maximum text size across all buffers (default: 500KB)
@@ -72,7 +72,10 @@ return lsp.server({
 
   settings = config.schema({
     get_bufnrs = {
-      function()
+      --- @param bufnr integer The buffer being completed
+      function(bufnr)
+        -- command line searches complete from the buffer being searched
+        if vim.b[bufnr].blink_cmp_mirror ~= nil then return { vim.api.nvim_get_current_buf() } end
         return vim
           .iter(vim.api.nvim_list_wins())
           :map(function(win) return vim.api.nvim_win_get_buf(win) end)
@@ -113,7 +116,7 @@ return lsp.server({
 
       local bufnrs = vim.tbl_filter(
         function(bufnr) return vim.api.nvim_buf_is_valid(bufnr) end,
-        require('blink.lib').list.dedup(settings.get_bufnrs())
+        require('blink.lib').list.dedup(settings.get_bufnrs(request_bufnr))
       )
       if #bufnrs == 0 then return { isIncomplete = false, items = {} } end
 

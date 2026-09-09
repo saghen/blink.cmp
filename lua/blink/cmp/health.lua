@@ -4,6 +4,7 @@ local builtin_servers = {
   'blink_cmp_buffer',
   'blink_cmp_path',
   'blink_cmp_omnifunc',
+  'blink_cmp_cmdline',
   'blink_cmp_luasnip',
   'blink_cmp_mini_snippets',
   'blink_cmp_vsnip',

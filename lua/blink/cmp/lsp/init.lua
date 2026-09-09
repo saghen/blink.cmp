@@ -10,7 +10,7 @@
 --- @class blink.cmp.lsp
 local M = {}
 
---- @alias blink.cmp.Mode 'cmdline' | 'cmdwin' | 'default'
+--- @alias blink.cmp.Mode 'default' | 'cmdline'
 
 --- @class blink.cmp.LspFilter
 --- @field bufnr? integer
@@ -224,5 +224,18 @@ M.enable('blink_cmp_omnifunc', function(ctx)
   local omnifunc = vim.api.nvim_get_option_value('omnifunc', { buf = ctx.bufnr or 0 })
   return omnifunc ~= '' and omnifunc ~= 'v:lua.vim.lsp.omnifunc' and omnifunc ~= vim.lsp.omnifunc
 end)
+
+-- In cmdline, servers are opt in
+M.enable('*', false, { mode = 'cmdline' })
+M.enable(
+  'blink_cmp_buffer',
+  function() return vim.list_contains({ '/', '?' }, vim.fn.getcmdtype()) end,
+  { mode = 'cmdline' }
+)
+M.enable(
+  'blink_cmp_cmdline',
+  function() return vim.list_contains({ ':', '@' }, vim.fn.getcmdtype()) end,
+  { mode = 'cmdline' }
+)
 
 return M

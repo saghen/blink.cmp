@@ -12,31 +12,18 @@ local text_edits = {}
 function text_edits.apply(text_edit, additional_text_edits)
   additional_text_edits = additional_text_edits or {}
 
-  local mode = context.get_mode()
-  assert(lib.list.contains({ 'default', 'cmdline', 'cmdwin' }, mode), 'Unsupported mode for text edits: ' .. mode)
+  local all_edits = lib.list.copy(additional_text_edits)
+  table.insert(all_edits, text_edit)
 
-  if mode == 'default' or mode == 'cmdwin' then
-    -- writing to dot repeat may fail in command-line window
-    if mode == 'default' and config.completion.accept.dot_repeat then text_edits.write_to_dot_repeat(text_edit) end
+  local cmdline = require('blink.cmp.cmdline')
+  if cmdline.active() then return cmdline.apply_text_edits(all_edits) end
 
-    local all_edits = lib.list.copy(additional_text_edits)
-    table.insert(all_edits, text_edit)
-
-    local cur_bufnr = nvim.get_current_buf()
-    vim.lsp.util.apply_text_edits(all_edits, cur_bufnr, 'utf-8')
+  -- writing to dot repeat may fail in the command-line window
+  if vim.fn.getcmdwintype() == '' and config.completion.accept.dot_repeat then
+    text_edits.write_to_dot_repeat(text_edit)
   end
 
-  if mode == 'cmdline' then
-    assert(#additional_text_edits == 0, 'Cmdline mode only supports one text edit. Contributions welcome!')
-
-    local line = context.get_line()
-    local edited_line = line:sub(1, text_edit.range.start.character)
-      .. text_edit.newText
-      .. line:sub(text_edit.range['end'].character + 1)
-    -- FIXME: for some reason, we have to set the cursor here, instead of later,
-    -- because this will override the cursor position set later
-    vim.fn.setcmdline(edited_line, text_edit.range.start.character + #text_edit.newText + 1)
-  end
+  vim.lsp.util.apply_text_edits(all_edits, nvim.get_current_buf(), 'utf-8')
 end
 
 ------- Undo -------

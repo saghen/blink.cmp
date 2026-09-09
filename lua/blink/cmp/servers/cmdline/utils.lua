@@ -1,6 +1,5 @@
-local nvim = require('blink.lib.nvim')
-local constants = require('blink.cmp.sources.cmdline.constants')
-local path_lib = require('blink.cmp.sources.path.lib')
+local constants = require('blink.cmp.servers.cmdline.constants')
+local path_lib = require('blink.cmp.servers.path.lib')
 local reg_modifier = vim.regex([[\v(\s+|'|")((\%|#\d*|\<\w+\>)(:(h|p|t|r|e|s|S|gs|\~|\.)?)*)\<?(\s+|'|"|$)]])
 -- Build once the list of common range patterns, see :h cmdline-ranges
 local range_patterns = {
@@ -20,55 +19,21 @@ end
 
 local utils = {}
 
---- Check if we are in cmdline or cmdwin, optionally for specific types.
---- @param types? string[] Optional list of command types to check. If nil or empty, only checks for context.
---- @return boolean
-function utils.is_command_line(types)
-  local mode = nvim.get_mode().mode
-  if mode ~= 'c' and vim.fn.getcmdwintype() == '' then return false end
-
-  if not types or #types == 0 then return true end
-
-  local cmdtype = mode == 'c' and vim.fn.getcmdtype() or vim.fn.getcmdwintype()
-  return vim.tbl_contains(types, cmdtype)
-end
-
---- Checks if the current command is one of the given Ex search commands.
---- @return boolean
-function utils.in_ex_search_commands()
-  if not utils.is_command_line({ ':' }) then return false end
-
-  local mode = nvim.get_mode().mode
-  local line = mode == 'c' and vim.fn.getcmdline() or nvim.get_current_line()
-
-  local ok, parsed = pcall(vim.api.nvim_parse_cmd, line, {})
-  if not ok or parsed.cmd == '' then return false end
-  local has_args = parsed.args and #parsed.args > 0 or false
-
-  return constants.ex_search_commands[parsed.cmd] and has_args
-end
-
---- Get the current completion type.
---- @param context blink.cmp.Context
+--- Completion type of the line: nvim's while editing the command line, otherwise parsed from the line
+--- (command-line window, `vim` buffers)
+--- @param is_cmdline boolean
+--- @param line string
 --- @return string completion_type The detected completion type, or an empty string if unknown.
-function utils.get_completion_type(context)
-  local completion_type = ''
-
-  if context.mode == 'cmdline' then
-    completion_type = vim.fn.getcmdcompltype()
-  elseif context.mode ~= 'cmdwin' then
-    completion_type = ''
-  else
-    completion_type = vim.fn.getcompletiontype(context.line)
-  end
+function utils.get_completion_type(is_cmdline, line)
+  local completion_type = is_cmdline and vim.fn.getcmdcompltype() or vim.fn.getcompletiontype(line)
 
   if completion_type == '' then
-    local cmd = context.line:match('^(%a+)%s')
+    local cmd = line:match('^(%a+)%s')
     if cmd then
       local find_cmds = { find = true, sfind = true, tabfind = true }
       -- Returns custom completion type to distinguish :find-family commands
       -- when 'findfunc' is set, since Neovim returns '' in this case.
-      if find_cmds[cmd] and vim.opt.findfunc ~= '' then return 'findfunc' end
+      if find_cmds[cmd] and vim.o.findfunc ~= '' then return 'findfunc' end
     end
   end
 
@@ -131,7 +96,7 @@ function utils.contains_wildcard(line) return line:find('[%*%?%[%]]') ~= nil end
 --- For other completions, splits by spaces and preserves trailing empty arguments.
 --- @param line string
 --- @param is_path_completion boolean
---- @return string, table
+--- @return string, string[]
 function utils.smart_split(line, is_path_completion)
   local trimmed = line:gsub('^%s+', '')
 
@@ -171,12 +136,12 @@ end
 --- @param pattern string The partial command to match for completion
 --- @param type string The type of completion
 --- @param completion_type? string Original completion type from vim.fn.getcmdcompltype()
---- @return table completions
+--- @return string[] completions
 function utils.get_completions(pattern, type, completion_type)
   -- If a shell command is requested on Windows or WSL, update PATH to avoid performance issues.
   if completion_type == 'shellcmd' then
     local separator ---@type ":" | ";"
-    local filter_fn ---@type fun()?
+    local filter_fn ---@type fun(part: string): boolean
 
     if vim.fn.has('win32') == 1 then
       separator = ';'
@@ -246,18 +211,10 @@ function utils.call_vlua(func_str, prefix, line, col)
   return call_ok, result
 end
 
----@param error string
----@param codes string[]
----@return boolean
-function utils.is_expected_vim_error(error, codes)
-  local err_code = error:match('^Vim:E(%d+):')
-  if not err_code then return false end
-
-  for _, code in ipairs(codes) do
-    if err_code == code then return true end
-  end
-
-  return false
-end
+--- Whether the error came from nvim itself (`E220: Missing }`, `E433: No tags file`, ...), which
+--- happens while typing a partial command and is not worth reporting
+--- @param err any
+--- @return boolean
+function utils.is_vim_error(err) return type(err) == 'string' and err:match('^Vim%(?[%w_]*%)?:E%d+:') ~= nil end
 
 return utils

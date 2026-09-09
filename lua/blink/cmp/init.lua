@@ -21,7 +21,7 @@ local cmp = {}
 cmp.lsp = require('blink.cmp.lsp')
 
 --- Built-in in-process servers, enabled in `setup`. Engine servers are enabled when their engine is loaded.
-local builtin_servers = { 'blink_cmp_buffer', 'blink_cmp_path', 'blink_cmp_omnifunc' }
+local builtin_servers = { 'blink_cmp_buffer', 'blink_cmp_path', 'blink_cmp_omnifunc', 'blink_cmp_cmdline' }
 local engine_servers = {
   blink_cmp_luasnip = function() return package.loaded.luasnip ~= nil end,
   blink_cmp_mini_snippets = function() return _G.MiniSnippets ~= nil end,
@@ -37,9 +37,9 @@ local removed_options = {
 function cmp.is_enabled()
   local mode = vim.api.nvim_get_mode().mode
 
-  -- cmdline completion is wired to the in-process servers in the next commit, terminal completion
-  -- returns in a later version
-  if mode:sub(1, 1) == 'c' or mode:sub(1, 1) == 't' or vim.fn.getcmdwintype() ~= '' then return false end
+  if mode:sub(1, 1) == 'c' then return config.cmdline.enabled end
+  -- terminal completion returns in a later version
+  if mode:sub(1, 1) == 't' then return false end
 
   -- Disable in macros
   if vim.fn.reg_recording() ~= '' or vim.fn.reg_executing() ~= '' then return false end
@@ -61,19 +61,20 @@ end
 
 --- Applies the configuration, forwarding `opts.lsp` to `cmp.lsp.config` and `cmp.lsp.enable`
 --- @param opts blink.cmp.Config
-local function apply_config(opts)
+--- @param filter? blink.cmp.LspFilter
+local function apply_config(opts, filter)
   -- per server policy
   for name, lsp_opts in pairs(opts.lsp or {}) do
     lsp_opts = lib.tbl.copy(lsp_opts)
     if lsp_opts.enabled ~= nil then
-      cmp.lsp.enable(name, lsp_opts.enabled)
+      cmp.lsp.enable(name, lsp_opts.enabled, filter)
       lsp_opts.enabled = nil
     end
-    cmp.lsp.config(name, lsp_opts)
+    cmp.lsp.config(name, lsp_opts, filter)
   end
   opts.lsp = nil
 
-  config.set(opts)
+  config.set(opts, filter)
 end
 
 local has_setup = false
@@ -94,7 +95,7 @@ function cmp.setup(opts)
   end
 
   if opts.cmdline then
-    config.set(lib.tbl.omit(opts.cmdline, { 'enabled', 'keymap' }), { mode = 'cmdline' })
+    apply_config(lib.tbl.omit(opts.cmdline, { 'enabled', 'keymap' }), { mode = 'cmdline' })
     opts.cmdline = lib.tbl.pick(opts.cmdline, { 'enabled', 'keymap' })
   end
   apply_config(opts)

@@ -18,7 +18,8 @@ local utils = require('blink.cmp.lib.utils')
 --- @field line string
 --- @field bounds blink.cmp.ContextBounds
 --- @field trigger blink.cmp.ContextTrigger
---- @field lsp? string[] Names of the clients to query, nil for every enabled client
+--- @field lsp? string[] Optional custom list of LSPs to query
+--- @field mode blink.cmp.Mode
 --- @field initial_selected_item_idx? integer
 --- @field timestamp integer
 ---
@@ -58,7 +59,7 @@ function context.new(opts)
   return setmetatable({
     mode = context.get_mode(),
     id = opts.id,
-    bufnr = nvim.get_current_buf(),
+    bufnr = context.get_bufnr(),
     pos = pos,
     cursor = utils.vim_pos_to_cursor(pos),
     line = context.get_line(),
@@ -96,49 +97,30 @@ function context:within_query_bounds(pos, include_start_bound)
   return cursor_col > bounds.start_col
 end
 
-function context.get_mode()
-  local mode = nvim.get_mode().mode
-  return (mode == 'c' and 'cmdline')
-    -- 'cmdwin' is not a real mode returned by nvim_get_mode().
-    -- It refers to the command-line window (opened with q: or q/), which acts like a buffer
-    -- for editing command history, blending command-line and buffer features.
-    -- We need to dissociate 'cmdwin' as a separate mode because our logic
-    -- depends on distinguishing between regular command-line mode and the
-    -- command-line window.
-    or (vim.fn.getcmdwintype() ~= '' and 'cmdwin')
-    or 'default'
-end
+--- The command line is edited through its mirror buffer, see `blink.cmp.cmdline`
+local function cmdline() return require('blink.cmp.cmdline') end
+
+--- @return blink.cmp.Mode
+function context.get_mode() return cmdline().active() and 'cmdline' or 'default' end
+
+--- The buffer holding the text being completed
+--- @return integer
+function context.get_bufnr() return cmdline().active() and cmdline().bufnr() or nvim.get_current_buf() end
 
 function context.get_pos()
-  local bufnr = context.bufnr or 0
-  if context.get_mode() == 'cmdline' then return utils.get_vim_pos(bufnr, 0, vim.fn.getcmdpos() - 1) end
-  return utils.get_vim_pos_cursor(bufnr)
+  if cmdline().active() then return cmdline().get_pos() end
+  return utils.get_vim_pos_cursor(0)
 end
 
 function context.get_cursor() return utils.vim_pos_to_cursor(context.get_pos()) end
 
 function context.set_cursor(pos)
-  local mode = context.get_mode()
-  if vim.tbl_contains({ 'default', 'cmdwin' }, mode) then
-    nvim.win_set_cursor(0, utils.vim_pos_to_cursor(pos))
-    return
-  end
-
-  assert(mode == 'cmdline', 'Unsupported mode for setting cursor: ' .. mode)
-  assert(pos.row == 0, 'Cursor must be on the first line in cmdline mode')
-  vim.fn.setcmdpos(pos.col + 1)
+  if cmdline().active() then return cmdline().set_cursor(pos) end
+  nvim.win_set_cursor(0, utils.vim_pos_to_cursor(pos))
 end
 
 function context.get_line(num)
-  if context.get_mode() == 'cmdline' then
-    assert(
-      num == nil or num == 0,
-      'Cannot get line number ' .. tostring(num) .. ' in cmdline mode. Only 0 is supported'
-    )
-    return vim.fn.getcmdline()
-  end
-
-  -- This method works for normal buffers and the terminal prompt
+  if cmdline().active() then return cmdline().get_line() end
   if not num then num = context.get_pos().row end
   return nvim.buf_get_lines(0, num, num + 1, false)[1] or ''
 end

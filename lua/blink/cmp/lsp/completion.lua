@@ -78,10 +78,11 @@ end
 
 --- Trigger characters of every enabled `autotrigger` client attached to the buffer
 --- @param bufnr integer
+--- @param mode blink.cmp.Mode
 --- @return string[]
-function M.get_trigger_characters(bufnr)
+function M.get_trigger_characters(bufnr, mode)
   local chars = {}
-  local filter = { bufnr = bufnr }
+  local filter = { bufnr = bufnr, mode = mode }
   for _, client in ipairs(vim.lsp.get_clients({ bufnr = bufnr, method = 'textDocument/completion' })) do
     if cmp_lsp.is_enabled(client.name, filter) and cmp_lsp.get(client.name, filter).autotrigger then
       vim.list_extend(chars, M.trigger_characters(client, bufnr))
