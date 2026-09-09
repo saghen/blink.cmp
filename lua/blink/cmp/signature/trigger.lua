@@ -115,7 +115,6 @@ function trigger.is_trigger_character(char, is_retrigger)
 end
 
 function trigger.show_if_on_trigger_character()
-  if require('blink.cmp.completion.trigger.context').get_mode() ~= 'default' then return end
   if not config().enabled or not trigger.context then return end
 
   local cursor_col = trigger.context.pos.col

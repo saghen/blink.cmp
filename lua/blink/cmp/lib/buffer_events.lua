@@ -140,7 +140,8 @@ local function make_insert_leave(self, on_insert_leave)
     -- TODO: deduplicate requests
     vim.schedule(function()
       local mode = nvim.get_mode().mode
-      if not mode:match('i') and not mode:match('s') then
+      -- the command line has its own events, see `blink.cmp.cmdline`
+      if not mode:match('i') and not mode:match('s') and not mode:match('c') then
         self.last_char = ''
         on_insert_leave()
       end
