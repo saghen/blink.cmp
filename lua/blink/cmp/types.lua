@@ -1,18 +1,19 @@
---- @alias blink.cmp.Mode 'cmdline' | 'cmdwin' | 'term' | 'default'
+--- Client-side extensions carried on a completion item. In-process servers may set them directly;
+--- `convert` sets them for out-of-process servers. Stripped before `completionItem/resolve`.
+--- @class blink.cmp.ItemExt
+--- @field kind_icon? string
+--- @field kind_hl? string
+--- @field kind_name? string
+--- @field score_offset? integer
 
 --- @class blink.cmp.CompletionItem : lsp.CompletionItem
 --- @field documentation? string | blink.cmp.CompletionDocumentationMarkupContent
---- @field score_offset? integer
---- @field source_id string
---- @field source_name string
---- @field pos? vim.Pos
+--- @field blink? blink.cmp.ItemExt
 --- @field client_id? integer
 --- @field client_name? string
---- @field kind_name? string
---- @field kind_icon? string
---- @field kind_hl? string
---- @field exact? boolean
---- @field score? integer
+--- @field pos? vim.Pos Cursor position when the item was requested, for compensating text edits
+--- @field exact? boolean Set by the fuzzy matcher
+--- @field score? integer Set by the fuzzy matcher
 
 return {
   -- some plugins mutate the vim.lsp.protocol.CompletionItemKind table

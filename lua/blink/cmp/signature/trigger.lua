@@ -103,9 +103,7 @@ function trigger.activate()
 end
 
 function trigger.is_trigger_character(char, is_retrigger)
-  local mode = require('blink.cmp.completion.trigger.context').get_mode()
-
-  local res = require('blink.cmp.sources.lib').get_signature_help_trigger_characters(mode)
+  local res = require('blink.cmp.lsp.signature').get_trigger_characters(nvim.get_current_buf())
   local trigger_characters = is_retrigger and res.retrigger_characters or res.trigger_characters
   local is_trigger = vim.tbl_contains(trigger_characters, char)
 
