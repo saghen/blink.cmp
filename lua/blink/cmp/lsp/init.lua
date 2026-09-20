@@ -10,12 +10,9 @@
 --- @class blink.cmp.lsp
 local M = {}
 
---- @alias blink.cmp.Mode 'default' | 'cmdline'
-
 --- @class blink.cmp.LspFilter
---- @field bufnr? integer
+--- @field bufnr? integer `0` for the current buffer
 --- @field filetype? string Matches any dotted component of the buffer's filetype
---- @field mode? blink.cmp.Mode
 
 --- @class blink.cmp.LspConfig
 --- When false, this server's `triggerCharacters` never open the menu. Default true.
@@ -50,7 +47,6 @@ local M = {}
 --- @class blink.cmp.LspTarget
 --- @field bufnr integer
 --- @field filetypes string[]
---- @field mode blink.cmp.Mode
 
 local config = require('blink.lib.config')
 local schema = config.schema({
@@ -66,7 +62,6 @@ local schema = config.schema({
 local filter_schema = config.schema({
   bufnr = { nil, { 'number', 'nil' } },
   filetype = { nil, { 'string', 'nil' } },
-  mode = { nil, { 'string', 'nil' } },
 })
 
 --- @type table<string, { filter: blink.cmp.LspFilter, opts: blink.cmp.LspConfig }[]>
@@ -75,9 +70,14 @@ local configs = {}
 local enables = {}
 
 --- @param filter? blink.cmp.LspFilter
-local function validate_filter(filter)
+--- @return blink.cmp.LspFilter
+local function normalize_filter(filter)
   vim.validate('filter', filter, 'table', true)
-  if filter ~= nil then filter_schema.validate(filter, { partial = true }) end
+  if filter == nil then return {} end
+  filter_schema.validate(filter, { partial = true })
+  -- `0` is the current buffer at the time of the call
+  if filter.bufnr == 0 then return vim.tbl_extend('force', filter, { bufnr = vim.api.nvim_get_current_buf() }) end
+  return filter
 end
 
 --- @param filter? blink.cmp.LspFilter
@@ -89,7 +89,6 @@ local function resolve_filter(filter)
   return {
     bufnr = bufnr,
     filetypes = vim.split(filetype, '.', { plain = true, trimempty = true }),
-    mode = filter and filter.mode or 'default',
   }
 end
 
@@ -106,7 +105,6 @@ end
 local function matches(filter, target)
   if filter.bufnr ~= nil and filter.bufnr ~= target.bufnr then return false end
   if filter.filetype ~= nil and not vim.list_contains(target.filetypes, filter.filetype) then return false end
-  if filter.mode ~= nil and filter.mode ~= target.mode then return false end
   return true
 end
 
@@ -130,11 +128,11 @@ end
 function M.config(name, opts, filter)
   vim.validate('opts', opts, 'table')
   schema.validate(opts, { partial = true })
-  validate_filter(filter)
+  filter = normalize_filter(filter)
 
   for _, n in ipairs(to_names(name)) do
     configs[n] = configs[n] or {}
-    table.insert(configs[n], { filter = filter or {}, opts = opts })
+    table.insert(configs[n], { filter = filter, opts = opts })
   end
 end
 
@@ -189,12 +187,12 @@ end
 --- @param filter? blink.cmp.LspFilter
 function M.enable(name, enable, filter)
   vim.validate('enable', enable, { 'boolean', 'function' }, true)
-  validate_filter(filter)
+  filter = normalize_filter(filter)
   if enable == nil then enable = true end
 
   for _, n in ipairs(to_names(name)) do
     enables[n] = enables[n] or {}
-    table.insert(enables[n], { filter = filter or {}, enable = enable })
+    table.insert(enables[n], { filter = filter, enable = enable })
   end
 end
 
@@ -219,17 +217,17 @@ function M.is_enabled(name, filter)
   return true
 end
 
--- In cmdline, servers are opt in
-M.enable('*', false, { mode = 'cmdline' })
+-- In the command line, edited through its mirror buffer, servers are opt in
+M.enable('*', false, { filetype = 'blink-cmdline' })
 M.enable(
   'blink_cmp_buffer',
   function() return vim.list_contains({ '/', '?' }, vim.fn.getcmdtype()) end,
-  { mode = 'cmdline' }
+  { filetype = 'blink-cmdline' }
 )
 M.enable(
   'blink_cmp_cmdline',
   function() return vim.list_contains({ ':', '@' }, vim.fn.getcmdtype()) end,
-  { mode = 'cmdline' }
+  { filetype = 'blink-cmdline' }
 )
 
 return M

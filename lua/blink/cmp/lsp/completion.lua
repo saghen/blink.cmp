@@ -80,11 +80,10 @@ end
 
 --- Trigger characters of every enabled `autotrigger` client attached to the buffer
 --- @param bufnr integer
---- @param mode blink.cmp.Mode
 --- @return string[]
-function M.get_trigger_characters(bufnr, mode)
+function M.get_trigger_characters(bufnr)
   local chars = {}
-  local filter = { bufnr = bufnr, mode = mode }
+  local filter = { bufnr = bufnr }
   for _, client in ipairs(vim.lsp.get_clients({ bufnr = bufnr, method = 'textDocument/completion' })) do
     if cmp_lsp.is_enabled(client.name, filter) and cmp_lsp.get(client.name, filter).autotrigger then
       vim.list_extend(chars, M.trigger_characters(client, bufnr))
@@ -107,7 +106,7 @@ function M.get_clients(ctx)
   for _, client in ipairs(vim.lsp.get_clients({ bufnr = ctx.bufnr, method = 'textDocument/completion' })) do
     if
       (ctx.lsp == nil or vim.list_contains(ctx.lsp, client.name))
-      and cmp_lsp.is_enabled(client.name, { bufnr = ctx.bufnr, mode = ctx.mode })
+      and cmp_lsp.is_enabled(client.name, { bufnr = ctx.bufnr })
     then
       local cfg = cmp_lsp.get(client.name, ctx)
       if skip_min_length or keyword_length >= cfg.min_keyword_length then clients[#clients + 1] = client end

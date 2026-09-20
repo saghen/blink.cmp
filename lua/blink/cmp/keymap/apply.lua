@@ -96,7 +96,7 @@ local function set_keymaps_for_mode(mode, keys_to_commands, command_filter, filt
 end
 
 -- stylua: ignore
---- @type table<blink.cmp.Mode, fun(keys_to_commands: blink.cmp.KeymapList)>
+--- @type table<blink.cmp.KeymapMode, fun(keys_to_commands: blink.cmp.KeymapList)>
 local keymaps_per_mode = {
   default = function(keys_to_commands)
     -- insert mode: uses both snippet and insert commands
@@ -129,7 +129,7 @@ function apply.has_snippet_commands(commands)
 end
 
 --- Applies the keymaps based on the mode
---- @param mode blink.cmp.Mode
+--- @param mode blink.cmp.KeymapMode
 --- @param keys_to_commands blink.cmp.KeymapList
 function apply.keymaps(mode, keys_to_commands) keymaps_per_mode[mode](keys_to_commands) end
 
