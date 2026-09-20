@@ -5,18 +5,19 @@ local presets = require('blink.cmp.keymap.presets')
 local utils = require('blink.cmp.keymap.utils')
 
 --- @alias blink.cmp.KeymapList table<string, blink.cmp.KeymapCommand[] | false>
+--- @alias blink.cmp.KeymapMode 'default' | 'cmdline'
 ---
 --- @class blink.cmp.KeymapContext
 --- @field vim_mode string Vim's current mode (e.g. 'i', 'c', 't')
---- @field blink_mode blink.cmp.Mode The corresponding blink mode
+--- @field blink_mode blink.cmp.KeymapMode The corresponding blink mode
 --- @field bufnr integer Buffer number (0 for global cmdline)
 --- @field bufkey string Unique identifier for buffer keymaps
 
 local keymap = {
   bufkey_prefix = 'blink_cmp_keymap_',
-  ---@type table<blink.cmp.Mode, blink.cmp.KeymapList>
+  ---@type table<blink.cmp.KeymapMode, blink.cmp.KeymapList>
   mappings = { default = {}, cmdline = {} },
-  ---@type table<string, blink.cmp.Mode>
+  ---@type table<string, blink.cmp.KeymapMode>
   mode_map = { i = 'default', s = 'default', c = 'cmdline' },
 }
 
@@ -75,7 +76,7 @@ function keymap.ensure_mappings()
 end
 
 --- @param keymap_config blink.cmp.KeymapConfig
---- @param mode blink.cmp.Mode
+--- @param mode blink.cmp.KeymapMode
 --- @return blink.cmp.KeymapList
 function keymap.get_mappings(keymap_config, mode)
   local mappings = vim.deepcopy(keymap_config)

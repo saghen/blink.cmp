@@ -37,7 +37,10 @@ local removed_options = {
 function cmp.is_enabled()
   local mode = vim.api.nvim_get_mode().mode
 
-  if mode:sub(1, 1) == 'c' then return config.cmdline.enabled end
+  if mode:sub(1, 1) == 'c' then
+    -- `vim.b.completion` on the mirror buffer, like any other buffer (e.g. from `after/ftplugin/blink-cmdline.lua`)
+    return config.cmdline.enabled and vim.b[require('blink.cmp.cmdline').bufnr()].completion ~= false
+  end
   -- terminal completion returns in a later version
   if mode:sub(1, 1) == 't' then return false end
 
@@ -61,20 +64,21 @@ end
 
 --- Applies the configuration, forwarding `opts.lsp` to `cmp.lsp.config` and `cmp.lsp.enable`
 --- @param opts blink.cmp.Config
---- @param filter? blink.cmp.LspFilter
-local function apply_config(opts, filter)
+--- @param lsp_filter? blink.cmp.LspFilter
+--- @param config_filter? blink.lib.config.SetOpts
+local function apply_config(opts, lsp_filter, config_filter)
   -- per server policy
   for name, lsp_opts in pairs(opts.lsp or {}) do
     lsp_opts = lib.tbl.copy(lsp_opts)
     if lsp_opts.enabled ~= nil then
-      cmp.lsp.enable(name, lsp_opts.enabled, filter)
+      cmp.lsp.enable(name, lsp_opts.enabled, lsp_filter)
       lsp_opts.enabled = nil
     end
-    cmp.lsp.config(name, lsp_opts, filter)
+    cmp.lsp.config(name, lsp_opts, lsp_filter)
   end
   opts.lsp = nil
 
-  config.set(opts, filter)
+  config.set(opts, config_filter)
 end
 
 local has_setup = false
@@ -95,7 +99,11 @@ function cmp.setup(opts)
   end
 
   if opts.cmdline then
-    apply_config(lib.tbl.omit(opts.cmdline, { 'enabled', 'keymap' }), { mode = 'cmdline' })
+    apply_config(
+      lib.tbl.omit(opts.cmdline, { 'enabled', 'keymap' }),
+      { filetype = 'blink-cmdline' },
+      { mode = 'cmdline' }
+    )
     opts.cmdline = lib.tbl.pick(opts.cmdline, { 'enabled', 'keymap' })
   end
   apply_config(opts)
