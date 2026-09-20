@@ -168,8 +168,7 @@ function trigger.is_trigger_character(char, is_show_on_x)
   -- ignore a-z and A-Z characters
   if char:match('%a') then return false end
 
-  local trigger_characters =
-    require('blink.cmp.lsp.completion').get_trigger_characters(context.get_bufnr(), context.get_mode())
+  local trigger_characters = require('blink.cmp.lsp.completion').get_trigger_characters(context.get_bufnr())
   local is_trigger = vim.tbl_contains(trigger_characters, char)
 
   local is_blocked = vim.tbl_contains(config().show_on_blocked_trigger_characters, char)
@@ -208,11 +207,11 @@ function trigger.show(opts)
   opts = opts or {} --[[@as blink.cmp.CompletionTriggerShowOptions]]
 
   local ctx = trigger.context
-  local mode = context.get_mode()
+  local bufnr = context.get_bufnr()
   local pos = context.get_pos()
 
   -- already triggered at this position, ignore
-  if not opts.force and ctx ~= nil and ctx.mode == mode and ctx.pos == pos then return end
+  if not opts.force and ctx ~= nil and ctx.bufnr == bufnr and ctx.pos == pos then return end
 
   -- update the context id to indicate a new context, and not an update to an existing context
   if not ctx or opts.lsp ~= nil then trigger.current_context_id = trigger.current_context_id + 1 end

@@ -10,7 +10,6 @@ local utils = require('blink.cmp.lib.utils')
 --- @field length integer
 
 --- @class blink.cmp.Context
---- @field mode blink.cmp.Mode
 --- @field id integer
 --- @field bufnr integer
 --- @field cursor { [1]: integer, [2]: integer } Deprecated, use `pos` instead
@@ -19,7 +18,6 @@ local utils = require('blink.cmp.lib.utils')
 --- @field bounds blink.cmp.ContextBounds
 --- @field trigger blink.cmp.ContextTrigger
 --- @field lsp? string[] Optional custom list of LSPs to query
---- @field mode blink.cmp.Mode
 --- @field initial_selected_item_idx? integer
 --- @field timestamp integer
 ---
@@ -27,7 +25,6 @@ local utils = require('blink.cmp.lib.utils')
 --- @field get_keyword fun(): string
 --- @field within_query_bounds fun(self: blink.cmp.Context, pos: vim.Pos, include_start_bound?: boolean): boolean
 ---
---- @field get_mode fun(): blink.cmp.Mode
 --- @field get_pos fun(): vim.Pos
 --- @field get_cursor fun(): { [1]: integer, [2]: integer } Deprecated, use `get_pos` instead
 --- @field set_cursor fun(pos: vim.Pos)
@@ -57,7 +54,6 @@ function context.new(opts)
   local pos = context.get_pos()
 
   return setmetatable({
-    mode = context.get_mode(),
     id = opts.id,
     bufnr = context.get_bufnr(),
     pos = pos,
@@ -99,9 +95,6 @@ end
 
 --- The command line is edited through its mirror buffer, see `blink.cmp.cmdline`
 local function cmdline() return require('blink.cmp.cmdline') end
-
---- @return blink.cmp.Mode
-function context.get_mode() return cmdline().active() and 'cmdline' or 'default' end
 
 --- The buffer holding the text being completed
 --- @return integer

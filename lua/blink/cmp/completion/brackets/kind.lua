@@ -8,8 +8,8 @@ local function add_brackets(ctx, filetype, item)
   local text_edit = item.textEdit
   assert(text_edit ~= nil, 'Got nil text edit while adding brackets via kind')
 
-  -- skip if we're not in default mode
-  if ctx.mode ~= 'default' then return 'skipped', text_edit, 0 end
+  -- skip in mirror buffers (command line)
+  if vim.b[ctx.bufnr].blink_cmp_mirror ~= nil then return 'skipped', text_edit, 0 end
 
   local brackets_for_filetype = utils.get_for_filetype(filetype, item)
 

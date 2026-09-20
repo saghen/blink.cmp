@@ -8,15 +8,17 @@ The command line has no buffer, so blink keeps a hidden mirror buffer (`blink://
 Every other server is disabled while editing the command line. Enable one there with:
 
 ```lua
-require('blink.cmp').lsp.enable('blink_cmp_path', true, { mode = 'cmdline' })
+require('blink.cmp').lsp.enable('blink_cmp_path', true, { filetype = 'blink-cmdline' })
 ```
 
 An LSP server attaches to the mirror like to any other buffer, so it also needs the filetype. For `vimls` on `:` commands:
 
 ```lua
 vim.lsp.config('vimls', { filetypes = { 'vim', 'blink-cmdline' } })
-require('blink.cmp').lsp.enable('vimls', function() return vim.fn.getcmdtype() == ':' end, { mode = 'cmdline' })
+require('blink.cmp').lsp.enable('vimls', function() return vim.fn.getcmdtype() == ':' end, { filetype = 'blink-cmdline' })
 ```
+
+The mirror is a regular buffer, so `vim.b.completion = false` on it turns completion off, for instance from `after/ftplugin/blink-cmdline.lua`.
 
 ::: info
 If you want cmdline's behavior to match the default mode, try the following config:
