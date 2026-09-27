@@ -37,6 +37,9 @@ end
 --- @return blink.cmp.Task
 function fs.read_file(path, byte_limit)
   return async.task.new(function(resolve, reject)
+    local stat = uv.fs_stat(path)
+    if not stat then return reject('stat failed') end
+    if stat.type ~= 'file' then return reject('not a regular file') end
     uv.fs_open(path, 'r', 438, function(open_err, fd)
       if open_err or fd == nil then return reject(open_err) end
       uv.fs_read(fd, byte_limit, 0, function(read_err, data)
