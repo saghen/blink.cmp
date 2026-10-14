@@ -41,7 +41,7 @@ local sources = {
   completions_queue = nil,
   providers = {},
   per_filetype_provider_ids = {},
-  completions_emitter = require('blink.cmp.lib.event_emitter').new('source_completions'),
+  completions_emitter = require('blink.cmp.lib.event_emitter').new('source_completions') --[[@as blink.cmp.EventEmitter<blink.cmp.SourceCompletionsEvent>]],
 }
 
 function sources.get_all_providers()
@@ -59,6 +59,8 @@ function sources.get_enabled_provider_ids(mode)
 
     local providers = config.sources.default
     if type(providers) == 'function' then providers = providers() end
+    -- Auto-enable `cmdline` source for command-line window
+    if mode == 'cmdwin' then table.insert(providers, 'cmdline') end
 
     return lib.list.dedup(providers)
   end

@@ -1,6 +1,6 @@
 local nvim = require('blink.lib.nvim')
 local task = require('blink.lib.task')
-local config = require('blink.cmp.config').completion.accept.auto_brackets
+local function config() return require('blink.cmp.config').completion.accept.auto_brackets end
 local lib_utils = require('blink.cmp.lib.utils')
 local utils = require('blink.cmp.completion.brackets.utils')
 
@@ -102,17 +102,22 @@ function semantic.add_brackets_via_semantic_token(ctx, filetype, item)
     -- semantic tokens debounced, so manually request a refresh to avoid latency
     highlighter:send_request(client.id)
 
-    -- first check if a semantic token already exists at the current cursor position
-    -- we get the token 1 character before the cursor (`bar|` would check `r`)
-    local tokens = vim.lsp.semantic_tokens.get_at_pos(0, pos.row, pos.col - 1)
-    if tokens ~= nil then semantic.process_request(tokens) end
+    -- First check if a current semantic token already exists at the cursor position.
+    -- We get the token 1 character before the cursor (`bar|` would check `r`).
+    -- Ignore cached tokens from an older document version.
+    local current_result = highlighter.client_state[client.id].current_result
+    if current_result.version == vim.lsp.util.buf_versions[ctx.bufnr] then
+      local tokens = vim.lsp.semantic_tokens.get_at_pos(0, pos.row, pos.col - 1)
+      if tokens ~= nil then semantic.process_request(tokens) end
+    end
+
     if semantic.request == nil then
       -- a matching token exists, and brackets were added
       return resolve(true)
     end
 
     -- listen for LspTokenUpdate events until timeout
-    semantic.timer:start(config.semantic_token_resolution.timeout_ms, 0, semantic.finish_request)
+    semantic.timer:start(config().semantic_token_resolution.timeout_ms, 0, semantic.finish_request)
   end) --[[@as blink.lib.Task<boolean>]]
 end
 

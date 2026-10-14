@@ -24,5 +24,3 @@
 --- @field ellipsis? boolean Whether to add an ellipsis when truncating the text
 --- @field text? fun(ctx: blink.cmp.DrawItemContext): string? Renders the text of the component
 --- @field highlight? string | fun(ctx: blink.cmp.DrawItemContext, text: string): string | blink.cmp.DrawHighlight[] Renders the highlights of the component
----
---- @alias blink.cmp.DrawColumnDefinition { [integer]: string, gap?: integer, overlap_components?: boolean }

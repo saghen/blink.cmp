@@ -3,12 +3,12 @@
 --- Unlike in regular neovim, ctrl + c and buffer switching will trigger "insert leave"
 
 local nvim = require('blink.lib.nvim')
-local snippet = require('blink.cmp.config').snippets
+local function snippet_config() return require('blink.cmp.config').snippets end
 local utils = require('blink.cmp.lib.utils')
 
 --- @class blink.cmp.BufferEvents
 --- @field has_context fun(): boolean
---- @field show_in_snippet boolean
+--- @field show_in_snippet fun(): boolean
 --- @field ignore_next_text_changed boolean
 --- @field ignore_next_cursor_moved boolean
 --- @field last_char string
@@ -23,7 +23,7 @@ local utils = require('blink.cmp.lib.utils')
 
 --- @class blink.cmp.BufferEventsOptions
 --- @field has_context fun(): boolean
---- @field show_in_snippet boolean
+--- @field show_in_snippet fun(): boolean
 
 --- @class blink.cmp.BufferEventsListener
 --- @field on_char_added? fun(char: string, is_ignored: boolean)
@@ -97,7 +97,7 @@ local function make_cursor_moved(self, on_cursor_moved)
     --- @cast ev vim.api.keyset.create_autocmd.callback_args
     --- @cast ev.event 'CursorMoved' | 'CursorMovedI' | 'InsertEnter'
 
-    local in_snippet_context = self.has_context() and snippet.active()
+    local in_snippet_context = self.has_context() and snippet_config().active()
 
     -- only fire a CursorMoved event (notable not CursorMovedI)
     -- when jumping between tab stops in a snippet while showing the menu
@@ -223,22 +223,25 @@ function buffer_events:suppress_events_for_callback(cb)
   local pos_after = utils.get_vim_pos_cursor(0)
   local changed_tick_after = nvim.buf_get_changedtick(0)
 
-  local is_insert_mode = nvim.get_mode().mode:sub(1, 1) == 'i'
+  local mode = nvim.get_mode().mode:sub(1, 1)
+  local is_insert_or_replace_mode = mode == 'i' or mode == 'R'
 
-  self.ignore_next_text_changed = changed_tick_before ~= changed_tick_after and is_insert_mode
+  self.ignore_next_text_changed = changed_tick_before ~= changed_tick_after and is_insert_or_replace_mode
 
   -- HACK: the cursor may move from position (1, 1) to (1, 0) and back to (1, 1) during the callback
   -- This will trigger a CursorMovedI event, but we can't detect it simply by checking the cursor position
   -- since they're equal before vs after the callback. So instead, we always mark the cursor as ignored in
-  -- insert mode, but if the cursor was equal, we undo the ignore after a small delay, which practically guarantees
-  -- that the CursorMovedI event will fire
+  -- insert or replace mode, but if the cursor was equal, we undo the ignore after a small delay,
+  -- which practically guarantees that the CursorMovedI event will fire
   -- TODO: It could make sense to override the nvim_win_set_cursor function and mark as ignored if it's called
   -- on the current buffer
   local cursor_moved = pos_after ~= pos_before
-  self.ignore_next_cursor_moved = is_insert_mode
+  self.ignore_next_cursor_moved = is_insert_or_replace_mode
   if not cursor_moved then vim.defer_fn(function() self.ignore_next_cursor_moved = false end, 10) end
 end
 
-function buffer_events:hide_in_snippet() return not self.show_in_snippet and not self.has_context() and snippet.active() end
+function buffer_events:hide_in_snippet()
+  return not self.show_in_snippet() and not self.has_context() and snippet_config().active()
+end
 
 return buffer_events

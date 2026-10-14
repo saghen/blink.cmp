@@ -1,4 +1,4 @@
-*blink-cmp.txt*           For NVIM v0.12.0           Last change: 2026 July 25
+*blink-cmp.txt*         For NVIM v0.12.0        Last change: 2026 September 10
 
 ==============================================================================
 Table of Contents                                *blink-cmp-table-of-contents*
@@ -412,15 +412,16 @@ HIDE COPILOT ON SUGGESTION ~
 <
 
 
-AVOID MULTI-LINE COMPLETION GHOST TEXT ~
+AVOID MENU OVERLAP WITH MULTI-LINE GHOST TEXT ~
 
 See nvim-cmp#1955
 <https://github.com/hrsh7th/nvim-cmp/pull/1955#issue-2341857764> for an example
 of what this looks like.
 
 When ghost text is enabled (`completion.ghost_text.enabled = true`), you may
-want the menu to avoid overlapping with the ghost text. You may provide a
-custom `completion.menu.direction_priority` function to achieve this
+want the menu to change direction when it would overlap multi-line ghost text.
+You can provide a custom `completion.menu.direction_priority` function to
+achieve this:
 
 >lua
     completion = {
@@ -444,6 +445,10 @@ custom `completion.menu.direction_priority` function to achieve this
       },
     },
 <
+
+If you prefer not to display multi-line ghost text at all, you can set
+`completion.ghost_text.show_first_line_only = true` to show only the first
+line.
 
 
 SHOW ON NEWLINE, TAB AND SPACE ~
@@ -2616,6 +2621,7 @@ completion sources. Please open a PR to add yours.
 - blink-cmp-ctags <https://github.com/netmute/blink-cmp-ctags> by `netmute`: Ctags
 - blink-cmp-dap <https://github.com/mayromr/blink-cmp-dap> by `mayromr`: DAP repl
 - blink-cmp-dat-word <https://github.com/xieyonn/blink-cmp-dat-word> by `xieyonn`: Word
+- blink-cmp-deps <https://github.com/Mestane/blink-cmp-deps> by `Mestane`: Maven dependency coordinates and versions
 - blink-cmp-dictionary <https://github.com/Kaiser-Yang/blink-cmp-dictionary> by `Kaiser-Yang`: Word
 - blink-cmp-env <https://github.com/bydlw98/blink-cmp-env> by `bydlw98`: Environment variables
 - blink-cmp-emoji <https://github.com/timrydefalk/blink-cmp-emoji> by `timrydefalk`: Unicode Emoji v17.0 glyphs sans Zero Width Joiner

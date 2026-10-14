@@ -55,14 +55,14 @@ function cmp.setup(opts)
   ---@type blink.cmp.Config
   opts = lib.tbl.copy(opts)
   if opts.cmdline then
-    config(lib.tbl.omit(opts.cmdline, { 'enabled', 'keymap' }), { mode = 'cmdline' })
+    config.set(lib.tbl.omit(opts.cmdline, { 'enabled', 'keymap' }), { mode = 'cmdline' })
     opts.cmdline = lib.tbl.pick(opts.cmdline, { 'enabled', 'keymap' })
   end
   if opts.term then
-    config(lib.tbl.omit(opts.term, { 'enabled', 'keymap' }), { mode = 'terminal' })
+    config.set(lib.tbl.omit(opts.term, { 'enabled', 'keymap' }), { mode = 'terminal' })
     opts.term = lib.tbl.pick(opts.term, { 'enabled', 'keymap' })
   end
-  config(opts)
+  config.set(opts)
 
   -- setup native library
   if config.fuzzy.implementation ~= 'lua' then
@@ -72,7 +72,9 @@ function cmp.setup(opts)
         logger:notify(vim.log.levels.WARN, {
           { 'V2 uses a new build/download system for the native library. Please add ' },
           { " build = function() require('blink.cmp').build():pwait() end ", 'DiagnosticVirtualTextInfo' },
-          { ' to your lazy.nvim config. See ' },
+          { ' to your lazy.nvim config. Then re-run the build via ' },
+          { ' :Lazy build blink.cmp ', 'DiagnosticVirtualTextInfo' },
+          { ' See ' },
           { ' :h blink-cmp-installation ', 'DiagnosticVirtualTextInfo' },
           { ' for more information.' },
         })

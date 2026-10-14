@@ -1,8 +1,41 @@
 local logger = require('blink.cmp.logger')
+local lsp_snippet_grammar = vim.lsp._snippet_grammar
 
 local utils = {
   parse_cache = {},
 }
+
+--- @param body string
+--- @return string|string[]
+local function normalize_body(body) return body:find('\n') and vim.split(body, '\n', { plain = true }) or body end
+
+--- Attempt snippet transformations for malformed body
+--- @param body string
+--- @param filetype string
+--- @return string
+local function repair_body(body, filetype)
+  body = body
+    :gsub(':\\${', ':${') -- unescape :${
+    :gsub(':${(%w)\\}', ':${%1}') -- unescape :${..\\}
+    :gsub('\\}}', '}}') -- unescape }}
+    :gsub('\\([%(%))])', '%1') -- unescape parentheses
+    :gsub(' \\([%(%))])\\', ' %1\\') -- unescape parens before backslash
+    :gsub('([%s{%(%[])%$%${', '%1\\$${') -- escape $$ after whitespace/brackets
+    :gsub('$: ', '\\$: ') -- escape $ before colon-space
+    :gsub('(".*%w)%$(")', '%1\\$%2') -- escape dollar sign, e.g. "foo$" -> "foo\$"
+    :gsub('$\\{', '\\${') -- wrong backslash position
+    :gsub('(\\?)%$%W*(%$[%w{]+)%W*%$', function(e, a) return (e == '\\' and e or '\\') .. '$' .. a end)
+    :gsub('(%${%d+|)([^}]+)(|})', function(s, o, e) return s .. o:gsub('\\', '\\\\') .. e end) -- Escape \ in options, e.g. \Huge -> \\Huge
+
+  if filetype == 'terraform' then
+    body = body
+      :gsub('= "\\${', '= "${')
+      :gsub('= %["\\${', '= ["${')
+      :gsub('(%${[^}]+})', function(e) return e:gsub('[%.%[%]-]', '_') end) -- replace all dots/brackets/dash in placeholders (not allowed)
+  end
+
+  return body
+end
 
 --- Parses the json file and notifies the user if there's an error
 ---@param path string
@@ -34,7 +67,7 @@ end
 function utils.safe_parse(input)
   if utils.parse_cache[input] then return utils.parse_cache[input] end
 
-  local safe, parsed = pcall(vim.lsp._snippet_grammar.parse, input)
+  local safe, parsed = pcall(lsp_snippet_grammar.parse, input)
   if not safe then return nil end
 
   utils.parse_cache[input] = parsed
@@ -43,12 +76,16 @@ end
 
 ---@param snippet blink.cmp.Snippet
 ---@param fallback string
+---@param filetype string
+---@param is_user_snippet boolean
 ---@return table
-function utils.read_snippet(snippet, fallback)
-  local snippets = {}
+function utils.read_snippet(snippet, fallback, filetype, is_user_snippet)
   local prefix = snippet.prefix or fallback
+  local body = utils.validate_body(snippet.body, prefix, filetype, is_user_snippet)
+  if body == nil then return {} end
+
+  local snippets = {}
   local description = snippet.description or fallback
-  local body = snippet.body
 
   if type(description) == 'table' then description = vim.fn.join(description, '') end
 
@@ -93,6 +130,31 @@ function utils.add_current_line_indentation(text)
   end
 
   return table.concat(lines, '\n')
+end
+
+---@param body string|string[]
+---@param prefix string
+---@param filetype string
+---@param is_user_snippet boolean
+---@return string|string[]|nil
+function utils.validate_body(body, prefix, filetype, is_user_snippet)
+  if type(body) == 'table' then
+    body = table.concat(body, '\n')
+  elseif type(body) ~= 'string' then
+    return nil
+  end
+
+  if utils.safe_parse(body) then return normalize_body(body) end
+
+  body = repair_body(body, filetype)
+  if utils.safe_parse(body) then return normalize_body(body) end
+
+  if is_user_snippet then
+    local str_prefix = type(prefix) == 'table' and table.concat(prefix, ',') or prefix
+    logger:notify(vim.log.levels.WARN, 'Discard snippet `' .. str_prefix .. '` (' .. filetype .. '), parsing failed!')
+  end
+
+  return nil
 end
 
 return utils

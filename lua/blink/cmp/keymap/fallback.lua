@@ -37,13 +37,17 @@ function fallback.wrap(mode, key)
     -- <Esc> (or <C-[>) can be either a key or a sequence prefix. When treated as a prefix,
     -- the following bytes must be fed together, otherwise they're read as literal chars.
     if normalized_raw == '\27' then
-      local pending = {}
-      while true do
-        local char = vim.fn.getcharstr(0)
-        if char == '' then break end
-        pending[#pending + 1] = char
+      local prefix = vim.fn.getcharstr(0)
+      if prefix == '[' or prefix == 'O' then
+        local pending = {}
+        while true do
+          local char = vim.fn.getcharstr(0)
+          if char == '' or char == normalized_raw then break end
+          pending[#pending + 1] = char
+        end
+        return single_key(normalized_raw .. prefix .. table.concat(pending))
       end
-      if #pending > 0 then return single_key(normalized_raw .. table.concat(pending)) end
+      if prefix ~= '' then return { { key = normalized_raw, mode = 'n' }, { key = prefix, mode = 'n' } } end
     end
 
     local mapping = buffer_index[normalized_key] or global_index[normalized_key]

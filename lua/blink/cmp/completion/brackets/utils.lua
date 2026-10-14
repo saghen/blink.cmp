@@ -1,4 +1,4 @@
-local config = require('blink.cmp.config').completion.accept.auto_brackets
+local function config() return require('blink.cmp.config').completion.accept.auto_brackets end
 local CompletionItemKind = require('blink.cmp.types').CompletionItemKind
 local brackets = require('blink.cmp.completion.brackets.config')
 local utils = {}
@@ -19,8 +19,8 @@ end
 --- @param item blink.cmp.CompletionItem
 --- @return string[]
 function utils.get_for_filetype(filetype, item)
-  local default = config.default_brackets
-  local per_filetype = config.override_brackets_for_filetypes[filetype] or brackets.per_filetype[filetype]
+  local default = config().default_brackets
+  local per_filetype = config().override_brackets_for_filetypes[filetype] or brackets.per_filetype[filetype]
 
   if type(per_filetype) == 'function' then return per_filetype(item) or default end
   return per_filetype or default
@@ -32,9 +32,9 @@ end
 --- @return boolean
 function utils.should_run_resolution(ctx, filetype, resolution_method)
   -- resolution method specific
-  if not config[resolution_method .. '_resolution'].enabled then return false end
+  if not config()[resolution_method .. '_resolution'].enabled then return false end
   ---@type string[]
-  local resolution_blocked_filetypes = config[resolution_method .. '_resolution'].blocked_filetypes
+  local resolution_blocked_filetypes = config()[resolution_method .. '_resolution'].blocked_filetypes
   if vim.tbl_contains(resolution_blocked_filetypes, filetype) then return false end
 
   -- filetype specific exceptions
@@ -44,10 +44,10 @@ function utils.should_run_resolution(ctx, filetype, resolution_method)
   end
 
   -- global
-  if not config.enabled then return false end
+  if not config().enabled then return false end
 
-  if vim.tbl_contains(config.force_allow_filetypes, filetype) then return true end
-  return not vim.tbl_contains(config.blocked_filetypes, filetype)
+  if vim.tbl_contains(config().force_allow_filetypes, filetype) then return true end
+  return not vim.tbl_contains(config().blocked_filetypes, filetype)
     and not vim.tbl_contains(brackets.blocked_filetypes, filetype)
 end
 

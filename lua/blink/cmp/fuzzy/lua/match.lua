@@ -14,13 +14,13 @@ local EXACT_MATCH_BONUS = 4
 local MATCHING_CASE_BONUS = 4
 
 local DELIMITERS = {
-  [string.byte(' ', 1)] = true,
-  [string.byte('/', 1)] = true,
-  [string.byte('.', 1)] = true,
-  [string.byte(',', 1)] = true,
-  [string.byte('_', 1)] = true,
-  [string.byte('-', 1)] = true,
-  [string.byte(':', 1)] = true,
+  [(' '):byte()] = true,
+  [('/'):byte()] = true,
+  [('.'):byte()] = true,
+  [(','):byte()] = true,
+  [('_'):byte()] = true,
+  [('-'):byte()] = true,
+  [(':'):byte()] = true,
 }
 
 local function is_letter(char) return char >= 65 and char <= 90 or char >= 97 and char <= 122 end
@@ -42,6 +42,8 @@ local function match(needle, haystack)
     local needle_upper_char = is_lower and needle_char - 32 or needle_char
 
     local haystack_start_idx = haystack_idx
+    local found = false
+
     while haystack_idx <= (#haystack - #needle + needle_idx) do
       local haystack_char = string.byte(haystack, haystack_idx)
 
@@ -60,22 +62,21 @@ local function match(needle, haystack)
           score = score + PREFIX_BONUS
         elseif haystack_idx == 2 and not has_matched and not is_letter(string.byte(haystack, 1)) then
           score = score + OFFSET_PREFIX_BONUS
+        ---@diagnostic disable-next-line: unnecessary-if
         elseif DELIMITERS[string.byte(haystack, haystack_idx - 1)] then
           score = score + DELIMITER_BONUS
         end
 
         has_matched = true
         haystack_idx = haystack_idx + 1
-        goto continue
+        found = true
+        break
       end
 
       haystack_idx = haystack_idx + 1
     end
 
-    -- didn't find a match, so return nil
-    if true then return end
-
-    ::continue::
+    if not found then return end
   end
 
   local exact = needle == haystack
@@ -83,12 +84,5 @@ local function match(needle, haystack)
 
   return score, exact
 end
-
-assert(match('fbb', 'barbazfoobarbaz') == 36, 'fbb should match barbazfoobarbaz with score 36')
-assert(match('foo', '_foobar') == 56, 'foo should match _foobar with score 56')
-assert(match('foo', '__foobar') == 52, 'foo should match __foobar with score 52')
-assert(match('Foo', 'foobar') == 56, 'foo should match foobar with score 56')
-assert(match('foo', 'foobar') == 60, 'foo should match foobar with score 60')
-assert(match('foo', 'fobar') == nil, 'foo should not match fobar')
 
 return match

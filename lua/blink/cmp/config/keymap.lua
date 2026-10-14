@@ -194,19 +194,14 @@ local commands = {
   'snippet_backward',
 }
 
-local keycode = config.types.validator('keycode', function(val)
-  if type(val) ~= 'string' or val == '' then return false end
-  local rest = val:gsub('<[^<>]+>', '')
-  if rest:match('[<>]') then return false end
-  return true
-end)
-
-local actions =
-  config.types.union(config.types.enum({ false }), config.types.list({ config.types.enum(commands), 'function' }))
+local actions = { config.types.enum({ false }), config.types.list({ config.types.enum(commands), 'function' }) }
 
 ---@param default_preset blink.cmp.KeymapPreset
 function keymap.get(default_preset)
-  return config.types.catchall({ preset = { default_preset, config.types.enum(presets) } }, keycode, actions)
+  return {
+    { preset = default_preset },
+    config.types.table({ preset = config.types.enum(presets) }, config.types.keycode, actions),
+  }
 end
 
 return keymap

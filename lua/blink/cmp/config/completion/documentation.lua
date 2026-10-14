@@ -34,7 +34,7 @@
 local config = require('blink.lib.config')
 return {
   enabled = { true, 'boolean' },
-  auto_show = { true, 'boolean' },
+  auto_show = { false, 'boolean' },
   auto_show_delay_ms = { 500, 'number' },
   update_delay_ms = {
     50,

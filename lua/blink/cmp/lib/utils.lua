@@ -11,7 +11,7 @@ if vim.fn.has('nvim-0.13') == 1 then
   function utils.get_vim_pos_cursor(buf, pos) return vim.pos.cursor(buf, pos) end
 
   --- @param pos vim.Pos
-  --- @return integer[]
+  --- @return { [1]: integer, [2]: integer }
   function utils.vim_pos_to_cursor(pos) return pos:to_cursor() end
 
   --- @param buf integer
@@ -61,7 +61,7 @@ else
   end
 
   --- @param pos vim.Pos
-  --- @return integer[]
+  --- @return { [1]: integer, [2]: integer }
   function utils.vim_pos_to_cursor(pos) return { pos:to_cursor() } end
 end
 

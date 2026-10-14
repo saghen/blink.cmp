@@ -24,8 +24,10 @@ local function apply_callback(mode, key, commands, callback)
   local consume_fallback_keys = function(mapping_only)
     mapping_only = mapping_only or false
     local keys = do_fallback(mapping_only)
-    for _, k in ipairs(keys) do
-      utils.feedkeys(k.key, k.mode)
+    for i = #keys, 1, -1 do
+      local k = keys[i]
+      -- Feed before the typeahead so fallback keys keep their original order
+      utils.feedkeys(k.key, k.mode .. 'i')
     end
   end
 
@@ -48,8 +50,8 @@ local function apply_callback(mode, key, commands, callback)
         local result = command(cmp)
         if type(result) == 'string' then
           if result ~= '' then
-            -- Allow key composition using mode 't', e.g. '<C-n>'
-            utils.feedkeys(vim.keycode(result), 't')
+            -- Allow key composition using mode 't', e.g. '<C-n>' and insert before typeahead.
+            utils.feedkeys(vim.keycode(result), 'ti')
             return
           end
         elseif result then
@@ -72,8 +74,11 @@ end
 
 --- @param mode 'i'|'s'|'c'|'t'
 --- @param keys_to_commands blink.cmp.KeymapList
+--- @param command_filter? fun(commands: blink.cmp.KeymapCommand[]): boolean
+--- @param filter_fn? fun(command: blink.cmp.KeymapCommand): boolean
 local function set_keymaps_for_mode(mode, keys_to_commands, command_filter, filter_fn)
   for key, commands in pairs(keys_to_commands) do
+    if commands == false then return end
     if not command_filter or command_filter(commands) then
       vim.api.nvim_buf_set_keymap(0, mode, key, '', {
         callback = apply_callback(mode, key, commands, filter_fn),
@@ -88,6 +93,7 @@ local function set_keymaps_for_mode(mode, keys_to_commands, command_filter, filt
 end
 
 -- stylua: ignore
+--- @type table<blink.cmp.Mode, fun(keys_to_commands: blink.cmp.KeymapList)>
 local keymaps_per_mode = {
   default = function(keys_to_commands)
     -- insert mode: uses both snippet and insert commands
@@ -105,6 +111,8 @@ local keymaps_per_mode = {
   end,
 }
 
+--- @param commands blink.cmp.KeymapCommand[]
+--- @return boolean
 function apply.has_insert_command(commands)
   for _, command in ipairs(commands) do
     if not vim.tbl_contains(snippet_commands, command) and command ~= 'fallback' then return true end
@@ -112,6 +120,8 @@ function apply.has_insert_command(commands)
   return false
 end
 
+--- @param commands blink.cmp.KeymapCommand[]
+--- @return boolean
 function apply.has_snippet_commands(commands)
   for _, command in ipairs(commands) do
     if vim.tbl_contains(snippet_commands, command) or type(command) == 'function' then return true end

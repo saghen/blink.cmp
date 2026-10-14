@@ -59,8 +59,6 @@
 
 --- @class (exact) blink.cmp.FuzzyConfigPartial : blink.cmp.FuzzyConfig, {}
 
---- @class (exact) blink.cmp.PrebuiltBinariesProxyConfigPartial : blink.cmp.PrebuiltBinariesProxyConfig, {}
-
 --- @class blink.cmp.SourceConfigPartial : blink.cmp.SourceConfig, {}
 --- @field providers? table<string, blink.cmp.SourceProviderConfigPartial>
 

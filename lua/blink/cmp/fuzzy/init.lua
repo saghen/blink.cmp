@@ -14,6 +14,7 @@ local fuzzy = {
 
 --- @param implementation 'lua' | 'rust'
 function fuzzy.set_implementation(implementation)
+  ---@diagnostic disable-next-line: unnecessary-assert
   assert(implementation == 'lua' or implementation == 'rust', 'Invalid fuzzy implementation: ' .. implementation)
 
   fuzzy.implementation_type = implementation
@@ -25,11 +26,7 @@ function fuzzy.init_db()
   if fuzzy.has_init_db then return end
 
   fuzzy.implementation.init_db(config.fuzzy.frecency.path)
-
-  nvim.create_autocmd('VimLeavePre', {
-    callback = fuzzy.implementation.destroy_db,
-  })
-
+  nvim.create_autocmd('VimLeavePre', { callback = fuzzy.implementation.destroy_db })
   fuzzy.has_init_db = true
 end
 
@@ -40,8 +37,9 @@ function fuzzy.get_lib()
   local native = require('blink.lib.native')
   local commit = native.try_git_commit(cmp.get_repo_root())
   local name = cmp.get_library_name()
+  local lib_path = assert(native.resolve(name, commit), 'Unable to find the rust library path')
 
-  return name, native.resolve(name, commit)
+  return name, lib_path
 end
 
 ---@param item blink.cmp.CompletionItem
@@ -62,30 +60,21 @@ function fuzzy.access(item)
   }
 
   -- writing to the db takes ~10ms, so schedule writes in another thread
-  local encode
-  if jit and package.preload['string.buffer'] then
-    encode = require('string.buffer').encode
-  else
-    encode = vim.mpack.encode
-  end
-
+  local codec = jit and package.preload['string.buffer'] and require('string.buffer') or vim.mpack
   local lib_name, lib_path = require('blink.cmp.fuzzy').get_lib()
+
   vim.uv
     .new_work(function(itm, libname, libpath)
-      local decode
-      if jit and package.preload['string.buffer'] then
-        decode = require('string.buffer').decode
-      else
-        decode = vim.mpack.decode
-      end
-
+      ---@cast itm string
+      ---@diagnostic disable-next-line: duplicate-require
+      local codec_uv = jit and package.preload['string.buffer'] and require('string.buffer') or vim.mpack
       local loader, err = package.loadlib(libpath, 'luaopen_' .. libname)
       assert(loader, err)
 
       local rust = loader()
-      rust.access(decode(itm))
+      rust.access(codec_uv.decode(itm))
     end, function() end)
-    :queue(encode(trimmed_item), lib_name, lib_path)
+    :queue(codec.encode(trimmed_item), lib_name, lib_path)
 end
 
 ---@param lines string
@@ -129,6 +118,7 @@ function fuzzy.fuzzy(line, cursor_col, haystacks_by_provider, range)
 
   -- get sorts list if sorts is a function
   local sorts_list = type(config.fuzzy.sorts) == 'function' and config.fuzzy.sorts() or config.fuzzy.sorts
+  ---@cast sorts_list blink.cmp.Sort[]
 
   -- sort in rust if none of the sort functions are lua functions
   local sort_in_rust = fuzzy.implementation_type == 'rust'
@@ -153,10 +143,11 @@ function fuzzy.fuzzy(line, cursor_col, haystacks_by_provider, range)
   -- add items to the final list
   local filtered_items = {}
   for idx, provider_idx in ipairs(provider_idxs) do
-    local provider_id = provider_ids[provider_idx + 1]
+    local provider_id = assert(provider_ids[provider_idx + 1])
     local haystack = haystacks_by_provider[provider_id]
+    local haystack_idx = assert(matched_indices[idx]) + 1
 
-    local item = haystack[matched_indices[idx] + 1]
+    local item = assert(haystack[haystack_idx])
     item.score = scores[idx]
     item.exact = exacts[idx]
 

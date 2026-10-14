@@ -209,11 +209,11 @@ vim.api.nvim_create_autocmd('User', {
 })
 ```
 
-### Avoid multi-line completion ghost text
+### Avoid menu overlap with multi-line ghost text
 
 See [nvim-cmp#1955](https://github.com/hrsh7th/nvim-cmp/pull/1955#issue-2341857764) for an example of what this looks like.
 
-When ghost text is enabled (`completion.ghost_text.enabled = true`), you may want the menu to avoid overlapping with the ghost text. You may provide a custom `completion.menu.direction_priority` function to achieve this
+When ghost text is enabled (`completion.ghost_text.enabled = true`), you may want the menu to change direction when it would overlap multi-line ghost text. You can provide a custom `completion.menu.direction_priority` function to achieve this:
 
 ```lua
 completion = {
@@ -237,6 +237,8 @@ completion = {
   },
 },
 ```
+
+If you prefer not to display multi-line ghost text at all, you can set `completion.ghost_text.show_first_line_only = true` to show only the first line.
 
 ### Show on newline, tab and space
 

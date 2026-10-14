@@ -1,15 +1,30 @@
---- @class blink.cmp.EventEmitter<T> : { event: string, autocmd?: string, listeners: table<fun(data: T)>, new: ( fun(event: string, autocmd: string): blink.cmp.EventEmitter<T>), on: ( fun(self: blink.cmp.EventEmitter<T>, callback: fun(data: T)) ), off: ( fun(self: blink.cmp.EventEmitter<T>, callback: fun(data: T)) ), emit: ( fun(self: blink.cmp.EventEmitter<T>, data?: table) ) };
---- TODO: is there a better syntax for this?
+--- @alias blink.cmp.EventEmitter<T> {
+---   event: string,
+---   autocmd?: string,
+---   listeners: fun(data: T)[],
+---
+---   on: fun(self: blink.cmp.EventEmitter<T>, callback: fun(data: T)),
+---   off: fun(self: blink.cmp.EventEmitter<T>, callback: fun(data: T)),
+---   emit: fun(self: blink.cmp.EventEmitter<T>, data?: T),
+---
+---   new: fun(event: string, autocmd?: string): blink.cmp.EventEmitter<T>
+--- }
 
+--- @generic T
+--- @type blink.cmp.EventEmitter<T>
 local event_emitter = {}
 
+--- @generic T
 --- @param event string
 --- @param autocmd? string
+--- @return blink.cmp.EventEmitter<T>
 function event_emitter.new(event, autocmd)
-  local self = setmetatable({}, { __index = event_emitter })
-  self.event = event
-  self.autocmd = autocmd
-  self.listeners = {}
+  local self = setmetatable({
+    event = event,
+    autocmd = autocmd,
+    listeners = {},
+  }, { __index = event_emitter })
+
   return self
 end
 
@@ -22,8 +37,10 @@ function event_emitter:off(callback)
 end
 
 function event_emitter:emit(data)
+  ---@type table
   data = data or {}
   data.event = self.event
+
   for _, callback in ipairs(self.listeners) do
     callback(data)
   end
