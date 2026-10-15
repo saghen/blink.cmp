@@ -1,6 +1,8 @@
+local async = require('blink.lib.async')
 local logger = require('blink.cmp.logger')
 local text_edits_lib = require('blink.cmp.lib.text_edits')
 local brackets_lib = require('blink.cmp.completion.brackets')
+local lsp = require('blink.cmp.lsp.completion')
 
 --- @param ctx blink.cmp.Context
 --- @param item blink.cmp.CompletionItem
@@ -16,8 +18,7 @@ local function apply_item(ctx, item)
 
   -- Create an undo point, if it's not a snippet, since the snippet engine should handle undo
   if
-    ctx.mode == 'default'
-    and require('blink.cmp.config').completion.accept.create_undo_point
+    require('blink.cmp.config').completion.accept.create_undo_point
     and item.insertTextFormat ~= vim.lsp.protocol.InsertTextFormat.Snippet
   then
     -- setting the undolevels forces neovim to create an undo point
@@ -30,7 +31,7 @@ local function apply_item(ctx, item)
     item.insertTextFormat == vim.lsp.protocol.InsertTextFormat.Snippet
     and item.kind ~= require('blink.cmp.types').CompletionItemKind.Snippet
   then
-    local parsed_snippet = require('blink.cmp.sources.snippets.utils').safe_parse(item.textEdit.newText)
+    local parsed_snippet = require('blink.cmp.snippet.utils').safe_parse(item.textEdit.newText)
     if
       parsed_snippet ~= nil
       -- snippets automatically handle indentation on newlines, while our implementation does not,
@@ -45,13 +46,12 @@ local function apply_item(ctx, item)
   end
 
   -- Add brackets to the text edit, if needed
-  local brackets_status, text_edit_with_brackets, offset = brackets_lib.add_brackets(ctx, vim.bo.filetype, item)
+  local brackets_status, text_edit_with_brackets, offset =
+    brackets_lib.add_brackets(ctx, vim.bo[ctx.bufnr].filetype, item)
   item.textEdit = text_edit_with_brackets
 
   -- Snippet
   if item.insertTextFormat == vim.lsp.protocol.InsertTextFormat.Snippet then
-    assert(ctx.mode == 'default', 'Snippets are only supported in default mode')
-
     -- We want to handle offset_encoding and the text edit api can do this for us
     -- so we empty the newText and apply
     local temp_text_edit = vim.deepcopy(item.textEdit)
@@ -74,7 +74,7 @@ local function apply_item(ctx, item)
 
   -- Check semantic tokens for brackets, if needed, asynchronously
   if brackets_status == 'check_semantic_token' then
-    brackets_lib.add_brackets_via_semantic_token(ctx, vim.bo.filetype, item):map(function(added_brackets)
+    brackets_lib.add_brackets_via_semantic_token(ctx, vim.bo[ctx.bufnr].filetype, item, function(added_brackets)
       if added_brackets then
         require('blink.cmp.completion.trigger').show_if_on_trigger_character({ is_accept = true })
         require('blink.cmp.signature.trigger').show_if_on_trigger_character()
@@ -83,43 +83,69 @@ local function apply_item(ctx, item)
   end
 end
 
+--- Waits for the resolved item up to `resolve_timeout_ms`. The resolve task is shared with the
+--- documentation window and prefetching, so it keeps running on timeout instead of being cancelled.
+--- @async
+--- @param ctx blink.cmp.Context
+--- @param item blink.cmp.CompletionItem
+--- @return blink.cmp.CompletionItem
+local function resolve_with_timeout(ctx, item)
+  local resolve_timeout_ms = require('blink.cmp.config').completion.accept.resolve_timeout_ms
+  local ok, resolved = async.pawait(async.deadline(resolve_timeout_ms, lsp.resolve(ctx, item)))
+  return ok and resolved or item
+end
+
+--- Runs the completion item's command
+---
+--- Client-side commands (`client.commands`, `vim.lsp.commands`) run synchronously,
+--- `workspace/executeCommand` is awaited
+--- @async
+--- @param ctx blink.cmp.Context
+--- @param item blink.cmp.CompletionItem
+local function execute_command(ctx, item)
+  local command = item.command
+  if vim.isnil(command) or item.client_id == nil then return end
+  local client = vim.lsp.get_client_by_id(item.client_id)
+  if client == nil then return end
+
+  local provider = client.server_capabilities.executeCommandProvider
+  local server_commands = type(provider) == 'table' and provider.commands or {}
+  local is_client_command = client.commands[command.command] ~= nil or vim.lsp.commands[command.command] ~= nil
+  if is_client_command or not vim.list_contains(server_commands, command.command) then
+    client:exec_cmd(command, { bufnr = ctx.bufnr })
+    return
+  end
+
+  async.await(function(callback)
+    client:exec_cmd(command, { bufnr = ctx.bufnr }, function() callback() end)
+  end)
+end
+
 --- Applies a completion item to the current buffer
 --- @param ctx blink.cmp.Context
 --- @param item blink.cmp.CompletionItem
 --- @param callback fun()
 local function accept(ctx, item, callback)
-  local sources = require('blink.cmp.sources.lib')
   require('blink.cmp.completion.trigger').hide()
 
-  -- Start the resolve immediately since text changes can invalidate the item
-  -- with some LSPs (e.g. rust-analyzer) causing them to return the item as-is
-  -- without, e.g. auto-imports
-  sources
-    .resolve(ctx, item)
-    -- Some LSPs may take a long time to resolve the item, so we timeout
-    :timeout(
-      require('blink.cmp.config').completion.accept.resolve_timeout_ms
-    )
-    -- and use the item as-is
-    :catch(function() return item end)
-    :map(function(resolved_item)
-      ---@cast resolved_item blink.cmp.CompletionItem
-      -- Updates the text edit based on the cursor position and converts it to utf-8
-      resolved_item = vim.deepcopy(resolved_item)
-      resolved_item.textEdit = text_edits_lib.get_from_item(resolved_item)
+  local task = async.run('blink.cmp:accept', function()
+    -- Start the resolve immediately since text changes can invalidate the item
+    -- with some LSPs (e.g. rust-analyzer) causing them to return the item as-is
+    -- without, e.g. auto-imports
+    -- Some LSPs may take a long time to resolve the item, so we timeout and use the item as-is
+    local resolved_item = vim.deepcopy(resolve_with_timeout(ctx, item))
 
-      return sources.execute(
-        ctx,
-        resolved_item,
-        function(alternate_ctx, alternate_item) apply_item(alternate_ctx or ctx, alternate_item or resolved_item) end
-      )
-    end)
-    :map(function()
-      require('blink.cmp.completion.trigger').show_if_on_trigger_character({ is_accept = true })
-      require('blink.cmp.signature.trigger').show_if_on_trigger_character()
-      callback()
-    end)
-    :catch(function(err) logger:notify(vim.log.levels.ERROR, tostring(err)) end)
+    -- Updates the text edit based on the cursor position and converts it to utf-8
+    resolved_item.textEdit = text_edits_lib.get_from_item(resolved_item)
+
+    apply_item(ctx, resolved_item)
+    execute_command(ctx, resolved_item)
+
+    require('blink.cmp.completion.trigger').show_if_on_trigger_character({ is_accept = true })
+    require('blink.cmp.signature.trigger').show_if_on_trigger_character()
+    callback()
+  end)
+  async.on_error(task, function(err) logger:notify(vim.log.levels.ERROR, tostring(err)) end)
 end
 
 return accept

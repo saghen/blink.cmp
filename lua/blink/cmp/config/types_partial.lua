@@ -3,12 +3,14 @@
 --- @field keymap? blink.cmp.KeymapConfig
 --- @field completion? blink.cmp.CompletionConfigPartial
 --- @field fuzzy? blink.cmp.FuzzyConfigPartial
---- @field sources? blink.cmp.SourceConfigPartial
 --- @field signature? blink.cmp.SignatureConfigPartial
 --- @field snippets? blink.cmp.SnippetsConfigPartial
 --- @field appearance? blink.cmp.AppearanceConfigPartial
 --- @field cmdline? blink.cmp.CmdlineConfigPartial
---- @field term? blink.cmp.TermConfigPartial
+--- @field lsp? table<string, blink.cmp.LspSetupConfig> Client-side policy per server (or `'*'`), forwarded to `cmp.lsp.config` and `cmp.lsp.enable`
+
+--- @class blink.cmp.LspSetupConfig : blink.cmp.LspConfig
+--- @field enabled? boolean | fun(ctx: blink.cmp.Context): boolean Whether blink queries the server, see `cmp.lsp.enable`
 
 --- @class (exact) blink.cmp.CompletionConfigPartial : blink.cmp.CompletionConfig
 --- @field keyword? blink.cmp.CompletionKeywordConfigPartial
@@ -59,11 +61,6 @@
 
 --- @class (exact) blink.cmp.FuzzyConfigPartial : blink.cmp.FuzzyConfig, {}
 
---- @class blink.cmp.SourceConfigPartial : blink.cmp.SourceConfig, {}
---- @field providers? table<string, blink.cmp.SourceProviderConfigPartial>
-
---- @class blink.cmp.SourceProviderConfigPartial : blink.cmp.SourceProviderConfig, {}
-
 --- @class (exact) blink.cmp.SignatureConfigPartial : blink.cmp.SignatureConfig, {}
 --- @field trigger? blink.cmp.SignatureTriggerConfigPartial
 --- @field window? blink.cmp.SignatureWindowConfigPartial
@@ -77,5 +74,3 @@
 --- @class (exact) blink.cmp.AppearanceConfigPartial : blink.cmp.AppearanceConfig, {}
 
 --- @class (exact) blink.cmp.CmdlineConfigPartial : blink.cmp.CmdlineConfig, {}
-
---- @class (exact) blink.cmp.TermConfigPartial : blink.cmp.TermConfig, {}

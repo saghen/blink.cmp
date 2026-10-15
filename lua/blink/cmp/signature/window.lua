@@ -10,7 +10,6 @@
 
 local nvim = require('blink.lib.nvim')
 local function config() return require('blink.cmp.config').signature.window end
-local sources = require('blink.cmp.sources.lib')
 local menu = require('blink.cmp.completion.windows.menu')
 
 local signature = {
@@ -67,11 +66,10 @@ function signature.open_with_signature_help(context, signature_help)
   signature.shown_signature = active_signature
 
   -- highlight active parameter
-  local mode = require('blink.cmp.completion.trigger.context').get_mode()
   local _, active_highlight = vim.lsp.util.convert_signature_help_to_markdown_lines(
     signature_help,
     vim.bo.filetype,
-    sources.get_signature_help_trigger_characters(mode).trigger_characters
+    require('blink.cmp.lsp.signature').get_trigger_characters(nvim.get_current_buf()).trigger_characters
   )
   if active_highlight ~= nil then
     local start_line = active_highlight[1] - 1

@@ -26,8 +26,9 @@ local function apply_callback(mode, key, commands, callback)
     local keys = do_fallback(mapping_only)
     for i = #keys, 1, -1 do
       local k = keys[i]
-      -- Feed before the typeahead so fallback keys keep their original order
-      utils.feedkeys(k.key, k.mode .. 'i')
+      -- Feed before the typeahead so fallback keys keep their original order.
+      -- As typed in cmdline mode, so that 'wildchar' completion still works for <Tab>
+      utils.feedkeys(k.key, k.mode .. 'i' .. (mode == 'c' and 't' or ''))
     end
   end
 
@@ -93,7 +94,7 @@ local function set_keymaps_for_mode(mode, keys_to_commands, command_filter, filt
 end
 
 -- stylua: ignore
---- @type table<blink.cmp.Mode, fun(keys_to_commands: blink.cmp.KeymapList)>
+--- @type table<blink.cmp.KeymapMode, fun(keys_to_commands: blink.cmp.KeymapList)>
 local keymaps_per_mode = {
   default = function(keys_to_commands)
     -- insert mode: uses both snippet and insert commands
@@ -104,10 +105,6 @@ local keymaps_per_mode = {
   cmdline = function(keys_to_commands)
     -- cmdline mode: uses only insert commands
     set_keymaps_for_mode('c', keys_to_commands, apply.has_insert_command, function(command) return not vim.tbl_contains(snippet_commands, command) end)
-  end,
-  term = function(keys_to_commands)
-    -- terminal mode: uses only insert commands
-    set_keymaps_for_mode('t', keys_to_commands, apply.has_insert_command, function(command) return not vim.tbl_contains(snippet_commands, command) end)
   end,
 }
 
@@ -130,7 +127,7 @@ function apply.has_snippet_commands(commands)
 end
 
 --- Applies the keymaps based on the mode
---- @param mode blink.cmp.Mode
+--- @param mode blink.cmp.KeymapMode
 --- @param keys_to_commands blink.cmp.KeymapList
 function apply.keymaps(mode, keys_to_commands) keymaps_per_mode[mode](keys_to_commands) end
 

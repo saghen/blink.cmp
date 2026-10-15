@@ -3,7 +3,7 @@ local function config() return require('blink.cmp.config').completion.ghost_text
 local highlight_ns = require('blink.cmp.config').appearance.highlight_ns
 
 local text_edits_lib = require('blink.cmp.lib.text_edits')
-local snippets_utils = require('blink.cmp.sources.snippets.utils')
+local snippets_utils = require('blink.cmp.snippet.utils')
 local utils = require('blink.cmp.completion.windows.ghost_text.utils')
 local menu = require('blink.cmp.completion.windows.menu')
 

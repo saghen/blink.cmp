@@ -1,14 +1,37 @@
 --- @class (exact) blink.cmp.SnippetsConfig
---- @field preset 'default' | 'luasnip' | 'mini_snippets' | 'vsnip'
+--- @field preset 'auto' | 'default' | 'luasnip' | 'mini_snippets' | 'vsnip' Engine used to expand LSP snippets. `'auto'` prefers any loaded third-party engine over `vim.snippet` (`'default'`)
 --- @field expand fun(snippet: string) Function to use when expanding LSP provided snippets
 --- @field active fun(filter?: { direction?: integer }): boolean Function to use when checking if a snippet is active
 --- @field jump fun(direction: integer): boolean Function to use when jumping between tab stops in a snippet, where direction can be negative or positive
 --- @field score_offset integer Offset to the score of all snippet items
 
+local is_loaded = {
+  luasnip = function() return package.loaded.luasnip ~= nil end,
+  mini_snippets = function() return _G.MiniSnippets ~= nil end,
+  vsnip = function() return vim.g.loaded_vsnip == 1 end,
+}
+
+--- Detect the preset to use when set to `'auto'`
+--- @return 'default' | 'luasnip' | 'mini_snippets' | 'vsnip'
+local function detect_preset()
+  local loaded = vim.tbl_filter(function(name) return is_loaded[name]() end, { 'luasnip', 'mini_snippets', 'vsnip' })
+  if #loaded > 1 then
+    vim.notify_once(
+      ('[blink.cmp] multiple snippet engines are loaded (%s), using %s. Set snippets.preset to pick one'):format(
+        table.concat(loaded, ', '),
+        loaded[1]
+      ),
+      vim.log.levels.WARN
+    )
+  end
+  return loaded[1] or 'default'
+end
+
 --- @param handlers table<'default' | 'luasnip' | 'mini_snippets' | 'vsnip', fun(...): any>
 local function by_preset(handlers)
   return function(...)
     local preset = require('blink.cmp.config').snippets.preset
+    if preset == 'auto' then preset = detect_preset() end
     return handlers[preset](...)
   end
 end
@@ -22,10 +45,7 @@ end
 
 local config = require('blink.lib.config')
 return {
-  preset = {
-    'default',
-    config.types.enum({ 'default', 'luasnip', 'mini_snippets', 'vsnip' }),
-  },
+  preset = { 'auto', config.types.enum({ 'auto', 'default', 'luasnip', 'mini_snippets', 'vsnip' }) },
   score_offset = { -3, 'number' },
   -- NOTE: we wrap `vim.snippet` calls to reduce startup by 1-2ms
   expand = {
