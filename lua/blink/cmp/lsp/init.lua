@@ -3,7 +3,7 @@
 --- `vim.lsp.enable(name, enable)` starts the server
 --- `vim.lsp.config(name, { settings = {} })` sets the server settings
 ---
---- `cmp.lsp.config(name, {...})` provides blink specific client-side options
+--- `cmp.lsp.config(name, {...})` provides blink.cmp specific client-side options
 --- `cmp.lsp.enable(name, enable | fun(ctx): bool)` decides whether blink queries it at all
 ---
 --- Every attached server with `completionProvider` is queried by default.
