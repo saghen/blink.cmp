@@ -1,8 +1,12 @@
 --- @class blink.cmp.SignatureWindow
 --- @field win blink.cmp.Window
 --- @field context? blink.cmp.SignatureHelpContext
+--- @field signature_help? lsp.SignatureHelp
+--- @field show_documentation? boolean Overrides `signature.window.show_documentation` until the window is closed
 ---
 --- @field open_with_signature_help fun(context: blink.cmp.SignatureHelpContext, signature_help?: lsp.SignatureHelp)
+--- @field should_show_documentation fun(): boolean
+--- @field set_show_documentation fun(show: boolean)
 --- @field close fun()
 --- @field scroll_up fun(amount: integer): boolean
 --- @field scroll_down fun(amount: integer): boolean
@@ -28,6 +32,10 @@ local signature = {
   }),
   ---@type blink.cmp.SignatureHelpContext?
   context = nil,
+  ---@type lsp.SignatureHelp?
+  signature_help = nil,
+  ---@type boolean?
+  show_documentation = nil,
 }
 
 -- TODO: deduplicate this
@@ -49,6 +57,7 @@ function signature.open_with_signature_help(context, signature_help)
   end
 
   signature.context = context
+  signature.signature_help = signature_help
 
   local active_signature = signature_help.signatures[(signature_help.activeSignature or 0) + 1]
   assert(active_signature, 'Unable to find the active signature')
@@ -59,7 +68,7 @@ function signature.open_with_signature_help(context, signature_help)
     require('blink.cmp.lib.window.docs').render_detail_and_documentation({
       bufnr = signature.win:get_buf(),
       detail = labels,
-      documentation = config().show_documentation and active_signature.documentation or nil,
+      documentation = signature.should_show_documentation() and active_signature.documentation or nil,
       max_width = config().max_width,
       use_treesitter_highlighting = config().treesitter_highlighting,
     })
@@ -90,6 +99,23 @@ function signature.open_with_signature_help(context, signature_help)
   signature.win:open()
   signature.update_position()
   signature.scroll_up(1)
+end
+
+--- @return boolean
+function signature.should_show_documentation()
+  if signature.show_documentation ~= nil then return signature.show_documentation end
+  return config().show_documentation
+end
+
+--- Overrides `signature.window.show_documentation`, will be reset when the window is closed
+--- @param show boolean
+function signature.set_show_documentation(show)
+  signature.show_documentation = show
+  if signature.context == nil or signature.signature_help == nil then return end
+
+  -- force a re-render of the active signature
+  signature.shown_signature = nil
+  signature.open_with_signature_help(signature.context, signature.signature_help)
 end
 
 --- @param amount integer
@@ -181,10 +207,12 @@ function signature.update_position()
 end
 
 function signature.close()
+  signature.show_documentation = nil
   if not signature.win:is_open() then return end
 
   signature.win:close()
   signature.context = nil
+  signature.signature_help = nil
 end
 
 return signature

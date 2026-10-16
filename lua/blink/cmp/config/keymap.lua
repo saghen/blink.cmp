@@ -20,6 +20,8 @@
 --- | 'scroll_documentation_down' Scroll the documentation window down
 --- | 'show_signature' Show the signature help window
 --- | 'hide_signature' Hide the signature help window
+--- | 'show_signature_documentation' Show the documentation in the signature help window
+--- | 'hide_signature_documentation' Hide the documentation in the signature help window
 --- | 'scroll_signature_up' Scroll the signature window up
 --- | 'scroll_signature_down' Scroll the signature window down
 --- | 'snippet_forward' Move the cursor forward to the next snippet placeholder
@@ -188,6 +190,8 @@ local commands = {
   'scroll_documentation_down',
   'show_signature',
   'hide_signature',
+  'show_signature_documentation',
+  'hide_signature_documentation',
   'scroll_signature_up',
   'scroll_signature_down',
   'snippet_forward',

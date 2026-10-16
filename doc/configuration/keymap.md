@@ -474,6 +474,18 @@ No parameters.
 No parameters.
 :::
 
+::: details `show_signature_documentation` - Shows the documentation in the signature help window
+Shows the documentation of the active signature, even when `signature.window.show_documentation = false`, until the signature help window is closed.
+
+No parameters.
+:::
+
+::: details `hide_signature_documentation` - Hides the documentation in the signature help window
+Hides the documentation of the active signature, even when `signature.window.show_documentation = true`, until the signature help window is closed.
+
+No parameters.
+:::
+
 ::: details `scroll_signature_up` - Scrolls the signature help up
 
 #### Parameters

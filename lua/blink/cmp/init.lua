@@ -420,6 +420,26 @@ function cmp.hide_signature()
   return true
 end
 
+--- Show the documentation in the signature help window
+--- @return boolean
+function cmp.show_signature_documentation()
+  local signature = require('blink.cmp.signature.window')
+  if not signature.win:is_open() or signature.should_show_documentation() then return false end
+
+  signature.set_show_documentation(true)
+  return true
+end
+
+--- Hide the documentation in the signature help window
+--- @return boolean
+function cmp.hide_signature_documentation()
+  local signature = require('blink.cmp.signature.window')
+  if not signature.win:is_open() or not signature.should_show_documentation() then return false end
+
+  signature.set_show_documentation(false)
+  return true
+end
+
 --- Scroll the signature window up
 --- @param count? integer
 --- @return boolean

@@ -10,6 +10,8 @@ local snippet_commands = {
   'snippet_backward',
   'show_signature',
   'hide_signature',
+  'show_signature_documentation',
+  'hide_signature_documentation',
   'scroll_signature_up',
   'scroll_signature_down',
 }

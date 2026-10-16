@@ -19,12 +19,14 @@ You may want to set `signature.window.show_documentation = false` to only show t
 
 ## Keymap
 
-See the [keymap documentation](../modes/cmdline.md#keymap) for a full list of commands. By default, the `scroll_signature_up` and `scroll_signature_down` commands are not bound to any keys. You may bind them like so:
+See the [keymap documentation](../modes/cmdline.md#keymap) for a full list of commands. By default, the `scroll_signature_up`, `scroll_signature_down`, `show_signature_documentation` and `hide_signature_documentation` commands are not bound to any keys. You may bind them like so:
 
 ```lua
 keymap = {
   ['<C-u>'] = { 'scroll_signature_up', 'fallback' },
   ['<C-d>'] = { 'scroll_signature_down', 'fallback' },
+  -- toggle the documentation in the signature help window
+  ['<M-k>'] = { 'show_signature_documentation', 'hide_signature_documentation', 'fallback' },
 
   -- default in all keymap presets
   ['<C-k>'] = { 'show_signature', 'hide_signature', 'fallback' },
