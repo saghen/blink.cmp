@@ -70,7 +70,7 @@ function source:resolve(item, callback)
   callback(resolved_item)
 end
 
-function source:execute(_, item)
+function source:execute(_, item, callback)
   -- remove keyword / stuff before cursor
   require('blink.cmp.lib.text_edits').apply({
     newText = '',
@@ -80,6 +80,7 @@ function source:execute(_, item)
   -- paste expanded snippet from item (not from text in buffer)
   --- @diagnostic disable-next-line: need-check-nil
   vim.fn['vsnip#anonymous'](vim.iter(item.data.snippet):join('\n'))
+  callback()
 end
 
 return source

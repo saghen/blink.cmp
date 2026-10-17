@@ -288,9 +288,10 @@ function source:resolve(item, callback)
   callback(resolved_item)
 end
 
-function source:execute(ctx, item)
+function source:execute(ctx, item, callback)
   if item.data.choice_index then
     luasnip.set_choice(item.data.choice_index)
+    callback()
     return
   end
 
@@ -331,6 +332,7 @@ function source:execute(ctx, item)
   end
 
   luasnip.snip_expand(snip, { expand_params = expand_params, clear_region = clear_region })
+  callback()
 end
 
 function source:reload() self.items_cache = {} end
