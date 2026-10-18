@@ -23,7 +23,7 @@ jobs:
         with:
           vimdoc: blink-cmp
           pandoc: doc/vimdoc.md
-          version: NVIM v0.12.0
+          version: NVIM v0.13.0
           shiftheadinglevelby: 0
           incrementheadinglevelby: 0
       - uses: stefanzweifel/git-auto-commit-action@04702edda442b2e678b25b537cec683a1493fcb9 # v7.1.0

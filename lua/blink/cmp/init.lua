@@ -1,4 +1,4 @@
-if vim.fn.has('nvim-0.12') == 0 then error('blink.cmp v2 requires nvim 0.12+, consider pinning to v1') end
+if vim.fn.has('nvim-0.13') == 0 then error('blink.cmp v2 requires nvim 0.13+, consider pinning to v1') end
 
 local success, mod = pcall(require, 'blink.lib')
 if not success then error('blink.cmp v2 requires "saghen/blink.lib" installed via your package manager: ' .. mod) end
