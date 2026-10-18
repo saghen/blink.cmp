@@ -15,11 +15,11 @@ signature = { enabled = true }
 
 <img src="https://github.com/user-attachments/assets/9ab576c8-2a04-465f-88c0-9c130fef146c" />
 
-You may want to set `signature.window.show_documentation = false` to only show the signature, and not the documentation.
+You may want to set `signature.window.show_documentation = true` to show the documentation in addition to the signature.
 
 ## Keymap
 
-See the [keymap documentation](../modes/cmdline.md#keymap) for a full list of commands. By default, the `scroll_signature_up`, `scroll_signature_down`, `show_signature_documentation` and `hide_signature_documentation` commands are not bound to any keys. You may bind them like so:
+See the [keymap documentation](./keymap.md#commands) for a full list of commands. By default, the `scroll_signature_up`, `scroll_signature_down`, `show_signature_documentation` and `hide_signature_documentation` commands are not bound to any keys. You may bind them like so:
 
 ```lua
 keymap = {

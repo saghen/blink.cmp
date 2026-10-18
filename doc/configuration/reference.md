@@ -373,7 +373,7 @@ signature = {
     border = nil, -- Defaults to `vim.o.winborder` on nvim 0.11+ or 'padded' when not defined/<=0.10
     winblend = 0,
     winhighlight = 'Normal:BlinkCmpSignatureHelp,FloatBorder:BlinkCmpSignatureHelpBorder',
-    scrollbar = false, -- Note that the gutter will be disabled when border ~= 'none'
+    scrollbar = true, -- Note that the gutter will be disabled when border ~= 'none'
     -- Which directions to show the window,
     -- falling back to the next direction when there's not enough space,
     -- or another window is in the way
@@ -386,7 +386,7 @@ signature = {
 
     -- Disable if you run into performance issues
     treesitter_highlighting = true,
-    show_documentation = true,
+    show_documentation = false,
   },
 }
 ```
