@@ -21,7 +21,7 @@ local cmp = {}
 cmp.lsp = require('blink.cmp.lsp')
 
 --- Built-in in-process servers, enabled in `setup`. Engine servers are enabled when their engine is loaded.
-local builtin_servers = { 'blink_cmp_buffer', 'blink_cmp_path', 'blink_cmp_omnifunc', 'blink_cmp_cmdline' }
+local builtin_servers = { 'blink_cmp_buffer', 'blink_cmp_path', 'blink_cmp_cmdline' }
 local engine_servers = {
   blink_cmp_luasnip = function() return package.loaded.luasnip ~= nil end,
   blink_cmp_mini_snippets = function() return _G.MiniSnippets ~= nil end,
