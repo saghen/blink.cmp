@@ -8,6 +8,25 @@ local utils = require('blink.cmp.lib.utils')
 
 local download = {}
 
+--- Functions that `blink.cmp.fuzzy` calls on the rust implementation
+local required_rust_functions = {
+  'init_db',
+  'destroy_db',
+  'access',
+  'set_provider_items',
+  'fuzzy',
+  'fuzzy_matched_indices',
+  'get_keyword_range',
+  'guess_edit_range',
+  'get_words',
+}
+
+--- @param rust table
+--- @return string[]
+function download.get_missing_rust_functions(rust)
+  return vim.tbl_filter(function(name) return type(rust[name]) ~= 'function' end, required_rust_functions)
+end
+
 --- @param callback fun(err: string | nil, fuzzy_implementation?: 'lua' | 'rust')
 function download.ensure_downloaded(callback)
   callback = vim.schedule_wrap(callback)
@@ -24,7 +43,31 @@ function download.ensure_downloaded(callback)
     end)
     :map(function(version)
       -- no version file found, and found the shared rust library, user manually placed the .so file
-      if version.current.missing and pcall(require, 'blink.cmp.fuzzy.rust') then return end
+      if version.current.missing then
+        local loaded, rust = pcall(require, 'blink.cmp.fuzzy.rust')
+        if loaded then
+          local missing_functions = download.get_missing_rust_functions(rust)
+          if #missing_functions == 0 then return end
+
+          -- the library is likely left over from an older build, which would otherwise
+          -- error on every keystroke when calling the missing functions
+          local lib_path = package.searchpath('blink_cmp_fuzzy', package.cpath)
+            or package.searchpath('libblink_cmp_fuzzy', package.cpath)
+            or files.lib_path
+          lib_path = vim.uv.fs_realpath(lib_path) or lib_path
+          utils.notify({
+            { 'Found an ' },
+            { 'incompatible', 'DiagnosticWarn' },
+            { ' fuzzy matching library', 'DiagnosticInfo' },
+            { ' without version information at ' },
+            { lib_path, 'DiagnosticInfo' },
+            { ' (missing: ' .. table.concat(missing_functions, ', ') .. ').' },
+            { ' Remove it and restart Neovim to download the pre-built binary, or re-run ' },
+            { ' cargo build --release ', 'DiagnosticVirtualTextInfo' },
+          })
+          return false
+        end
+      end
 
       local target_git_tag = version.git.tag
 
