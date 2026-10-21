@@ -11,13 +11,6 @@ use mlua::Lua;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-// frizbee 0.9.0 stores match scores in u16 and panics for longer needles.
-const MAX_NEEDLE_LENGTH: usize = 3275;
-
-fn is_supported_needle(needle: &str) -> bool {
-    needle.len() <= MAX_NEEDLE_LENGTH
-}
-
 #[derive(Clone)]
 pub struct FuzzyOptions {
     pub match_suffix: bool,
@@ -105,23 +98,21 @@ pub fn fuzzy<'a>(
         .collect::<Vec<_>>();
     let config = frizbee::Config {
         max_typos: Some(opts.max_typos),
-        sort: false,
+        sort: frizbee::SortStrategy::IndexAsc,
         ..Default::default()
     };
 
     // Items may have different fuzzy matching ranges, so we split them up by needle
     let matches = group_by_needle(line, cursor_col, &haystack_labels, opts.match_suffix)
         .into_iter()
-        .filter(|(needle, _)| is_supported_needle(needle))
         // Match on each needle and combine
         .flat_map(|(needle, haystack)| {
-            let mut matches = frizbee::match_list(
-                &needle,
+            let mut matcher = frizbee::Matcher::new(&needle, &config);
+            let mut matches = matcher.match_list(
                 &haystack
                     .iter()
                     .map(|(_, str)| str.as_str())
                     .collect::<Vec<_>>(),
-                &config,
             );
             for mtch in matches.iter_mut() {
                 mtch.index = haystack[mtch.index as usize].0 as u32;
@@ -177,19 +168,19 @@ pub fn fuzzy_matched_indices(
 ) -> Vec<Vec<usize>> {
     let config = frizbee::Config {
         max_typos: None,
-        sort: false,
+        sort: frizbee::SortStrategy::IndexAsc,
         ..Default::default()
     };
     let mut matches = group_by_needle(line, cursor_col, haystack, match_suffix)
         .into_iter()
-        .filter(|(needle, _)| is_supported_needle(needle))
         .flat_map(|(needle, haystack_with_indices)| {
             let haystack_strs: Vec<&str> = haystack_with_indices
                 .iter()
                 .map(|(_, h)| h.as_str())
                 .collect();
 
-            let match_indices = frizbee::match_list_indices(&needle, &haystack_strs, &config);
+            let mut matcher = frizbee::Matcher::new(&needle, &config);
+            let match_indices = matcher.match_list_indices(&haystack_strs);
 
             haystack_with_indices
                 .into_iter()
@@ -204,56 +195,4 @@ pub fn fuzzy_matched_indices(
         .into_iter()
         .map(|(_, matched_indices)| matched_indices)
         .collect::<Vec<_>>()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{
-        fuzzy, fuzzy_matched_indices, is_supported_needle, FuzzyOptions, MAX_NEEDLE_LENGTH,
-    };
-    use crate::lsp_item::LspItem;
-
-    fn test_item(label: &str) -> LspItem {
-        LspItem {
-            label: label.to_string(),
-            filter_text: None,
-            sort_text: None,
-            insert_text: None,
-            kind: 1,
-            score_offset: 0,
-            source_id: String::new(),
-        }
-    }
-
-    #[test]
-    fn rejects_needles_that_exceed_frizbee_score_limit() {
-        assert!(is_supported_needle(&"a".repeat(MAX_NEEDLE_LENGTH)));
-        assert!(!is_supported_needle(&"a".repeat(MAX_NEEDLE_LENGTH + 1)));
-        assert!(!is_supported_needle(&"a".repeat(5512)));
-    }
-
-    #[test]
-    fn fuzzy_skips_a_needle_that_panics_in_frizbee() {
-        let line = "a".repeat(5512);
-        let items = [test_item("candidate")];
-        let options = FuzzyOptions {
-            match_suffix: false,
-            max_typos: 1,
-            use_frecency: false,
-            use_proximity: false,
-            nearby_words: None,
-            snippet_score_offset: 0,
-            sorts: None,
-        };
-
-        assert!(fuzzy(0, &line, line.len() - 1, &items, None, options).is_empty());
-    }
-
-    #[test]
-    fn matched_indices_skips_a_needle_that_panics_in_frizbee() {
-        let line = "a".repeat(5512);
-        let labels = [String::from("candidate")];
-
-        assert!(fuzzy_matched_indices(&line, line.len() - 1, &labels, false).is_empty());
-    }
 }
