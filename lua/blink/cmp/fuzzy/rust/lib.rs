@@ -140,7 +140,7 @@ pub fn fuzzy(
 pub fn fuzzy_matched_indices(
     _lua: &Lua,
     (line, cursor_col, haystack, match_suffix): (mlua::String, usize, Vec<mlua::String>, bool),
-) -> LuaResult<Vec<Vec<usize>>> {
+) -> LuaResult<Vec<Vec<u32>>> {
     Ok(fuzzy::fuzzy_matched_indices(
         &line.to_string_lossy(),
         cursor_col,

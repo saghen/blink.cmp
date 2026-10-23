@@ -165,7 +165,7 @@ pub fn fuzzy_matched_indices(
     cursor_col: usize,
     haystack: &[String],
     match_suffix: bool,
-) -> Vec<Vec<usize>> {
+) -> Vec<Vec<u32>> {
     let config = frizbee::Config {
         max_typos: None,
         sort: frizbee::SortStrategy::IndexAsc,
