@@ -1,20 +1,35 @@
+--- @alias blink.cmp.SnippetEngine 'luasnip' | 'mini_snippets' | 'vsnip'
+---
 --- @class (exact) blink.cmp.SnippetsConfig
---- @field preset 'auto' | 'default' | 'luasnip' | 'mini_snippets' | 'vsnip' Engine used to expand LSP snippets. `'auto'` prefers any loaded third-party engine over `vim.snippet` (`'default'`)
+--- @field preset 'auto' | 'default' | blink.cmp.SnippetEngine Engine used to expand LSP snippets. `'auto'` prefers any loaded third-party engine over `vim.snippet` (`'default'`)
+--- @field is_loaded table<blink.cmp.SnippetEngine, fun(): boolean> Functions used to detect whether each third-party snippet engine is loaded
 --- @field expand fun(snippet: string) Function to use when expanding LSP provided snippets
 --- @field active fun(filter?: { direction?: integer }): boolean Function to use when checking if a snippet is active
 --- @field jump fun(direction: integer): boolean Function to use when jumping between tab stops in a snippet, where direction can be negative or positive
 --- @field score_offset integer Offset to the score of all snippet items
 
+--- List of third-party snippet engines
+--- @type blink.cmp.SnippetEngine[]
+local engine_names = { 'luasnip', 'mini_snippets', 'vsnip' }
+
+--- @type ('auto' | 'default' | blink.cmp.SnippetEngine)[]
+local presets = vim.list_extend({ 'auto', 'default' }, engine_names)
+
+--- @type table<blink.cmp.SnippetEngine, fun(): boolean>
 local is_loaded = {
   luasnip = function() return package.loaded.luasnip ~= nil end,
   mini_snippets = function() return _G.MiniSnippets ~= nil end,
   vsnip = function() return vim.g.loaded_vsnip == 1 end,
 }
 
+local function snippet_config() return require('blink.cmp.config').snippets end
+
 --- Detect the preset to use when set to `'auto'`
---- @return 'default' | 'luasnip' | 'mini_snippets' | 'vsnip'
+--- @return 'default' | blink.cmp.SnippetEngine
 local function detect_preset()
-  local loaded = vim.tbl_filter(function(name) return is_loaded[name]() end, { 'luasnip', 'mini_snippets', 'vsnip' })
+  local snippets = snippet_config()
+  local loaded = vim.tbl_filter(function(name) return snippets.is_loaded[name]() end, engine_names)
+
   if #loaded > 1 then
     vim.notify_once(
       ('[blink.cmp] multiple snippet engines are loaded (%s), using %s. Set snippets.preset to pick one'):format(
@@ -27,10 +42,10 @@ local function detect_preset()
   return loaded[1] or 'default'
 end
 
---- @param handlers table<'default' | 'luasnip' | 'mini_snippets' | 'vsnip', fun(...): any>
+--- @param handlers table<'default' | blink.cmp.SnippetEngine, fun(...): any>
 local function by_preset(handlers)
   return function(...)
-    local preset = require('blink.cmp.config').snippets.preset
+    local preset = snippet_config().preset
     if preset == 'auto' then preset = detect_preset() end
     return handlers[preset](...)
   end
@@ -45,8 +60,9 @@ end
 
 local config = require('blink.lib.config')
 return {
-  preset = { 'auto', config.types.enum({ 'auto', 'default', 'luasnip', 'mini_snippets', 'vsnip' }) },
+  preset = { 'auto', config.types.enum(presets) },
   score_offset = { -3, 'number' },
+  is_loaded = { is_loaded, 'table' },
   -- NOTE: we wrap `vim.snippet` calls to reduce startup by 1-2ms
   expand = {
     by_preset({
