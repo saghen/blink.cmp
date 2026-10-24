@@ -127,6 +127,7 @@ pub fn fuzzy<'a>(
         .into_iter()
         .map(|mtch| {
             let frecency_score = frecency
+                .filter(|_| opts.use_frecency)
                 .map(|frecency| {
                     frecency
                         .get_score(&(&haystack[mtch.index as usize]).into())
@@ -195,4 +196,57 @@ pub fn fuzzy_matched_indices(
         .into_iter()
         .map(|(_, matched_indices)| matched_indices)
         .collect::<Vec<_>>()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn item(label: &str) -> LspItem {
+        LspItem {
+            label: label.to_string(),
+            filter_text: None,
+            sort_text: None,
+            insert_text: None,
+            kind: 6,
+            score_offset: 0,
+            source_id: "lsp".to_string(),
+        }
+    }
+
+    fn opts(use_frecency: bool) -> FuzzyOptions {
+        FuzzyOptions {
+            match_suffix: false,
+            max_typos: 0,
+            use_frecency,
+            use_proximity: false,
+            nearby_words: None,
+            snippet_score_offset: 0,
+            sorts: None,
+        }
+    }
+
+    #[test]
+    fn test_use_frecency_disables_frecency_bonus() {
+        let dir =
+            std::env::temp_dir().join(format!("blink-cmp-frecency-test-{}", std::process::id()));
+        let mut db = FrecencyDB::new(&dir.join("frecency.dat")).unwrap();
+        let haystack = vec![item("alpha"), item("beta")];
+        for _ in 0..3 {
+            db.access(&(&haystack[1]).into()).unwrap();
+        }
+
+        let score_of = |use_frecency: bool, label: &str| {
+            fuzzy(0, "", 0, &haystack, Some(&db), opts(use_frecency))
+                .into_iter()
+                .find(|m| m.item.label == label)
+                .map(|m| m.score)
+                .unwrap()
+        };
+
+        assert!(score_of(true, "beta") > score_of(true, "alpha"));
+        assert_eq!(score_of(false, "beta"), score_of(false, "alpha"));
+
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 }
