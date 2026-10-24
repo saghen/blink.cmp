@@ -20,12 +20,13 @@ local cmp = {}
 --- Configure blink.cmp specific options for LSPs: `cmp.lsp.config(name, opts)` and `cmp.lsp.enable(name, enable)`
 cmp.lsp = require('blink.cmp.lsp')
 
---- Built-in in-process servers, enabled in `setup`. Engine servers are enabled when their engine is loaded.
+--- Built-in in-process servers, enabled in `setup`.
 local builtin_servers = { 'blink_cmp_buffer', 'blink_cmp_path', 'blink_cmp_cmdline' }
+-- Engine servers are enabled when their engine is loaded.
 local engine_servers = {
-  blink_cmp_luasnip = function() return package.loaded.luasnip ~= nil end,
-  blink_cmp_mini_snippets = function() return _G.MiniSnippets ~= nil end,
-  blink_cmp_vsnip = function() return vim.g.loaded_vsnip == 1 end,
+  blink_cmp_luasnip = function() return config.snippets.is_loaded.luasnip() end,
+  blink_cmp_mini_snippets = function() return config.snippets.is_loaded.mini_snippets() end,
+  blink_cmp_vsnip = function() return config.snippets.is_loaded.vsnip() end,
 }
 
 --- Options removed in v2, rejected with a pointer to the upgrade guide
