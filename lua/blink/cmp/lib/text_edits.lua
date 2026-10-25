@@ -396,7 +396,7 @@ function text_edits.write_to_dot_repeat(text_edit)
       -- emulate builtin completion (dot repeat)
       local saved_completeopt = vim.opt.completeopt
       local saved_shortmess = vim.o.shortmess
-      vim.opt.completeopt = ''
+      vim.opt.completeopt = '' --[[@as vim.Option]]
       if not saved_shortmess:match('c') then vim.o.shortmess = vim.o.shortmess .. 'c' end
       vim.fn.complete(1, { '_' .. chars_to_insert })
       vim.opt.completeopt = saved_completeopt

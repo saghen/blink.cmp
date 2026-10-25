@@ -122,7 +122,7 @@ local function get_body(snippet)
   end
 
   local docstring = snippet:get_docstring()
-  return type(docstring) == 'table' and table.concat(docstring, '\n') or docstring
+  return type(docstring) == 'table' and table.concat(docstring, '\n') or docstring --[[@as string]]
 end
 
 --- Item templates for a filetype, cached until luasnip reports changes

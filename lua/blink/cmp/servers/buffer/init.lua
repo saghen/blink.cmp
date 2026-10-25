@@ -104,10 +104,11 @@ return lsp.server({
   on_settings = apply_settings,
 
   handlers = {
+    ---@async
     ['textDocument/completion'] = function(params, ctx)
       local srv = ctx.srv
       local settings = srv.settings --[[@as blink.cmp.BufferSettings]]
-      local request_bufnr = lsp.util.bufnr(params.textDocument)
+      local request_bufnr = assert(lsp.util.bufnr(params.textDocument))
       local row, col = lsp.util.position(params.position)
 
       local bufnrs = vim.tbl_filter(

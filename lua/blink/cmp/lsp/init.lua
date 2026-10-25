@@ -150,7 +150,8 @@ function M.get(name, filter)
   vim.list_extend(layers, matching_configs('*', target))
   if name ~= nil and name ~= '*' then vim.list_extend(layers, matching_configs(name, target)) end
 
-  local resolved = vim.deepcopy(schema.default) --[[@as table]]
+  ---@type blink.cmp.LspConfigResolved
+  local resolved = vim.deepcopy(schema.default)
   local converts = {}
   for _, layer in ipairs(layers) do
     for key, value in pairs(layer) do
@@ -167,16 +168,16 @@ function M.get(name, filter)
   if #converts == 1 then
     resolved.convert = converts[1]
   elseif #converts > 1 then
-    resolved.convert = function(item, c)
+    resolved.convert = function(item, ctx)
       for _, convert in ipairs(converts) do
-        item = convert(item, c)
+        item = convert(item, ctx)
         if item == nil then return nil end
       end
       return item
     end
   end
 
-  return resolved --[[@as blink.cmp.LspConfigResolved]]
+  return resolved
 end
 
 ---------- Enable ----------

@@ -30,9 +30,11 @@ end
 function M.request(context)
   local clients = vim.lsp.get_clients({ bufnr = context.bufnr, method = 'textDocument/signatureHelp' })
 
-  local tasks = {} --- @type vim.async.Task[]
+  local tasks = {} --- @type vim.async.Task<lsp.SignatureHelp?>[]
   for _, client in ipairs(clients) do
-    tasks[#tasks + 1] = async.run('blink.cmp:signature:' .. client.name, function()
+    ---@async
+    ---@return lsp.SignatureHelp?
+    local request = function()
       local params = vim.lsp.util.make_position_params(0, client.offset_encoding)
       ---@diagnostic disable-next-line: inject-field
       params.context = {
@@ -47,7 +49,9 @@ function M.request(context)
       if err ~= nil or vim.isnil(signature_help) then return nil end
       signature_help.client_id = client.id
       return signature_help
-    end)
+    end
+
+    tasks[#tasks + 1] = async.run('blink.cmp:signature:' .. client.name, request)
   end
 
   -- TODO: pick intelligently
