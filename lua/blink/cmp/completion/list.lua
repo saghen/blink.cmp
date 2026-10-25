@@ -179,8 +179,9 @@ function list.fuzzy(ctx, items_by_client, clients)
   -- per client policy
   local policy = {} --- @type table<integer, blink.cmp.LspConfigResolved>
   local fallbacks = {} --- @type table<integer, { parents: integer[], mode: 'response' | 'match' }>
+  local filter = { bufnr = ctx.bufnr } ---@type blink.cmp.LspFilter
   for _, client in ipairs(clients) do
-    local cfg = cmp_lsp.get(client.name, ctx)
+    local cfg = cmp_lsp.get(client.name, filter)
     policy[client.id] = cfg
     if cfg.fallback_for ~= nil then
       local parents = resolve_fallback_parents(cfg.fallback_for, client.id, clients)

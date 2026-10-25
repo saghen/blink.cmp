@@ -102,7 +102,7 @@ function utils.smart_split(line, is_path_completion)
 
   if is_path_completion then
     -- Split the line into tokens, respecting escaped spaces in paths
-    local tokens = path_lib:split_unescaped(trimmed)
+    local tokens = path_lib.split_unescaped(trimmed)
     local cmd = tokens[1]
     local args = {}
 
@@ -153,8 +153,8 @@ function utils.get_completions(pattern, type, completion_type)
       filter_fn = function(part) return not part:lower():match('^/mnt/[a-z]/') end
     end
 
-    if filter_fn then
-      local orig_path = vim.env.PATH
+    if filter_fn ~= nil then
+      local orig_path = vim.env.PATH or ''
       local new_path = table.concat(vim.tbl_filter(filter_fn, vim.split(orig_path, separator)), separator)
       vim.env.PATH = new_path
       local completions = vim.fn.getcompletion(pattern, type, true)

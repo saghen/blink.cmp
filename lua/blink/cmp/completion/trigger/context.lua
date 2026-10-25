@@ -26,6 +26,7 @@ local utils = require('blink.cmp.lib.utils')
 --- @field within_query_bounds fun(self: blink.cmp.Context, pos: vim.Pos, include_start_bound?: boolean): boolean
 ---
 --- @field get_pos fun(): vim.Pos
+--- @field get_bufnr fun(): integer
 --- @field get_cursor fun(): { [1]: integer, [2]: integer } Deprecated, use `get_pos` instead
 --- @field set_cursor fun(pos: vim.Pos)
 --- @field get_line fun(num?: integer): string

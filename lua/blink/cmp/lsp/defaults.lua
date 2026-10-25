@@ -1,7 +1,6 @@
 --- Client-side policy defaults for known servers, applied through `cmp.lsp.config` at the lowest
 --- precedence. Built-in servers set their own `item.blink` fields; the entries here only carry what
 --- the server itself cannot know.
---- @type table<string, blink.cmp.LspConfig>
 
 local kinds = require('blink.cmp.types').CompletionItemKind
 
@@ -123,6 +122,7 @@ end
 
 local snippets = { score_offset = -1 } -- on top of `snippets.score_offset`
 
+--- @type table<string, blink.cmp.LspConfig>
 return {
   blink_cmp_buffer = {
     score_offset = -3,

@@ -7,7 +7,7 @@ local utils = {
 ---@param input string
 ---@return vim.snippet.Node<vim.snippet.SnippetData>?
 function utils.safe_parse(input)
-  if utils.parse_cache[input] then return utils.parse_cache[input] end
+  if utils.parse_cache[input] ~= nil then return utils.parse_cache[input] end
 
   local safe, parsed = pcall(vim.lsp._snippet_grammar.parse, input)
   if not safe then return nil end

@@ -60,7 +60,7 @@ end
 --- @param cb fun()
 function utils.with_no_autocmds(cb)
   local original_eventignore = vim.opt.eventignore
-  vim.opt.eventignore = 'all'
+  vim.opt.eventignore = 'all' --[[@as vim.Option]]
 
   local success, result_or_err = pcall(cb)
 

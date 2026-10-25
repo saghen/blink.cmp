@@ -34,6 +34,7 @@ return lsp.server({
   }),
 
   handlers = {
+    ---@async
     ['textDocument/completion'] = function(params, ctx)
       local settings = ctx.srv.settings --[[@as blink.cmp.PathSettings]]
       local empty = { isIncomplete = false, items = {} }
@@ -59,6 +60,7 @@ return lsp.server({
       return { isIncomplete = false, items = items }
     end,
 
+    ---@async
     ['completionItem/resolve'] = function(item)
       if item.data == nil or item.data.full_path == nil or item.data.type == 'directory' then return item end
 

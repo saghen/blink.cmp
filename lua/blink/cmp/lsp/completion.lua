@@ -32,13 +32,15 @@ end
 --- Sends a request to the client, cancelling it if the task is closed
 --- @async
 --- @param client vim.lsp.Client
---- @param method string
+--- @param method vim.lsp.protocol.Method.ClientToServer.Request
 --- @param params table
 --- @param bufnr integer
 --- @return lsp.ResponseError? err
 --- @return any result
 function M.send(client, method, params, bufnr)
-  return async.await(function(callback)
+  ---@param callback fun(err: lsp.ResponseError?, result: any)
+  ---@return vim.async.Closable?
+  local function request(callback)
     local responded = false
     local ok, request_id = client:request(method, params, function(err, result)
       responded = true
@@ -48,7 +50,8 @@ function M.send(client, method, params, bufnr)
     return async.closable(function()
       if request_id ~= nil and not responded then client:cancel_request(request_id) end
     end)
-  end)
+  end
+  return async.await(request)
 end
 
 --- Get trigger character for a client, supporting both dynamic and static registration
@@ -83,7 +86,7 @@ end
 --- @return string[]
 function M.get_trigger_characters(bufnr)
   local chars = {}
-  local filter = { bufnr = bufnr }
+  local filter = { bufnr = bufnr } ---@type blink.cmp.LspFilter
   for _, client in ipairs(vim.lsp.get_clients({ bufnr = bufnr, method = 'textDocument/completion' })) do
     if cmp_lsp.is_enabled(client.name, filter) and cmp_lsp.get(client.name, filter).autotrigger then
       vim.list_extend(chars, M.trigger_characters(client, bufnr))
@@ -103,12 +106,13 @@ function M.get_clients(ctx)
   local skip_min_length = ctx.trigger.initial_kind == 'trigger_character' or ctx.trigger.initial_kind == 'manual'
 
   local clients = {}
+  local filter = { bufnr = ctx.bufnr } ---@type blink.cmp.LspFilter
   for _, client in ipairs(vim.lsp.get_clients({ bufnr = ctx.bufnr, method = 'textDocument/completion' })) do
     if
       (ctx.lsp == nil or vim.list_contains(ctx.lsp, client.name))
       and cmp_lsp.is_enabled(client.name, { bufnr = ctx.bufnr })
     then
-      local cfg = cmp_lsp.get(client.name, ctx)
+      local cfg = cmp_lsp.get(client.name, filter)
       if skip_min_length or keyword_length >= cfg.min_keyword_length then clients[#clients + 1] = client end
     end
   end
@@ -120,7 +124,7 @@ end
 --- @class blink.cmp.LspCompletionCacheEntry
 --- @field ctx_id integer
 --- @field col integer
---- @field task vim.async.Task
+--- @field task vim.async.Task<blink.cmp.CompletionItem[]>
 --- @field items? blink.cmp.CompletionItem[] resolved when the task completes
 --- @field is_incomplete? boolean
 
@@ -137,7 +141,8 @@ local known_defaults = { commitCharacters = true, insertTextFormat = true, inser
 --- @return blink.cmp.CompletionItem[] items
 --- @return boolean is_incomplete
 local function process(ctx, client, result)
-  local cfg = cmp_lsp.get(client.name, ctx)
+  local filter = { bufnr = ctx.bufnr } ---@type blink.cmp.LspFilter
+  local cfg = cmp_lsp.get(client.name, filter)
   local raw = result.items or result
   local defaults = not vim.isnil(result.itemDefaults) and result.itemDefaults or {}
   local edit_range = defaults.editRange
@@ -163,13 +168,16 @@ local function process(ctx, client, result)
     if not vim.isnil(edit_range) and vim.isnil(item.textEdit) then
       local new_text = first_set(item.textEditText, item.insertText, item.label)
       if edit_range.replace ~= nil then
-        item.textEdit = { replace = edit_range.replace, insert = edit_range.insert, newText = new_text }
+        item.textEdit = { replace = edit_range.replace, insert = edit_range.insert, newText = new_text } --[[@as lsp.InsertReplaceEdit]]
       else
-        item.textEdit = { range = edit_range, newText = new_text }
+        item.textEdit = { range = edit_range, newText = new_text } --[[@as lsp.TextEdit]]
       end
     end
 
-    if cfg.convert ~= nil then item = cfg.convert(item, ctx) end
+    if cfg.convert ~= nil then
+      local converted_item = cfg.convert(item, ctx)
+      if converted_item ~= nil then item = converted_item end
+    end
     if item ~= nil then items[#items + 1] = item end
   end
 
@@ -199,7 +207,10 @@ local function request_one(ctx, client, previous)
   if previous ~= nil and previous.ctx_id == ctx.id and not previous.task:completed() then
     async.pawait(previous.task)
   end
-  if is_reusable(previous, ctx) then return previous.items, previous.is_incomplete end
+  if is_reusable(previous, ctx) then
+    ---@cast previous blink.cmp.LspCompletionCacheEntry
+    return previous.items, previous.is_incomplete
+  end
 
   -- build request parameters
   local params = {
@@ -231,7 +242,7 @@ end
 
 --- @class blink.cmp.LspCompletionRequest
 --- @field ctx blink.cmp.Context
---- @field task vim.async.Task Runs the requests for the context and any queued contexts
+--- @field task vim.async.Task<blink.cmp.CompletionItem[]> Runs the requests for the context and any queued contexts
 --- @field queued? blink.cmp.Context Context to request once complete
 
 --- @type blink.cmp.LspCompletionRequest?
@@ -245,13 +256,16 @@ local current
 local function run(request, ctx)
   local clients = M.get_clients(ctx)
 
-  local tasks = {} --- @type vim.async.Task[]
-  local client_by_task = {} --- @type table<vim.async.Task, vim.lsp.Client>
-  local awaited = {} --- @type table<vim.async.Task, true>
+  local tasks = {} --- @type vim.async.Task<blink.cmp.CompletionItem[]>[]
+  local client_by_task = {} --- @type table<vim.async.Task<blink.cmp.CompletionItem[]>, vim.lsp.Client>
+  local awaited = {} --- @type table<vim.async.Task<blink.cmp.CompletionItem[]>, true>
   local deadline_ms --- @type integer?
+  local filter = { bufnr = ctx.bufnr } ---@type blink.cmp.LspFilter
   for _, client in ipairs(clients) do
     -- detached so that a later context can wait for the same request, see `cache`
+    --- @diagnostic disable-next-line: missing-fields
     local entry = { ctx_id = ctx.id, col = ctx.pos.col } --[[@as blink.cmp.LspCompletionCacheEntry]]
+    ---@type vim.async.Task<blink.cmp.CompletionItem[]>
     local task = async.run('blink.cmp:lsp:' .. client.name, request_one, ctx, client, cache[client.id]):detach()
     task:on_complete(function(err, items, is_incomplete)
       if err == nil then
@@ -263,7 +277,7 @@ local function run(request, ctx)
     tasks[#tasks + 1] = task
     client_by_task[task] = client
 
-    local cfg = cmp_lsp.get(client.name, ctx)
+    local cfg = cmp_lsp.get(client.name, filter)
     if cfg.timeout_ms > 0 then
       awaited[task] = true
       deadline_ms = math.min(deadline_ms or cfg.timeout_ms, cfg.timeout_ms)
@@ -277,6 +291,7 @@ local function run(request, ctx)
     if task == deadline then
       painted = true
     else
+      ---@cast task vim.async.Task<blink.cmp.CompletionItem[]>
       remaining = remaining - 1
       awaited[task] = nil
       dirty = true
@@ -302,7 +317,7 @@ end
 --- Requests completions for the context and emits them via `completions_emitter`,
 --- waiting on any in-flight requests for the same context id
 --- @param ctx blink.cmp.Context
---- @return vim.async.Task
+--- @return vim.async.Task<blink.cmp.CompletionItem[]>
 function M.request(ctx)
   if current ~= nil and current.ctx.id ~= ctx.id then M.cancel() end
   if current ~= nil and not current.task:completed() then
@@ -344,14 +359,14 @@ end
 
 ---------- Resolve ----------
 
---- @type { ctx_id?: integer, tasks: table<blink.cmp.CompletionItem, vim.async.Task> }
+--- @type { ctx_id?: integer, tasks: table<blink.cmp.CompletionItem, vim.async.Task<blink.cmp.CompletionItem>> }
 local resolve_cache = { tasks = {} }
 
 --- Copy of the item with the blink-specific fields removed, for out-of-process servers
 --- @param item blink.cmp.CompletionItem
 --- @return lsp.CompletionItem
 local function to_lsp_item(item)
-  local lsp_item = vim.deepcopy(item) --[[@as table]]
+  local lsp_item = vim.deepcopy(item)
   for _, key in ipairs({ 'blink', 'client_id', 'client_name', 'pos', 'exact', 'score' }) do
     lsp_item[key] = nil
   end
@@ -369,32 +384,34 @@ function M.resolve(ctx, item)
   local cached = resolve_cache.tasks[item]
   if cached ~= nil then return cached end
 
-  local task = async
-    .run('blink.cmp:resolve', function()
-      local client = item.client_id ~= nil and vim.lsp.get_client_by_id(item.client_id) or nil
-      local resolved = item
-      if client ~= nil and client:supports_method('completionItem/resolve', ctx.bufnr) then
-        local err, result = M.send(client, 'completionItem/resolve', to_lsp_item(item), ctx.bufnr)
-        async.await(vim.schedule)
-        -- HACK: it's out of spec to update keys not in resolveSupport.properties but some LSPs do it anyway
-        if err == nil and not vim.isnil(result) then resolved = vim.tbl_deep_extend('force', item, result) end
-      end
+  ---@async
+  ---@return blink.cmp.CompletionItem
+  local function resolve_item()
+    local client = item.client_id ~= nil and vim.lsp.get_client_by_id(item.client_id) or nil
+    local resolved = item
+    if client ~= nil and client:supports_method('completionItem/resolve', ctx.bufnr) then
+      local err, result = M.send(client, 'completionItem/resolve', to_lsp_item(item), ctx.bufnr)
+      async.await(vim.schedule)
+      -- HACK: it's out of spec to update keys not in resolveSupport.properties but some LSPs do it anyway
+      if err == nil and not vim.isnil(result) then resolved = vim.tbl_deep_extend('force', item, result) end
+    end
 
-      -- Snippet with no detail, fill in the detail with the snippet. Follows spec using textEdit.newText
-      -- if available then insertText as fallback. Deliberately excludes label, it's a display string
-      if vim.isnil(resolved.detail) and resolved.insertTextFormat == InsertTextFormat.Snippet then
-        local snippet_text = first_set(resolved.textEdit and resolved.textEdit.newText, resolved.insertText)
-        if snippet_text ~= nil then
-          local parsed = require('blink.cmp.snippet.utils').safe_parse(snippet_text)
-          resolved.detail = parsed and tostring(parsed) or snippet_text
-        end
+    -- Snippet with no detail, fill in the detail with the snippet. Follows spec using textEdit.newText
+    -- if available then insertText as fallback. Deliberately excludes label, it's a display string
+    if vim.isnil(resolved.detail) and resolved.insertTextFormat == InsertTextFormat.Snippet then
+      local snippet_text = first_set(resolved.textEdit and resolved.textEdit.newText, resolved.insertText)
+      if snippet_text ~= nil then
+        local parsed = require('blink.cmp.snippet.utils').safe_parse(snippet_text)
+        resolved.detail = parsed and tostring(parsed) or snippet_text
       end
+    end
+    local filter = { bufnr = ctx.bufnr } ---@type blink.cmp.LspFilter
+    local cfg = cmp_lsp.get(resolved.client_name, filter)
+    if cfg.convert ~= nil then resolved = cfg.convert(resolved, ctx) or resolved end
+    return resolved
+  end
 
-      local cfg = cmp_lsp.get(resolved.client_name, ctx)
-      if cfg.convert ~= nil then resolved = cfg.convert(resolved, ctx) or resolved end
-      return resolved
-    end)
-    :detach()
+  local task = async.run('blink.cmp:resolve', resolve_item):detach()
   resolve_cache.tasks[item] = task
   -- failed resolves are retried on the next call
   task:on_complete(function(err)
