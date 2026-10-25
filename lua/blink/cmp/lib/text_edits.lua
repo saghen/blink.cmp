@@ -134,7 +134,7 @@ function text_edits.get_from_item(item)
     -- issue can still be reported upstream
     elseif item_text_edit.replace ~= nil and not is_valid_insert_range(item_text_edit) then
       range = item_text_edit.replace
-      local client_name = item.client_name or item.source_name or 'unknown'
+      local client_name = item.client_name or 'unknown'
       if not warned_invalid_insert_range[client_name] then
         warned_invalid_insert_range[client_name] = true
         logger:notify(
