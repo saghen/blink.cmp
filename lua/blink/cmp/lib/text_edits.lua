@@ -3,8 +3,13 @@ local nvim = require('blink.lib.nvim')
 local config = require('blink.cmp.config')
 local utils = require('blink.cmp.lib.utils')
 local context = require('blink.cmp.completion.trigger.context')
+local logger = require('blink.cmp.logger')
 
 local text_edits = {}
+
+--- Names of the clients we've warned about sending an invalid insert range
+--- @type table<string, true>
+local warned_invalid_insert_range = {}
 
 --- Applies one or more text edits to the current buffer, assuming utf-8 encoding
 --- @param text_edit lsp.TextEdit The main text edit (at the cursor). Can be dot repeated.
@@ -153,9 +158,20 @@ function text_edits.get_from_item(item)
     --- @cast item_text_edit lsp.InsertReplaceEdit
     if config.completion.keyword.range == 'full' and item_text_edit.replace ~= nil then
       range = item_text_edit.replace
-    -- fallback to the replace range when the insert range is invalid
+    -- fallback to the replace range when the insert range is invalid, and warn once per client so the
+    -- issue can still be reported upstream
     elseif item_text_edit.replace ~= nil and not is_valid_insert_range(item_text_edit) then
       range = item_text_edit.replace
+      local client_name = item.client_name or item.source_name or 'unknown'
+      if not warned_invalid_insert_range[client_name] then
+        warned_invalid_insert_range[client_name] = true
+        logger:notify(
+          vim.log.levels.WARN,
+          ('"%s" sent a completion item with an invalid insert range, using its replace range instead. Please report this to the language server.'):format(
+            client_name
+          )
+        )
+      end
     else
       range = item_text_edit.insert or item_text_edit.replace
     end
