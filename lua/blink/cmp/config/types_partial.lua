@@ -7,7 +7,7 @@
 --- @field snippets? blink.cmp.DeepPartial<blink.cmp.SnippetsConfigPartial>
 --- @field appearance? blink.cmp.DeepPartial<blink.cmp.AppearanceConfigPartial>
 --- @field cmdline? blink.cmp.DeepPartial<blink.cmp.CmdlineConfigPartial>
---- @field lsp? blink.cmp.DeepPartial<table<string, blink.cmp.LspSetupConfig>>
+--- @field lsp? table<string, blink.cmp.LspSetupConfig>
 
 --- @alias blink.cmp.DeepPartial<T> T extends any[] and T or (T extends table and { [K in keyof T]?: blink.cmp.DeepPartial<T[K]>? } or T)
 --- @field completion? blink.cmp.CompletionConfigPartial

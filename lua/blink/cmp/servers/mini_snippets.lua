@@ -22,7 +22,7 @@ local function to_completion_items(snippets, use_label_description)
   local result = {}
 
   for _, snip in ipairs(snippets) do
-    local body = type(snip.body) == 'table' and table.concat(snip.body, '\n') or snip.body
+    local body = type(snip.body) == 'table' and table.concat(snip.body, '\n') or snip.body --[[@as string]]
     --- @type lsp.CompletionItem
     local item = {
       kind = kind_snippet,

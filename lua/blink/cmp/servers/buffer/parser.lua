@@ -57,7 +57,7 @@ function parser.run_async_rust(text)
       vim.schedule(function() resolve(words and vim.split(words, '\n') or {}) end)
     end)
     worker:queue(text, lib_name, lib_path)
-  end)
+  end) --[[@as string[] ]]
 end
 
 --- @async
@@ -105,7 +105,7 @@ function parser.run_async_lua(text)
 
     next_chunk()
     return async.closable(function() cancelled = true end)
-  end)
+  end) --[[@as string[] ]]
 end
 
 --- @async

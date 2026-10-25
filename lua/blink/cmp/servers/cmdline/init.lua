@@ -198,7 +198,7 @@ local function complete(req)
           end
           completions = vim.tbl_keys(buffers)
           if #completions < unique_suffixes_limit then
-            unique_suffixes = path_lib:compute_unique_suffixes(vim.tbl_values(buffers))
+            unique_suffixes = path_lib.compute_unique_suffixes(vim.tbl_values(buffers))
           end
         end
       -- Current file
@@ -238,12 +238,13 @@ local function complete(req)
     -- and add it to the newText
 
     if is_buffer_completion and #completions < unique_suffixes_limit then
-      unique_suffixes = path_lib:compute_unique_suffixes(completions)
+      unique_suffixes = path_lib.compute_unique_suffixes(completions)
     end
 
     ---@type lsp.CompletionItem[]
     local items = {}
     for _, completion in ipairs(completions) do
+      --- @type string, string
       local filter_text, new_text = completion, completion
       local label, label_details
       local info
@@ -279,7 +280,7 @@ local function complete(req)
       -- buffer commands
       elseif is_buffer_completion then
         label = unique_suffixes[completion] or completion
-        if unique_suffixes[completion] then
+        if unique_suffixes[completion] ~= nil then
           label_details = { description = completion:sub(1, -#unique_suffixes[completion] - 2) }
         end
         new_text = vim.fn.fnameescape(completion)
@@ -328,6 +329,8 @@ local function complete(req)
           new_text = current_arg_prefix .. completion
         end
       end
+
+      ---@cast label string?
 
       ---@type lsp.CompletionItem
       local item = {
@@ -389,6 +392,7 @@ return lsp.server({
   },
 
   handlers = {
+    ---@async
     ['textDocument/completion'] = function(params)
       local req = to_request(params)
       if req == nil then return { isIncomplete = false, items = {} } end

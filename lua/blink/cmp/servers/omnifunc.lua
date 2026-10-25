@@ -32,6 +32,7 @@ local function invoke_complete_func(func, findstart, base)
   if type(func) == 'function' then
     result = func(findstart, base)
   elseif func:match('^v:lua%.(.+)') then
+    ---@type fun(findstart: integer, base: string)
     local fn = assert(loadstring('return ' .. func:match('^v:lua%.(.+)')))()
     result = fn(findstart, base)
   else
@@ -105,7 +106,7 @@ return lsp.server({
           local blink_kind = COMPLETE_ITEM_KIND_TO_BLINK_KIND[cmp.kind]
           if blink_kind ~= nil then
             item.kind = blink_kind
-          else
+          elseif item.labelDetails then
             item.labelDetails.detail = cmp.kind
           end
 
