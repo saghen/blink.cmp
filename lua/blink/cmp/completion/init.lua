@@ -65,16 +65,28 @@ function completion.setup()
     local menu = function() return require('blink.cmp.completion.windows.menu') end
 
     local loading_timer = vim.uv.new_timer()
+    local loading_context
     trigger.show_emitter:on(function(event)
       if event.context.trigger.kind ~= 'manual' then return end
-      loading_timer:start(500, 0, vim.schedule_wrap(function() menu().open_loading(event.context) end))
+      loading_context = event.context
+      loading_timer:start(
+        500,
+        0,
+        vim.schedule_wrap(function()
+          -- loading_timer:stop() can't cancel a callback the timer already scheduled
+          if loading_context ~= event.context then return end
+          menu().open_loading(event.context)
+        end)
+      )
     end)
 
     list.show_emitter:on(function(event)
+      loading_context = nil
       loading_timer:stop()
       menu().open_with_items(event.context, event.items)
     end)
     list.hide_emitter:on(function()
+      loading_context = nil
       loading_timer:stop()
       menu().close()
     end)
