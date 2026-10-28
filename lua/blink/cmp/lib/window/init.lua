@@ -149,7 +149,7 @@ function win:set_option_value(option, value)
 end
 
 function win:close()
-  if self.id ~= nil then
+  if self:get_win() ~= nil then
     vim.api.nvim_win_close(self.id, true)
     self.id = nil
   end
