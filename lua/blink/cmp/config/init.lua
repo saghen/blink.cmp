@@ -95,9 +95,7 @@ function M.apply_mode_specific(cfg)
 
     set_at_path(path, function(...)
       local mode = vim.api.nvim_get_mode().mode
-      if (mode == 'c' or vim.fn.getcmdwintype() ~= '') and cmdline ~= nil then
-        return call_or_return(cmdline, ...)
-      end
+      if (mode == 'c' or vim.fn.getcmdwintype() ~= '') and cmdline ~= nil then return call_or_return(cmdline, ...) end
       if mode == 't' and term ~= nil then return call_or_return(term, ...) end
       return call_or_return(default, ...)
     end)
