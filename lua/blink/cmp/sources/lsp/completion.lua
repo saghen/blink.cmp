@@ -9,11 +9,17 @@ local CompletionTriggerKind = vim.lsp.protocol.CompletionTriggerKind
 local function request(context, client)
   return async.task.new(function(resolve)
     local params = vim.lsp.util.make_position_params(0, client.offset_encoding)
+
+    local is_trigger_character = context.trigger.kind == 'trigger_character'
+      and vim.tbl_contains(
+        client.server_capabilities.completionProvider.triggerCharacters or {},
+        context.trigger.character
+      )
+
     params.context = {
-      triggerKind = context.trigger.kind == 'trigger_character' and CompletionTriggerKind.TriggerCharacter
-        or CompletionTriggerKind.Invoked,
+      triggerKind = is_trigger_character and CompletionTriggerKind.TriggerCharacter or CompletionTriggerKind.Invoked,
     }
-    if context.trigger.kind == 'trigger_character' then params.context.triggerCharacter = context.trigger.character end
+    if is_trigger_character then params.context.triggerCharacter = context.trigger.character end
 
     local _, request_id = client:request(
       'textDocument/completion',
