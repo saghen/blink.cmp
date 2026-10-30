@@ -8,7 +8,8 @@ local fuzzy = {
   implementation_type = 'lua',
   --- @type blink.cmp.FuzzyImplementation
   implementation = require('blink.cmp.fuzzy.lua'),
-  haystacks_by_provider_cache = {},
+  --- @type table<string, blink.cmp.CompletionItem[]>
+  haystacks_by_client_cache = {},
   has_init_db = false,
 }
 
@@ -55,8 +56,8 @@ function fuzzy.access(item)
     sortText = lib.is_not_nil(item.sortText) and item.sortText or nil,
     insertText = lib.is_not_nil(item.insertText) and item.insertText or nil,
     kind = lib.is_not_nil(item.kind) and item.kind or nil,
-    score_offset = lib.is_not_nil(item.score_offset) and item.score_offset or nil,
-    source_id = lib.is_not_nil(item.source_id) and item.source_id or nil,
+    blink = { score_offset = item.blink and item.blink.score_offset or nil },
+    client_name = item.client_name,
   }
 
   -- writing to the db takes ~10ms, so schedule writes in another thread
@@ -90,16 +91,20 @@ end
 
 --- @param line string
 --- @param cursor_col integer
---- @param haystacks_by_provider table<string, blink.cmp.CompletionItem[]>
+--- @param haystacks_by_client table<integer, blink.cmp.CompletionItem[]> Items by client id
 --- @param range blink.cmp.CompletionKeywordRange
 --- @return blink.cmp.CompletionItem[]
-function fuzzy.fuzzy(line, cursor_col, haystacks_by_provider, range)
+function fuzzy.fuzzy(line, cursor_col, haystacks_by_client, range)
   if config.fuzzy.frecency.enabled then fuzzy.init_db() end
 
-  for provider_id, haystack in pairs(haystacks_by_provider) do
-    -- set the provider items once since Lua <-> Rust takes the majority of the time
-    if fuzzy.haystacks_by_provider_cache[provider_id] ~= haystack then
-      fuzzy.haystacks_by_provider_cache[provider_id] = haystack
+  -- the implementations key haystacks by string
+  local haystacks_by_provider = {} --- @type table<string, blink.cmp.CompletionItem[]>
+  for client_id, haystack in pairs(haystacks_by_client) do
+    local provider_id = tostring(client_id)
+    haystacks_by_provider[provider_id] = haystack
+    -- set the items once since Lua <-> Rust takes the majority of the time
+    if fuzzy.haystacks_by_client_cache[provider_id] ~= haystack then
+      fuzzy.haystacks_by_client_cache[provider_id] = haystack
       fuzzy.implementation.set_provider_items(provider_id, haystack)
     end
   end

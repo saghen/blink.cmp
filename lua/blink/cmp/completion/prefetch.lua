@@ -5,8 +5,6 @@ local lib = require('blink.lib')
 
 --- @type integer?
 local last_context_id = nil
---- @type blink.lib.Task<blink.cmp.CompletionItem>?
-local last_request = nil
 local timer = lib.timer.new()
 
 --- @param context blink.cmp.Context
@@ -14,10 +12,7 @@ local timer = lib.timer.new()
 local function prefetch_resolve(context, item)
   if not item then return end
 
-  local resolve = vim.schedule_wrap(function()
-    if last_request ~= nil then last_request:cancel() end
-    last_request = require('blink.cmp.sources.lib').resolve(context, item)
-  end)
+  local resolve = vim.schedule_wrap(function() require('blink.cmp.lsp.completion').resolve(context, item) end)
 
   -- immediately resolve if the context has changed
   if last_context_id ~= context.id then
