@@ -160,7 +160,7 @@ function source:resolve(item, callback)
   callback(resolved_item)
 end
 
-function source:execute(ctx, item)
+function source:execute(ctx, item, callback)
   local luasnip = require('luasnip')
   local snip = luasnip.get_id_snippet(item.data.snip_id)
 
@@ -214,6 +214,7 @@ function source:execute(ctx, item)
   end
 
   luasnip.snip_expand(snip, { expand_params = expand_params, clear_region = clear_region })
+  callback()
 end
 
 function source:reload() self.items_cache = {} end
