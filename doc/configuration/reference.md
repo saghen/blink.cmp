@@ -556,6 +556,14 @@ sources.providers = {
       show_hidden_files_by_default = false,
       -- Treat `/path` as starting from the current working directory (cwd) instead of the root of your filesystem
       ignore_root_slash = false,
+      -- Complete bare paths from the first segment, e.g. `s` -> `src/` -> `src/file`.
+      -- By default, enabled only when manually requesting the path source alone.
+      -- Set true to enable for automatic completion, or false to always require an explicit prefix.
+      -- May also be a function(context) returning a boolean, e.g.:
+      -- enable_bare_relative_paths = function(context) return context.mode == 'cmdline' end,
+      enable_bare_relative_paths = function(context)
+        return context.trigger.initial_kind == 'manual' and #context.providers == 1 and context.providers[1] == 'path'
+      end,
       -- Maximum number of files/directories to return. This limits memory use and responsiveness for very large folders.
       max_entries = 10000,
     }
