@@ -18,6 +18,52 @@ local docs = {}
 --- @field max_width? integer
 --- @field use_treesitter_highlighting? boolean
 
+local markdown = {
+  ---@type table<string, boolean>
+  separator_nodes = {
+    thematic_break = true,
+  },
+}
+
+---@param bufnr integer
+---@return vim.treesitter.LanguageTree?
+function markdown.get_string_parser(bufnr)
+  local lines = nvim.buf_get_lines(bufnr, 0, -1, false)
+  local text = table.concat(lines, '\n') .. '\n'
+  local success, parser = pcall(vim.treesitter.get_string_parser, text, 'markdown')
+  if not success or not parser then return nil end
+
+  return parser
+end
+
+---@param bufnr integer
+---@param start_row integer
+---@param end_row integer
+---@return integer[]
+function markdown.get_separators(bufnr, start_row, end_row)
+  local parser = markdown.get_string_parser(bufnr)
+  if not parser then return {} end
+
+  local rows = {}
+  local function visit(node)
+    if markdown.separator_nodes[node:type()] then
+      local row = node:start()
+      if row >= start_row and row < end_row then rows[#rows + 1] = row end
+    end
+
+    for child in node:iter_children() do
+      visit(child)
+    end
+  end
+
+  local trees = parser:parse()
+  for _, tree in ipairs(trees) do
+    visit(tree:root())
+  end
+
+  return rows
+end
+
 --- @param opts blink.cmp.RenderDetailAndDocumentationOpts
 function docs.render_detail_and_documentation(opts)
   ---@type string[]
@@ -45,33 +91,50 @@ function docs.render_detail_and_documentation(opts)
 
   -- add a blank line for the --- separator
   local doc_already_has_separator = #doc_lines > 1 and (doc_lines[1] == '---' or doc_lines[1] == '***')
+  local doc_line_start = doc_already_has_separator and 2 or 1
   if #detail_lines > 0 and #doc_lines > 0 then table.insert(combined_lines, '') end
   -- skip original separator in doc_lines, so we can highlight it later
-  vim.list_extend(combined_lines, doc_lines, doc_already_has_separator and 2 or 1)
+  vim.list_extend(combined_lines, doc_lines, doc_line_start)
 
   nvim.set_option_value('modifiable', true, { buf = opts.bufnr })
   nvim.buf_set_lines(opts.bufnr, 0, -1, true, combined_lines)
+
+  -- Find additional markdown separators in documentation lines then replace them by empty line
+  local doc_start_row = #detail_lines + (#detail_lines > 0 and 1 or 0)
+  local doc_end_row = doc_start_row + #doc_lines - doc_line_start + 1
+  local separators = {} ---@type integer[]
+  if doc_end_row > doc_start_row then separators = markdown.get_separators(opts.bufnr, doc_start_row, doc_end_row) end
+  for _, row in ipairs(separators) do
+    nvim.buf_set_lines(opts.bufnr, row, row + 1, true, { '' })
+  end
+
   nvim.set_option_value('modifiable', false, { buf = opts.bufnr })
   nvim.set_option_value('modified', false, { buf = opts.bufnr })
 
   -- Highlight with treesitter
   nvim.buf_clear_namespace(opts.bufnr, highlight_ns, 0, -1)
 
-  if #detail_lines > 0 and opts.use_treesitter_highlighting then
-    docs.highlight_with_treesitter(opts.bufnr, vim.bo.filetype, 0, #detail_lines)
-  end
-
-  -- Only add the separator if there are documentation lines (otherwise only display the detail)
-  if #detail_lines > 0 and #doc_lines > 0 then
-    nvim.buf_set_extmark(opts.bufnr, highlight_ns, #detail_lines, 0, {
+  ---@param line integer
+  local function render_extmark_separator(line)
+    nvim.buf_set_extmark(opts.bufnr, highlight_ns, line, 0, {
       virt_text = { { string.rep('─', opts.max_width), 'BlinkCmpDocSeparator' } },
       virt_text_pos = 'overlay',
     })
   end
+  -- Render main separator if there are documentation lines (otherwise only display the detail)
+  if #detail_lines > 0 and #doc_lines > 0 then render_extmark_separator(#detail_lines) end
+  -- Render additional markdown separators in the documentation lines
+  for _, line in ipairs(separators) do
+    render_extmark_separator(line)
+  end
 
-  if #doc_lines > 0 and opts.use_treesitter_highlighting then
-    local start = #detail_lines + (#detail_lines > 0 and 1 or 0)
-    docs.highlight_with_treesitter(opts.bufnr, 'markdown', start, start + #doc_lines)
+  if opts.use_treesitter_highlighting then
+    if #detail_lines > 0 then docs.highlight_with_treesitter(opts.bufnr, vim.bo.filetype, 0, #detail_lines) end
+
+    if #doc_lines > 0 then
+      local start = #detail_lines + (#detail_lines > 0 and 1 or 0)
+      docs.highlight_with_treesitter(opts.bufnr, 'markdown', start, start + #doc_lines)
+    end
   end
 end
 
