@@ -89,7 +89,9 @@ function docs.highlight_with_treesitter(bufnr, filetype, start_line, end_line)
   local root_lang = vim.treesitter.language.get_lang(filetype)
   if root_lang == nil then return end
 
-  local success, trees = pcall(vim.treesitter.get_parser, bufnr, root_lang)
+  -- This is a one-off highlight pass; do not attach a parser to the reused documentation buffer.
+  local text = table.concat(nvim.buf_get_lines(bufnr, 0, -1, false), '\n') .. '\n'
+  local success, trees = pcall(vim.treesitter.get_string_parser, text, root_lang)
   if not success or not trees then return end
 
   trees:parse({ start_line, end_line })
