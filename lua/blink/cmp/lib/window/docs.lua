@@ -90,7 +90,9 @@ function docs.highlight_with_treesitter(bufnr, filetype, start_line, end_line)
   if root_lang == nil then return end
 
   -- This is a one-off highlight pass; do not attach a parser to the reused documentation buffer.
-  local text = table.concat(nvim.buf_get_lines(bufnr, 0, -1, false), '\n') .. '\n'
+  local lines = nvim.buf_get_lines(bufnr, 0, -1, false)
+  if #lines == 0 then return end
+  local text = table.concat(lines, '\n') .. '\n'
   local success, trees = pcall(vim.treesitter.get_string_parser, text, root_lang)
   if not success or not trees then return end
 
@@ -104,7 +106,7 @@ function docs.highlight_with_treesitter(bufnr, filetype, start_line, end_line)
     local root_node = tree:root()
     local _, _, root_end_row, _ = root_node:range()
 
-    local iter = highlighter_query:iter_captures(tree:root(), bufnr, start_line, end_line)
+    local iter = highlighter_query:iter_captures(tree:root(), text, start_line, end_line)
     local line = start_line
     while line < end_line do
       local capture, node, metadata, _ = iter(line)
@@ -112,7 +114,7 @@ function docs.highlight_with_treesitter(bufnr, filetype, start_line, end_line)
 
       ---@type Range
       local range = { root_end_row + 1, 0, root_end_row + 1, 0 }
-      if node ~= nil then range = vim.treesitter.get_range(node, bufnr, metadata and metadata[capture]) end
+      if node ~= nil then range = vim.treesitter.get_range(node, text, metadata and metadata[capture]) end
       local start_row, start_col, end_row, end_col = Range.unpack4(range)
 
       if capture ~= nil then
