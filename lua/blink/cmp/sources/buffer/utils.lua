@@ -15,11 +15,7 @@ end
 --- @param bufnr integer
 --- @return integer
 function utils.get_buffer_size(bufnr)
-  local last = nvim.buf_line_count(bufnr) - 1 -- 0-indexed
-  local size = nvim.buf_get_offset(bufnr, last)
-  -- Add size of the last line
-  size = size + #(nvim.buf_get_lines(bufnr, last, last + 1, false)[1] or '')
-  return size
+  return nvim.buf_get_offset(bufnr, nvim.buf_line_count(bufnr))
 end
 
 --- Retain buffers up to a total size cap, in the specified retention order.
