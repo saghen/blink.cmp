@@ -12,11 +12,10 @@ function utils.validate_buffer_size(lower)
   end
 end
 
+--- Get the total byte size of a buffer, including its final EOL if present.
 --- @param bufnr integer
 --- @return integer
-function utils.get_buffer_size(bufnr)
-  return nvim.buf_get_offset(bufnr, nvim.buf_line_count(bufnr))
-end
+function utils.get_buffer_size(bufnr) return nvim.buf_get_offset(bufnr, nvim.buf_line_count(bufnr)) end
 
 --- Retain buffers up to a total size cap, in the specified retention order.
 --- @param bufnrs integer[]
