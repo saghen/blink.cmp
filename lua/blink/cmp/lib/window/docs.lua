@@ -17,6 +17,48 @@ local docs = {}
 --- @field max_width? number
 --- @field use_treesitter_highlighting boolean?
 
+---@param bufnr integer
+---@param lang string
+---@return vim.treesitter.LanguageTree?, string?
+local function get_string_parser(bufnr, lang)
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  if #lines == 0 then return end
+
+  local text = table.concat(lines, '\n') .. '\n'
+  local success, parser = pcall(vim.treesitter.get_string_parser, text, lang)
+  if not success or not parser then return nil end
+
+  return parser, text
+end
+
+---@param parser vim.treesitter.LanguageTree
+---@param start_row integer
+---@param end_row integer
+---@return integer[]
+local function get_markdown_separators(parser, start_row, end_row)
+  local rows = {}
+  ---@type table<string, boolean>
+  local separator_nodes = { thematic_break = true }
+
+  local function visit(node)
+    if separator_nodes[node:type()] then
+      local row = node:start()
+      if row >= start_row and row < end_row then rows[#rows + 1] = row end
+    end
+
+    for child in node:iter_children() do
+      visit(child)
+    end
+  end
+
+  local trees = parser:parse()
+  for _, tree in ipairs(trees) do
+    visit(tree:root())
+  end
+
+  return rows
+end
+
 --- @param opts blink.cmp.RenderDetailAndDocumentationOpts
 function docs.render_detail_and_documentation(opts)
   local detail_lines = {}
@@ -40,33 +82,60 @@ function docs.render_detail_and_documentation(opts)
 
   -- add a blank line for the --- separator
   local doc_already_has_separator = #doc_lines > 1 and (doc_lines[1] == '---' or doc_lines[1] == '***')
+  local doc_line_start = doc_already_has_separator and 2 or 1
   if #detail_lines > 0 and #doc_lines > 0 then table.insert(combined_lines, '') end
   -- skip original separator in doc_lines, so we can highlight it later
-  vim.list_extend(combined_lines, doc_lines, doc_already_has_separator and 2 or 1)
+  vim.list_extend(combined_lines, doc_lines, doc_line_start)
 
   vim.api.nvim_set_option_value('modifiable', true, { buf = opts.bufnr })
   vim.api.nvim_buf_set_lines(opts.bufnr, 0, -1, true, combined_lines)
   vim.api.nvim_set_option_value('modifiable', false, { buf = opts.bufnr })
   vim.api.nvim_set_option_value('modified', false, { buf = opts.bufnr })
 
+  local doc_start_row = #detail_lines + (#detail_lines > 0 and 1 or 0)
+  local doc_end_row = doc_start_row + #doc_lines - doc_line_start + 1
+  local doc_parser, doc_text ---@type vim.treesitter.LanguageTree?, string?
+  if #doc_lines > 0 then
+    doc_parser, doc_text = get_string_parser(opts.bufnr, 'markdown')
+  end
+
+  -- Find additional markdown separators in documentation lines then replace them by empty line
+  local separators = {} ---@type integer[]
+  if doc_parser and doc_end_row > doc_start_row then
+    separators = get_markdown_separators(doc_parser, doc_start_row, doc_end_row)
+  end
+
   -- Highlight with treesitter
   vim.api.nvim_buf_clear_namespace(opts.bufnr, highlight_ns, 0, -1)
 
-  if #detail_lines > 0 and opts.use_treesitter_highlighting then
-    docs.highlight_with_treesitter(opts.bufnr, vim.bo.filetype, 0, #detail_lines)
-  end
-
-  -- Only add the separator if there are documentation lines (otherwise only display the detail)
-  if #detail_lines > 0 and #doc_lines > 0 then
-    vim.api.nvim_buf_set_extmark(opts.bufnr, highlight_ns, #detail_lines, 0, {
+  ---@param line integer
+  local function render_extmark_separator(line)
+    vim.api.nvim_buf_set_extmark(opts.bufnr, highlight_ns, line, 0, {
       virt_text = { { string.rep('─', opts.max_width), 'BlinkCmpDocSeparator' } },
       virt_text_pos = 'overlay',
     })
   end
+  -- Render main separator if there are documentation lines (otherwise only display the detail)
+  if #detail_lines > 0 and #doc_lines > 0 then render_extmark_separator(#detail_lines) end
+  -- Render additional markdown separators in the documentation lines
+  for _, line in ipairs(separators) do
+    render_extmark_separator(line)
+  end
 
-  if #doc_lines > 0 and opts.use_treesitter_highlighting then
-    local start = #detail_lines + (#detail_lines > 0 and 1 or 0)
-    docs.highlight_with_treesitter(opts.bufnr, 'markdown', start, start + #doc_lines)
+  if opts.use_treesitter_highlighting then
+    if #detail_lines > 0 then
+      local lang = vim.treesitter.language.get_lang(vim.bo.filetype)
+      if lang ~= nil then
+        local detail_parser, detail_text = get_string_parser(opts.bufnr, lang)
+        if detail_parser and detail_text then
+          docs.highlight_with_treesitter(detail_parser, detail_text, opts.bufnr, 0, #detail_lines)
+        end
+      end
+    end
+
+    if doc_parser and doc_text then
+      docs.highlight_with_treesitter(doc_parser, doc_text, opts.bufnr, doc_start_row, doc_end_row)
+    end
   end
 end
 
@@ -77,24 +146,18 @@ end
 --- @param end_line number
 --- TODO: fallback to regex highlighting if treesitter fails
 --- TODO: only render what's visible
-function docs.highlight_with_treesitter(bufnr, filetype, start_line, end_line)
+--- @param parser vim.treesitter.LanguageTree
+--- @param text string
+--- @param bufnr integer
+--- @param start_line integer
+--- @param end_line integer
+function docs.highlight_with_treesitter(parser, text, bufnr, start_line, end_line)
   local Range = require('vim.treesitter._range')
   local treesitter_priority = vim.fn.has('nvim-0.11') == 1 and vim.hl.priorities.treesitter
     or vim.highlight.priorities.treesitter
 
-  local root_lang = vim.treesitter.language.get_lang(filetype)
-  if root_lang == nil then return end
-
-  -- This is a one-off highlight pass; do not attach a parser to the reused documentation buffer.
-  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-  if #lines == 0 then return end
-  local text = table.concat(lines, '\n') .. '\n'
-  local success, trees = pcall(vim.treesitter.get_string_parser, text, root_lang)
-  if not success or not trees then return end
-
-  trees:parse({ start_line, end_line })
-
-  trees:for_each_tree(function(tree, tstree)
+  parser:parse({ start_line, end_line })
+  parser:for_each_tree(function(tree, tstree)
     local lang = tstree:lang()
     local highlighter_query = vim.treesitter.query.get(lang, 'highlights')
     if not highlighter_query then return end
