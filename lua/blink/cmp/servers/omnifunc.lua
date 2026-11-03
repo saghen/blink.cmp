@@ -18,25 +18,33 @@ local Kind = require('blink.cmp.types').CompletionItemKind
 
 ---@alias blink.cmp.CompleteFuncWords (string | blink.cmp.CompleteFuncItem)[]
 
---- Invokes a complete function (a Lua function, `v:lua.*` or a vimscript function name) and
---- restores the cursor
----@param func string | function
----@return (table<{ words: blink.cmp.CompleteFuncWords, refresh: string }> | blink.cmp.CompleteFuncWords) | integer
----@overload fun(func: string | function, findstart: 1, base: ''): integer
----@overload fun(func: string | function, findstart: 0, base: string): table<{ words: blink.cmp.CompleteFuncWords, refresh: string }> | blink.cmp.CompleteFuncWords
+---@class blink.cmp.CompleteFuncResponse
+---@field words blink.cmp.CompleteFuncWords
+---@field refresh? 'always'
+
+---@alias blink.cmp.CompleteFuncResult integer|blink.cmp.CompleteFuncWords|blink.cmp.CompleteFuncResponse|nil
+---@alias blink.cmp.CompleteFuncProvider string|fun(findstart: 0|1, base: string): blink.cmp.CompleteFuncResult
+
+--- Invokes a complete function (a Lua function, `v:lua.*` or a vimscript function name) and restores the cursor
+---@param func blink.cmp.CompleteFuncProvider
+---@param findstart 0|1
+---@param base string
+---@return blink.cmp.CompleteFuncResult
+---@overload fun(func: blink.cmp.CompleteFuncProvider, findstart: 1, base: ''): integer?
+---@overload fun(func: blink.cmp.CompleteFuncProvider, findstart: 0, base: string): blink.cmp.CompleteFuncWords|blink.cmp.CompleteFuncResponse|nil
 local function invoke_complete_func(func, findstart, base)
   local prev_cursor = vim.api.nvim_win_get_cursor(0)
 
   -- Errors propagate to the error path, which makes issues easier to debug
-  local result
+  local result ---@type blink.cmp.CompleteFuncResult
   if type(func) == 'function' then
     result = func(findstart, base)
   elseif func:match('^v:lua%.(.+)') then
-    ---@type fun(findstart: integer, base: string)
+    ---@type fun(findstart: 0|1, base: string): blink.cmp.CompleteFuncResult
     local fn = assert(loadstring('return ' .. func:match('^v:lua%.(.+)')))()
     result = fn(findstart, base)
   else
-    result = vim.api.nvim_call_function(func, { findstart, base })
+    result = vim.api.nvim_call_function(func, { findstart, base }) --[[@as blink.cmp.CompleteFuncResult]]
   end
 
   local next_cursor = vim.api.nvim_win_get_cursor(0)
@@ -84,8 +92,8 @@ return lsp.server({
       -- for info on complete-func results see `:h complete-items`
       local cmp_results = invoke_complete_func(complete_func, 0, line:sub(start_col + 1, col))
       if type(cmp_results) ~= 'table' then return empty end
+
       cmp_results = cmp_results['words'] or cmp_results
-      ---@cast cmp_results blink.cmp.CompleteFuncWords
 
       local range = lsp.util.range(bufnr, row, start_col, row, col)
 
@@ -96,17 +104,15 @@ return lsp.server({
         if type(cmp) == 'string' then
           item = { label = cmp, textEdit = lsp.util.text_edit(range, cmp) }
         else
-          item = {
-            label = cmp.abbr or cmp.word,
-            textEdit = lsp.util.text_edit(range, cmp.word),
-            labelDetails = { description = cmp.menu },
-          }
+          item = { label = cmp.abbr or cmp.word, textEdit = lsp.util.text_edit(range, cmp.word) }
+          item.labelDetails = {}
+          item.labelDetails.description = cmp.menu
 
           -- if possible, prefer blink's 'kind' to remove redundancy
           local blink_kind = COMPLETE_ITEM_KIND_TO_BLINK_KIND[cmp.kind]
           if blink_kind ~= nil then
             item.kind = blink_kind
-          elseif item.labelDetails then
+          else
             item.labelDetails.detail = cmp.kind
           end
 
