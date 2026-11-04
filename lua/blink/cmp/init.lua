@@ -407,7 +407,7 @@ function cmp.is_signature_visible() return require('blink.cmp.signature.window')
 function cmp.show_signature()
   if not config.signature.enabled or cmp.is_signature_visible() then return false end
 
-  require('blink.cmp.signature.trigger').show({ force = true })
+  require('blink.cmp.signature.trigger').show({ force = true, is_manual = true })
   return true
 end
 
