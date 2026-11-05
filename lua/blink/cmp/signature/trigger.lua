@@ -112,7 +112,7 @@ end
 
 function trigger.show_if_on_trigger_character()
   if require('blink.cmp.completion.trigger.context').get_mode() ~= 'default' then return end
-  if not config.enabled and trigger.context == nil then return end
+  if not config.enabled or not trigger.context then return end
 
   local cursor_col = vim.api.nvim_win_get_cursor(0)[2]
   local char_under_cursor = vim.api.nvim_get_current_line():sub(cursor_col, cursor_col)

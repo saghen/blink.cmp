@@ -1,6 +1,41 @@
+local lib_utils = require('blink.cmp.lib.utils')
+local lsp_snippet_grammar = vim.lsp._snippet_grammar
+
 local utils = {
   parse_cache = {},
 }
+
+--- @param body string
+--- @return string|string[]
+local function normalize_body(body) return body:find('\n') and vim.split(body, '\n', { plain = true }) or body end
+
+--- Attempt snippet transformations for malformed body
+--- @param body string
+--- @param filetype string
+--- @return string
+local function repair_body(body, filetype)
+  body = body
+    :gsub(':\\${', ':${') -- unescape :${
+    :gsub(':${(%w)\\}', ':${%1}') -- unescape :${..\\}
+    :gsub('\\}}', '}}') -- unescape }}
+    :gsub('\\([%(%))])', '%1') -- unescape parentheses
+    :gsub(' \\([%(%))])\\', ' %1\\') -- unescape parens before backslash
+    :gsub('([%s{%(%[])%$%${', '%1\\$${') -- escape $$ after whitespace/brackets
+    :gsub('$: ', '\\$: ') -- escape $ before colon-space
+    :gsub('(".*%w)%$(")', '%1\\$%2') -- escape dollar sign, e.g. "foo$" -> "foo\$"
+    :gsub('$\\{', '\\${') -- wrong backslash position
+    :gsub('(\\?)%$%W*(%$[%w{]+)%W*%$', function(e, a) return (e == '\\' and e or '\\') .. '$' .. a end)
+    :gsub('(%${%d+|)([^}]+)(|})', function(s, o, e) return s .. o:gsub('\\', '\\\\') .. e end) -- Escape \ in options, e.g. \Huge -> \\Huge
+
+  if filetype == 'terraform' then
+    body = body
+      :gsub('= "\\${', '= "${')
+      :gsub('= %["\\${', '= ["${')
+      :gsub('(%${[^}]+})', function(e) return e:gsub('[%.%[%]-]', '_') end) -- replace all dots/brackets/dash in placeholders (not allowed)
+  end
+
+  return body
+end
 
 --- Parses the json file and notifies the user if there's an error
 ---@param path string
@@ -8,17 +43,17 @@ local utils = {
 function utils.parse_json_with_error_msg(path, json)
   local ok, parsed = pcall(vim.json.decode, json)
   if not ok then
-    vim.notify(
-      'Failed to parse json file "' .. path .. '" for blink.cmp snippets. Error: ' .. parsed,
-      vim.log.levels.ERROR,
-      { title = 'blink.cmp' }
+    lib_utils.notify(
+      { { 'Failed to parse json file "' .. path .. '" for blink.cmp snippets. Error: ' .. parsed } },
+      vim.log.levels.ERROR
     )
     return {}
   end
   return parsed
 end
 
----@type fun(path: string): string|nil
+---@param path string
+---@return string?
 function utils.read_file(path)
   local file = io.open(path, 'r')
   if not file then return nil end
@@ -27,23 +62,30 @@ function utils.read_file(path)
   return content
 end
 
----@type fun(input: string): vim.snippet.Node<vim.snippet.SnippetData>|nil
+---@param input string
+---@return vim.snippet.Node<vim.snippet.SnippetData>?
 function utils.safe_parse(input)
   if utils.parse_cache[input] then return utils.parse_cache[input] end
 
-  local safe, parsed = pcall(vim.lsp._snippet_grammar.parse, input)
+  local safe, parsed = pcall(lsp_snippet_grammar.parse, input)
   if not safe then return nil end
 
   utils.parse_cache[input] = parsed
   return parsed
 end
 
----@type fun(snippet: blink.cmp.Snippet, fallback: string): table
-function utils.read_snippet(snippet, fallback)
-  local snippets = {}
+---@param snippet blink.cmp.Snippet
+---@param fallback string
+---@param filetype string
+---@param is_user_snippet boolean
+---@return table
+function utils.read_snippet(snippet, fallback, filetype, is_user_snippet)
   local prefix = snippet.prefix or fallback
+  local body = utils.validate_body(snippet.body, prefix, filetype, is_user_snippet)
+  if body == nil then return {} end
+
+  local snippets = {}
   local description = snippet.description or fallback
-  local body = snippet.body
 
   if type(description) == 'table' then description = vim.fn.join(description, '') end
 
@@ -65,9 +107,9 @@ function utils.read_snippet(snippet, fallback)
   return snippets
 end
 
--- Add the current line's indentation to all but the first line of
--- the provided text
+-- Add the current line's indentation to all but the first line of the provided text
 ---@param text string
+---@return string
 function utils.add_current_line_indentation(text)
   local base_indent = vim.api.nvim_get_current_line():match('^%s*') or ''
   local snippet_lines = vim.split(text, '\n', { plain = true })
@@ -90,25 +132,32 @@ function utils.add_current_line_indentation(text)
   return table.concat(lines, '\n')
 end
 
-function utils.get_tab_stops(snippet)
-  local expanded_snippet = require('blink.cmp.sources.snippets.utils').safe_parse(snippet)
-  if not expanded_snippet then return end
-
-  local tabstops = {}
-  local grammar = require('vim.lsp._snippet_grammar')
-  local line = 1
-  local character = 1
-  for _, child in ipairs(expanded_snippet.data.children) do
-    local lines = tostring(child) == '' and {} or vim.split(tostring(child), '\n')
-    line = line + math.max(#lines - 1, 0)
-    character = #lines == 0 and character or #lines > 1 and #lines[#lines] or (character + #lines[#lines])
-    if child.type == grammar.NodeType.Placeholder or child.type == grammar.NodeType.Tabstop then
-      table.insert(tabstops, { index = child.data.tabstop, line = line, character = character })
-    end
+---@param body string|string[]
+---@param prefix string
+---@param filetype string
+---@param is_user_snippet boolean
+---@return string|string[]|nil
+function utils.validate_body(body, prefix, filetype, is_user_snippet)
+  if type(body) == 'table' then
+    body = table.concat(body, '\n')
+  elseif type(body) ~= 'string' then
+    return nil
   end
 
-  table.sort(tabstops, function(a, b) return a.index < b.index end)
-  return tabstops
+  if utils.safe_parse(body) then return normalize_body(body) end
+
+  body = repair_body(body, filetype)
+  if utils.safe_parse(body) then return normalize_body(body) end
+
+  if is_user_snippet then
+    local str_prefix = type(prefix) == 'table' and table.concat(prefix, ',') or prefix
+    lib_utils.notify(
+      { { 'Discard snippet `' .. str_prefix .. '` (' .. filetype .. '), parsing failed!' } },
+      vim.log.levels.WARN
+    )
+  end
+
+  return nil
 end
 
 return utils

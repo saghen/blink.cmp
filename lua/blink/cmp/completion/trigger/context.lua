@@ -113,7 +113,7 @@ function context.get_mode()
     -- We need to dissociate 'cmdwin' as a separate mode because our logic
     -- depends on distinguishing between regular command-line mode and the
     -- command-line window.
-    or (vim.fn.win_gettype() == 'command' and 'cmdwin')
+    or (vim.fn.getcmdwintype() ~= '' and 'cmdwin')
     or 'default'
 end
 

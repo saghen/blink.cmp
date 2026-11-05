@@ -442,7 +442,7 @@ function win:get_direction_with_window_constraints(anchor_win, direction_priorit
 
   local border_size = self:get_border_size()
   local direction = direction_priority_by_space[1]
-  local height = math.min(max_height, direction_constraints[direction].vertical)
+  local height = math.min(self.config.max_height + border_size.vertical, direction_constraints[direction].vertical)
   if height <= border_size.vertical then return end
   local width = math.min(max_width, direction_constraints[direction].horizontal)
   if width <= border_size.horizontal then return end

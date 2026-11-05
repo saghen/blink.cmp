@@ -11,10 +11,11 @@ local registry = {
   builtin_vars = require('blink.cmp.sources.snippets.default.builtin'),
 }
 
+local user_config = vim.fn.stdpath('config')
 local utils = require('blink.cmp.sources.snippets.utils')
 local default_config = {
   friendly_snippets = true,
-  search_paths = { vim.fn.stdpath('config') .. '/snippets' },
+  search_paths = { user_config .. '/snippets' },
   global_snippets = { 'all' },
   extended_filetypes = {},
   --- @type string?
@@ -62,9 +63,10 @@ function registry:get_snippets_for_ft(filetype)
   for _, f in ipairs(files) do
     local contents = utils.read_file(f)
     if contents then
+      local is_user_snippet = vim.startswith(f, user_config)
       local snippets = utils.parse_json_with_error_msg(f, contents)
       for _, key in ipairs(vim.tbl_keys(snippets)) do
-        local snippet = utils.read_snippet(snippets[key], key)
+        local snippet = utils.read_snippet(snippets[key], key, filetype, is_user_snippet)
         for _, snippet_def in pairs(snippet) do
           table.insert(loaded_snippets, snippet_def)
         end

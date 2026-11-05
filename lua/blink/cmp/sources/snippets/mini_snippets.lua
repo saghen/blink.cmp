@@ -128,7 +128,7 @@ function source:resolve(item, callback)
   callback(item)
 end
 
-function source:execute(_, item)
+function source:execute(_, item, callback)
   require('blink.cmp.lib.text_edits').apply({ newText = '', range = item.textEdit.range })
 
   -- It's safe to assume that mode is insert during completion
@@ -139,6 +139,7 @@ function source:execute(_, item)
   local insert = MiniSnippets.config.expand.insert or MiniSnippets.default_insert
   ---@diagnostic disable-next-line: missing-return
   insert({ body = snip.body }) -- insert at cursor
+  callback()
 end
 
 -- For external integrations to force reloading the snippets

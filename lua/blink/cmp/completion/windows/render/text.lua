@@ -39,7 +39,7 @@ end
 --- @return string truncated_text
 function text_lib.truncate(text, target_width, ellipsis)
   local ellipsis_str = ellipsis ~= false and '…' or ''
-  if ellipsis ~= false and config.nerd_font_variant == 'normal' then ellipsis_str = ellipsis_str .. ' ' end
+  if ellipsis ~= false and config.appearance.nerd_font_variant == 'normal' then ellipsis_str = ellipsis_str .. ' ' end
 
   local text_width = vim.api.nvim_strwidth(text)
   local ellipsis_width = vim.api.nvim_strwidth(ellipsis_str)

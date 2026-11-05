@@ -173,9 +173,9 @@ function docs.update_position()
     return
   end
 
-  -- set width and height based on available space
-  docs.win:set_height(pos.height)
+  -- set width first so the height follows the wrapped content
   docs.win:set_width(pos.width)
+  docs.win:set_height(math.min(docs.win:get_content_height(), pos.height))
 
   -- set position based on provided direction
   local height = docs.win:get_height()

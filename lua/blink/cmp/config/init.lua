@@ -95,9 +95,7 @@ function M.apply_mode_specific(cfg)
 
     set_at_path(path, function(...)
       local mode = vim.api.nvim_get_mode().mode
-      if (mode == 'c' or vim.fn.win_gettype() == 'command') and cmdline ~= nil then
-        return call_or_return(cmdline, ...)
-      end
+      if (mode == 'c' or vim.fn.getcmdwintype() ~= '') and cmdline ~= nil then return call_or_return(cmdline, ...) end
       if mode == 't' and term ~= nil then return call_or_return(term, ...) end
       return call_or_return(default, ...)
     end)
@@ -122,11 +120,13 @@ end
 --- Overrides
 
 function M.enabled()
-  -- disable in macros
-  if vim.fn.reg_recording() ~= '' or vim.fn.reg_executing() ~= '' then return false end
+  local mode = vim.api.nvim_get_mode().mode
 
-  if vim.api.nvim_get_mode().mode == 'c' or vim.fn.win_gettype() == 'command' then return config.cmdline.enabled end
-  if vim.api.nvim_get_mode().mode == 't' then return config.term.enabled end
+  if mode == 'c' or vim.fn.getcmdwintype() ~= '' then return config.cmdline.enabled end
+  if mode == 't' then return config.term.enabled end
+
+  -- Disable in macros
+  if vim.fn.reg_recording() ~= '' or vim.fn.reg_executing() ~= '' then return false end
 
   local user_enabled = config.enabled()
   -- User explicitly ignores default conditions
