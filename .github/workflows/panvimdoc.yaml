@@ -18,15 +18,15 @@ jobs:
     if: github.repository == 'saghen/blink.cmp'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
-      - uses: kdheepak/panvimdoc@662fb20304d20c539fb48a0bda628f5165507de7 # v4.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+      - uses: kdheepak/panvimdoc@4c8eaecb80058694171627629c6ff59bcf41472d # v6.0.0
         with:
           vimdoc: blink-cmp
           pandoc: doc/vimdoc.md
           version: NVIM v0.12.0
           shiftheadinglevelby: 0
           incrementheadinglevelby: 0
-      - uses: stefanzweifel/git-auto-commit-action@04702edda442b2e678b25b537cec683a1493fcb9 # v7.1.0
+      - uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
         with:
           commit_message: "docs: update vimdocs"
           branch: ${{ github.head_ref }}
