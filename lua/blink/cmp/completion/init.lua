@@ -7,8 +7,8 @@ function completion.setup()
   local trigger = require('blink.cmp.completion.trigger')
   trigger.activate()
 
-  -- sources fetch completion items and documentation
-  local sources = require('blink.cmp.sources.lib')
+  -- requests completion items from the attached LSP clients
+  local lsp = require('blink.cmp.lsp.completion')
 
   -- manages the completion list state:
   --   fuzzy matching items
@@ -17,20 +17,20 @@ function completion.setup()
   --   accepting and previewing items
   local list = require('blink.cmp.completion.list')
 
-  -- trigger -> sources: request completion items from the sources on show
+  -- trigger -> lsp: request completion items from the clients on show
   trigger.show_emitter:on(function(event)
     -- user made an input, preview is now locked, so clear undo
     list.preview_undo = nil
 
-    sources.request_completions(event.context)
+    lsp.request(event.context)
   end)
   trigger.hide_emitter:on(function()
-    sources.cancel_completions()
+    lsp.cancel()
     list.hide()
   end)
 
-  -- sources -> list
-  sources.completions_emitter:on(function(event)
+  -- lsp -> list
+  lsp.completions_emitter:on(function(event)
     -- schedule for later to avoid adding 0.5-4ms to insertion latency
     vim.schedule(function()
       -- since this was performed asynchronously, we check if the context has changed
@@ -38,25 +38,25 @@ function completion.setup()
       -- don't show the list if prefetching results
       if trigger.context.trigger.kind == 'prefetch' then return end
 
-      -- don't show if all the sources that defined the trigger character returned no items
+      -- don't show if all the clients that defined the trigger character returned no items
       if event.context.trigger.character ~= nil then
-        local triggering_source_returned_items = false
-        for _, source in pairs(event.context.providers) do
-          local trigger_characters = sources.get_provider_by_id(source):get_trigger_characters()
+        local triggering_client_returned_items = false
+        for _, client in ipairs(event.clients) do
+          local items = event.items[client.id]
           if
-            event.items[source]
-            and #event.items[source] > 0
-            and vim.tbl_contains(trigger_characters, trigger.context.trigger.character)
+            items ~= nil
+            and #items > 0
+            and lsp.has_trigger_character(client, event.context.trigger.character, event.context.bufnr)
           then
-            triggering_source_returned_items = true
+            triggering_client_returned_items = true
             break
           end
         end
 
-        if not triggering_source_returned_items then return list.hide() end
+        if not triggering_client_returned_items then return list.hide() end
       end
 
-      list.show(event.context, event.items)
+      list.show(event.context, event.items, event.clients)
     end)
   end)
 

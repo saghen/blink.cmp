@@ -17,46 +17,18 @@ local warned_invalid_insert_range = {}
 function text_edits.apply(text_edit, additional_text_edits)
   additional_text_edits = additional_text_edits or {}
 
-  local mode = context.get_mode()
-  assert(
-    lib.list.contains({ 'default', 'cmdline', 'cmdwin', 'term' }, mode),
-    'Unsupported mode for text edits: ' .. mode
-  )
+  local all_edits = lib.list.copy(additional_text_edits)
+  table.insert(all_edits, text_edit)
 
-  if mode == 'default' or mode == 'cmdwin' then
-    -- writing to dot repeat may fail in command-line window
-    if mode == 'default' and config.completion.accept.dot_repeat then text_edits.write_to_dot_repeat(text_edit) end
+  local cmdline = require('blink.cmp.cmdline')
+  if cmdline.active() then return cmdline.apply_text_edits(all_edits) end
 
-    local all_edits = lib.list.copy(additional_text_edits)
-    table.insert(all_edits, text_edit)
-
-    local cur_bufnr = nvim.get_current_buf()
-    vim.lsp.util.apply_text_edits(all_edits, cur_bufnr, 'utf-8')
+  -- writing to dot repeat may fail in the command-line window
+  if vim.fn.getcmdwintype() == '' and config.completion.accept.dot_repeat then
+    text_edits.write_to_dot_repeat(text_edit)
   end
 
-  if mode == 'cmdline' then
-    assert(#additional_text_edits == 0, 'Cmdline mode only supports one text edit. Contributions welcome!')
-
-    local line = context.get_line()
-    local edited_line = line:sub(1, text_edit.range.start.character)
-      .. text_edit.newText
-      .. line:sub(text_edit.range['end'].character + 1)
-    -- FIXME: for some reason, we have to set the cursor here, instead of later,
-    -- because this will override the cursor position set later
-    vim.fn.setcmdline(edited_line, text_edit.range.start.character + #text_edit.newText + 1)
-  end
-
-  -- TODO: apply dot repeat
-  if mode == 'term' then
-    assert(#additional_text_edits == 0, 'Terminal mode only supports one text edit. Contributions welcome!')
-
-    if vim.bo.channel and vim.bo.channel ~= 0 then
-      local n_replaced = utils.get_vim_pos_cursor(0).col - text_edit.range.start.character
-      local backspace_keycode = '\8'
-
-      vim.fn.chansend(vim.bo.channel, backspace_keycode:rep(n_replaced) .. text_edit.newText)
-    end
-  end
+  vim.lsp.util.apply_text_edits(all_edits, nvim.get_current_buf(), 'utf-8')
 end
 
 ------- Undo -------
@@ -162,7 +134,7 @@ function text_edits.get_from_item(item)
     -- issue can still be reported upstream
     elseif item_text_edit.replace ~= nil and not is_valid_insert_range(item_text_edit) then
       range = item_text_edit.replace
-      local client_name = item.client_name or item.source_name or 'unknown'
+      local client_name = item.client_name or 'unknown'
       if not warned_invalid_insert_range[client_name] then
         warned_invalid_insert_range[client_name] = true
         logger:notify(
@@ -424,7 +396,7 @@ function text_edits.write_to_dot_repeat(text_edit)
       -- emulate builtin completion (dot repeat)
       local saved_completeopt = vim.opt.completeopt
       local saved_shortmess = vim.o.shortmess
-      vim.opt.completeopt = ''
+      vim.opt.completeopt = '' --[[@as vim.Option]]
       if not saved_shortmess:match('c') then vim.o.shortmess = vim.o.shortmess .. 'c' end
       vim.fn.complete(1, { '_' .. chars_to_insert })
       vim.opt.completeopt = saved_completeopt

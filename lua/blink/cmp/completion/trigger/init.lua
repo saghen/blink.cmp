@@ -5,8 +5,6 @@
 -- This can be used downstream to determine if we should make new requests to the sources or not.
 --- @class blink.cmp.CompletionTrigger
 --- @field buffer_events blink.cmp.BufferEvents
---- @field cmdline_events blink.cmp.CmdlineEvents
---- @field term_events blink.cmp.TermEvents
 --- @field current_context_id integer
 --- @field context? blink.cmp.Context
 --- @field show_emitter blink.cmp.EventEmitter<{ context: blink.cmp.Context }>
@@ -25,7 +23,7 @@
 --- @field trigger_character? string
 --- @field force? boolean
 --- @field send_upstream? boolean
---- @field providers? string[]
+--- @field lsp? string[] Custom list of LSPs to query
 --- @field initial_selected_item_idx? integer
 
 local root_config = require('blink.cmp.config')
@@ -68,7 +66,7 @@ end
 
 local function on_cursor_moved(event, is_ignored, is_backspace, last_event)
   local pos = context.get_pos()
-  local is_enter_event = event == 'InsertEnter' or event == 'TermEnter'
+  local is_enter_event = event == 'InsertEnter'
   local char_under_cursor = utils.get_char_at_cursor()
   local is_keyword = fuzzy.is_keyword_character(char_under_cursor)
 
@@ -127,7 +125,7 @@ local function on_cursor_moved(event, is_ignored, is_backspace, last_event)
   elseif config().show_on_backspace_in_keyword and is_backspace and is_keyword then
     trigger.show({ trigger_kind = 'keyword' })
 
-  -- show after entering insert or term mode and backspacing into a keyword
+  -- show after entering insert mode and backspacing into a keyword
   elseif config().show_on_backspace_after_insert_enter and is_backspace and last_event == 'enter' and is_keyword then
     trigger.show({ trigger_kind = 'keyword' })
 
@@ -157,62 +155,34 @@ function trigger.activate()
     end,
   })
 
-  trigger.cmdline_events = require('blink.cmp.lib.cmdline_events').new()
-  if root_config.cmdline.enabled then
-    trigger.cmdline_events:listen({
-      on_char_added = on_char_added,
-      on_cursor_moved = on_cursor_moved,
-      on_leave = function() trigger.hide() end,
-    })
-  end
-
-  trigger.term_events = require('blink.cmp.lib.term_events').new({
-    has_context = function() return trigger.context ~= nil end,
+  require('blink.cmp.cmdline').listen({
+    on_char_added = on_char_added,
+    on_cursor_moved = on_cursor_moved,
+    on_leave = function() trigger.hide() end,
   })
-  if root_config.term.enabled then
-    trigger.term_events:listen({
-      on_char_added = on_char_added,
-      on_term_leave = function() trigger.hide() end,
-    })
-  end
 end
 
 function trigger.resubscribe() trigger.buffer_events:resubscribe({ on_char_added = on_char_added }) end
 
 function trigger.is_trigger_character(char, is_show_on_x)
-  local sources = require('blink.cmp.sources.lib')
-  local is_trigger = vim.tbl_contains(sources.get_trigger_characters(context.get_mode()), char)
-
   -- ignore a-z and A-Z characters
   if char:match('%a') then return false end
 
-  local show_on_blocked_trigger_characters = type(config().show_on_blocked_trigger_characters) == 'function'
-      and config().show_on_blocked_trigger_characters()
-    or config().show_on_blocked_trigger_characters
-  --- @cast show_on_blocked_trigger_characters string[]
-  local show_on_x_blocked_trigger_characters = type(config().show_on_x_blocked_trigger_characters) == 'function'
-      and config().show_on_x_blocked_trigger_characters()
-    or config().show_on_x_blocked_trigger_characters
-  --- @cast show_on_x_blocked_trigger_characters string[]
+  local trigger_characters = require('blink.cmp.lsp.completion').get_trigger_characters(context.get_bufnr())
+  local is_trigger = vim.tbl_contains(trigger_characters, char)
 
-  local is_blocked = vim.tbl_contains(show_on_blocked_trigger_characters, char)
-    or (is_show_on_x and vim.tbl_contains(show_on_x_blocked_trigger_characters, char))
+  local is_blocked = vim.tbl_contains(config().show_on_blocked_trigger_characters, char)
+    or (is_show_on_x and vim.tbl_contains(config().show_on_x_blocked_trigger_characters, char))
 
   return is_trigger and not is_blocked
 end
 
 --- Suppresses on_hide and on_show events for the duration of the callback
 function trigger.suppress_events_for_callback(cb)
-  local mode = vim.api.nvim_get_mode().mode
-  mode = (vim.api.nvim_get_mode().mode == 'c' and 'cmdline') or (mode == 't' and 'term') or 'default'
-
-  local events = (mode == 'default' and trigger.buffer_events)
-    or (mode == 'term' and trigger.term_events)
-    or trigger.cmdline_events
-
-  if not events then return cb() end
-
-  events:suppress_events_for_callback(cb)
+  -- cmdline edits go through `blink.cmp.cmdline`, which ignores its own events
+  if require('blink.cmp.cmdline').active() then return cb() end
+  if not trigger.buffer_events then return cb() end
+  trigger.buffer_events:suppress_events_for_callback(cb)
 end
 
 function trigger.show_if_on_trigger_character(opts)
@@ -237,18 +207,16 @@ function trigger.show(opts)
   opts = opts or {} --[[@as blink.cmp.CompletionTriggerShowOptions]]
 
   local ctx = trigger.context
-  local mode = context.get_mode()
+  local bufnr = context.get_bufnr()
   local pos = context.get_pos()
 
   -- already triggered at this position, ignore
-  if not opts.force and ctx ~= nil and ctx.mode == mode and ctx.pos == pos then return end
+  if not opts.force and ctx ~= nil and ctx.bufnr == bufnr and ctx.pos == pos then return end
 
   -- update the context id to indicate a new context, and not an update to an existing context
-  if not ctx or opts.providers ~= nil then trigger.current_context_id = trigger.current_context_id + 1 end
+  if not ctx or opts.lsp ~= nil then trigger.current_context_id = trigger.current_context_id + 1 end
 
-  local providers = opts.providers
-    or (ctx and ctx.providers)
-    or require('blink.cmp.sources.lib').get_enabled_provider_ids(mode)
+  local lsp = opts.lsp or (ctx and ctx.lsp)
 
   local initial_trigger_kind = ctx and ctx.trigger.initial_kind or opts.trigger_kind
   -- if we prefetched, don't keep that as the initial trigger kind
@@ -262,7 +230,7 @@ function trigger.show(opts)
 
   trigger.context = context.new({
     id = trigger.current_context_id,
-    providers = providers,
+    lsp = lsp,
     initial_trigger_kind = initial_trigger_kind,
     initial_trigger_character = initial_trigger_character,
     trigger_kind = opts.trigger_kind,

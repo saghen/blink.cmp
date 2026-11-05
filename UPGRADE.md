@@ -8,7 +8,7 @@ For complete details and up-to-date usage, refer to the full documentation: http
 
 ### Dependencies
 
-- Require Neovim 0.12+
+- Require Neovim 0.13+
 - Required dependency: `saghen/blink.lib`
 
 ### Build
