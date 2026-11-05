@@ -259,6 +259,7 @@ local function complete(req)
       end
       ---@type string, string
       local filter_text, new_text = text, text
+      local info ---@type vim.api.keyset.get_option_info?
 
       -- current (%) or alternate (#) filename with optional modifiers (:)
       if is_filename_modifier_completion then
@@ -341,8 +342,6 @@ local function complete(req)
         end
       end
 
-      ---@cast label string?
-
       ---@type lsp.CompletionItem
       local item = {
         label = label or filter_text,
@@ -366,14 +365,16 @@ local function complete(req)
       items[#items + 1] = item
 
       if completion_type == 'option' and negation == nil and info and info.type == 'boolean' then
-        filter_text = 'no' .. filter_text
-        items[#items + 1] = vim.tbl_deep_extend('force', {}, item, {
-          label = filter_text,
-          filterText = filter_text,
-          labelDetails = { description = 'no' .. info.shortname },
-          sortText = filter_text,
-          textEdit = { newText = 'no' .. new_text },
-        }) --[[@as lsp.CompletionItem]]
+        for _, rev in ipairs({ 'no', 'inv' }) do
+          local rev_text = rev .. filter_text
+          items[#items + 1] = vim.tbl_deep_extend('force', {}, item, {
+            label = rev_text,
+            filterText = rev_text,
+            labelDetails = { description = rev .. info.shortname },
+            sortText = rev_text,
+            textEdit = { newText = rev .. new_text },
+          }) --[[@as lsp.CompletionItem]]
+        end
       end
       ::continue::
     end
