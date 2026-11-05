@@ -59,6 +59,7 @@ local function process_response(context, client, res)
     -- Record the position at which this completion was requested.
     -- This is used later to compensate text edits if the cursor moves before the item is accepted.
     item.pos = context.pos
+    item.line = context.line
 
     -- score offset for deprecated items
     -- TODO: make configurable

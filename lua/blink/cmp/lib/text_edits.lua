@@ -184,12 +184,13 @@ function text_edits.get_from_item(item)
   }
   assert(text_edit.range ~= nil, 'Invalid text edit: missing range')
 
-  text_edit = text_edits.compensate_for_cursor_movement(text_edit, item.pos, context.get_pos())
+  local offset_encoding = text_edits.offset_encoding_from_item(item)
+  text_edit =
+    text_edits.compensate_for_cursor_movement(text_edit, item.pos, context.get_pos(), offset_encoding, item.line)
 
   -- convert the offset encoding to utf-8
   -- TODO: we have to do this last because it applies a max on the position based on the length of the line
   -- so it would break the offset code when removing characters at the end of the line
-  local offset_encoding = text_edits.offset_encoding_from_item(item)
   text_edit = text_edits.to_utf_8(text_edit, offset_encoding)
 
   text_edit.range = text_edits.clamp_range_to_bounds(text_edit.range)
@@ -204,11 +205,20 @@ end
 --- @param text_edit lsp.TextEdit
 --- @param old_pos vim.Pos Position when the text edit was created
 --- @param new_pos vim.Pos New position
+--- @param offset_encoding? 'utf-8'|'utf-16'|'utf-32'
+--- @param old_line? string Line at the time of old_pos
 --- @return lsp.TextEdit
-function text_edits.compensate_for_cursor_movement(text_edit, old_pos, new_pos)
+function text_edits.compensate_for_cursor_movement(text_edit, old_pos, new_pos, offset_encoding, old_line)
   text_edit = vim.deepcopy(text_edit)
 
   local offset = new_pos.col - old_pos.col
+  if offset_encoding ~= nil and offset_encoding ~= 'utf-8' and old_line ~= nil then
+    -- Positions are byte offsets, but the edit still uses the client's encoding.
+    -- Use the request's line for the old position: deleted/replaced text may no
+    -- longer exist, even when the byte column has not changed (e.g. san -> 三).
+    offset = vim.str_utfindex(context.get_line(new_pos.row), offset_encoding, new_pos.col, false)
+      - vim.str_utfindex(old_line, offset_encoding, old_pos.col, false)
+  end
   text_edit.range['end'].character = text_edit.range['end'].character + offset
 
   return text_edit
