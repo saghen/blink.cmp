@@ -245,7 +245,7 @@ return lsp.server({
             filterText = text,
             kind = kind_snippet,
             insertTextFormat = InsertTextFormat.PlainText,
-            textEdit = lsp.util.text_edit(range, ''),
+            textEdit = lsp.util.text_edit(range, text),
             command = { title = 'Set choice', command = 'luasnip/set_choice', arguments = { { choice_index = i } } },
           }
         end
