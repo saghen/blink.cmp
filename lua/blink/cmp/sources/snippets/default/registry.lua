@@ -131,6 +131,15 @@ function registry:snippet_to_completion_item(snippet, context)
     end
   end
 
+  -- Extend the range backwards over typed non-keyword characters the body also starts with,
+  -- i.e. the `@` of `@startuml` when the prefix is `startuml`, to avoid inserting it twice
+  if start_col then
+    for col = start_col - 1, 1, -1 do
+      if line:sub(col, col):match('%s') then break end
+      if new_text:sub(1, #line - col + 1) == line:sub(col) then start_col = col end
+    end
+  end
+
   return {
     kind = require('blink.cmp.types').CompletionItemKind.Snippet,
     label = snippet.prefix,
