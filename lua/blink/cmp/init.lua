@@ -43,6 +43,15 @@ function cmp.is_enabled()
   return user_enabled and vim.bo.buftype ~= 'prompt' and vim.b.completion ~= false
 end
 
+local function set_mode_options(opts, mode)
+  local mode_opts = lib.tbl.omit(opts, { 'enabled', 'keymap' })
+  if type(mode_opts.sources) == 'function' or vim.islist(mode_opts.sources) then
+    mode_opts.sources = { default = mode_opts.sources }
+  end
+  config.set(mode_opts, { mode = mode })
+  return lib.tbl.pick(opts, { 'enabled', 'keymap' })
+end
+
 local has_setup = false
 --- Initializes blink.cmp with the given configuration
 --- @param opts? blink.cmp.Config
@@ -54,14 +63,8 @@ function cmp.setup(opts)
   opts = opts or {}
   ---@type blink.cmp.Config
   opts = lib.tbl.copy(opts)
-  if opts.cmdline then
-    config.set(lib.tbl.omit(opts.cmdline, { 'enabled', 'keymap' }), { mode = 'cmdline' })
-    opts.cmdline = lib.tbl.pick(opts.cmdline, { 'enabled', 'keymap' })
-  end
-  if opts.term then
-    config.set(lib.tbl.omit(opts.term, { 'enabled', 'keymap' }), { mode = 'terminal' })
-    opts.term = lib.tbl.pick(opts.term, { 'enabled', 'keymap' })
-  end
+  if opts.cmdline then opts.cmdline = set_mode_options(opts.cmdline, 'cmdline') end
+  if opts.term then opts.term = set_mode_options(opts.term, 'terminal') end
   config.set(opts)
 
   -- setup native library
