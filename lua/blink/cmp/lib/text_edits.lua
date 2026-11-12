@@ -142,6 +142,42 @@ local function is_valid_insert_range(text_edit)
     and insert.start.character <= insert['end'].character
 end
 
+--- Move `range.start` forward when text before the edit changed length.
+---
+--- The cursor delta is not enough: characters typed into the word and
+--- characters inserted before it both move the cursor, but only the latter
+--- moves the start. The keyword under the cursor is where an identifier edit
+--- now begins. A postfix edit already starts before that keyword, and by less
+--- than the original range, so a gap smaller than the original length is left
+--- alone.
+---
+--- @param text_edit lsp.TextEdit range.end has already been shifted by `new_col - old_col`
+--- @param old_col integer
+--- @param new_col integer
+local function compensate_range_start_for_preceding_text(text_edit, old_col, new_col)
+  local range = text_edit.range
+  if range.start.line ~= range['end'].line then return end
+
+  local start_col = range.start.character
+  local original_len = range['end'].character - (new_col - old_col) - start_col
+  if original_len <= 0 then return end
+
+  local line = context.get_line(range.start.line)
+  local kw_start, kw_end = require('blink.cmp.fuzzy.lua.keyword').get_keyword_range(line, new_col, false)
+  if kw_end <= kw_start or kw_start > range['end'].character then return end
+
+  -- gap < original_len covers "start did not move" and postfix ranges.
+  local gap = kw_start - start_col
+  if gap < original_len then return end
+
+  local keyword = line:sub(kw_start + 1, kw_end)
+  local inserted = (text_edit.newText or ''):match('^[^\r\n]*') or ''
+  if keyword == '' or inserted:sub(1, #keyword) ~= keyword then return end
+  if line:sub(kw_start + 1, kw_start + original_len) ~= inserted:sub(1, original_len) then return end
+
+  range.start.character = kw_start
+end
+
 --- Gets the text edit from an item, handling insert/replace ranges and converts
 --- offset encodings (utf-16 | utf-32) to utf-8
 --- @param item blink.cmp.CompletionItem
@@ -184,7 +220,12 @@ function text_edits.get_from_item(item)
   }
   assert(text_edit.range ~= nil, 'Invalid text edit: missing range')
 
-  text_edit = text_edits.compensate_for_cursor_movement(text_edit, item.pos, context.get_pos())
+  -- v1 items stored the request cursor as `cursor_column`. v2 stores `pos`.
+  local old_pos = item.pos
+  if old_pos == nil and type(item.cursor_column) == 'number' then old_pos = { col = item.cursor_column } end
+  local new_pos = context.get_pos()
+  text_edit = text_edits.compensate_for_cursor_movement(text_edit, old_pos, new_pos)
+  compensate_range_start_for_preceding_text(text_edit, old_pos.col, new_pos.col)
 
   -- convert the offset encoding to utf-8
   -- TODO: we have to do this last because it applies a max on the position based on the length of the line
