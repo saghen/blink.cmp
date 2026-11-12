@@ -4,6 +4,9 @@ extend-exclude = ["/CHANGELOG.md"]
 [default.extend-words]
 noice = "noice"
 fo = "fo"
+# Issue 2668 fixture keeps the Spanish identifier and typed prefix.
+tiem = "tiem"
+preparacion = "preparacion"
 
 [default]
 extend-ignore-re = [
