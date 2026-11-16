@@ -11,8 +11,8 @@
 --- @field is_explicitly_selected boolean
 --- @field preview_undo? { text_edit: lsp.TextEdit, pos_before?: vim.Pos, pos_after: vim.Pos }
 ---
---- @field show fun(context: blink.cmp.Context, items: table<string, blink.cmp.CompletionItem[]>)
---- @field fuzzy fun(context: blink.cmp.Context, items: table<string, blink.cmp.CompletionItem[]>): blink.cmp.CompletionItem[]
+--- @field show fun(context: blink.cmp.Context, items_by_client: table<integer, blink.cmp.CompletionItem[]>, clients: vim.lsp.Client[])
+--- @field fuzzy fun(context: blink.cmp.Context, items_by_client: table<integer, blink.cmp.CompletionItem[]>, clients: vim.lsp.Client[]): blink.cmp.CompletionItem[]
 --- @field hide fun()
 ---
 --- @field get_selected_item fun(): blink.cmp.CompletionItem?
@@ -41,9 +41,6 @@
 --- | 'exact'
 --- | 'kind'
 --- | 'score'
---- | 'score_offset'
---- | 'source_id'
---- | 'source_name'
 
 --- @class blink.cmp.CompletionListSelectAndAcceptOpts
 --- @field callback? fun() Called after the item is accepted
@@ -91,7 +88,10 @@ local list = {
 
 ---------- State ----------
 
-function list.show(ctx, items_by_source)
+--- @param ctx blink.cmp.Context
+--- @param items_by_client table<integer, blink.cmp.CompletionItem[]> Responses so far, by client id
+--- @param clients vim.lsp.Client[] Every requested client, including the ones still pending
+function list.show(ctx, items_by_client, clients)
   -- reset state for new context
   local is_new_context = not list.context or list.context.id ~= ctx.id
   if is_new_context then
@@ -113,7 +113,7 @@ function list.show(ctx, items_by_source)
 
   -- update the context/list and emit
   list.context = ctx
-  list.items = list.fuzzy(ctx, items_by_source)
+  list.items = list.fuzzy(ctx, items_by_client, clients)
 
   if #list.items == 0 then
     list.hide_emitter:emit({ context = ctx })
@@ -140,31 +140,108 @@ function list.show(ctx, items_by_source)
   end
 end
 
-function list.fuzzy(ctx, items_by_source)
+--- Resolves `fallback_for` patterns (`'*'`, `'!name'`, `'name'`) to the ids of the requested clients
+--- @param patterns string[]
+--- @param self_id integer
+--- @param clients vim.lsp.Client[]
+--- @return integer[]
+local function resolve_fallback_parents(patterns, self_id, clients)
+  local included = {} --- @type table<integer, true>
+  for _, pattern in ipairs(patterns) do
+    for _, client in ipairs(clients) do
+      if pattern == '*' or pattern == client.name then
+        included[client.id] = true
+      elseif pattern == '!' .. client.name then
+        included[client.id] = nil
+      end
+    end
+  end
+  included[self_id] = nil
+  return vim.tbl_keys(included)
+end
+
+function list.fuzzy(ctx, items_by_client, clients)
+  local cmp_lsp = require('blink.cmp.lsp')
   local fuzzy = require('blink.cmp.fuzzy')
   local line = ctx.get_line()
   local col = ctx.get_pos().col
 
-  -- Range prefixes in cmdline/cmdwin are not part of the keyword used for filtering
-  -- TODO: Remove when #657 is implemented
-  if ctx.mode == 'cmdline' or ctx.mode == 'cmdwin' then
-    local cmdline_utils = require('blink.cmp.sources.cmdline.utils')
-    if cmdline_utils.get_completion_type(ctx) == 'command' then
-      local range_prefix = cmdline_utils.get_range_prefix(line)
-      if range_prefix and #line > #range_prefix then
-        -- Preserve byte offsets while keeping the range out of the fuzzy matching keyword
-        line = string.rep(' ', #range_prefix) .. line:sub(#range_prefix + 1)
+  -- Command ranges (`:'<,'>s`, `:%s`, `:5,10d`) are not part of the keyword used for filtering
+  -- TODO: remove when matching on the item's edit range (#657)
+  if vim.b[ctx.bufnr].blink_cmp_mirror == 'cmdline' and vim.fn.getcmdcompltype() == 'command' then
+    local range_prefix = require('blink.cmp.servers.cmdline.utils').get_range_prefix(line)
+    if range_prefix and #line > #range_prefix then
+      -- Preserve byte offsets while keeping the range out of the fuzzy matching keyword
+      line = string.rep(' ', #range_prefix) .. line:sub(#range_prefix + 1)
+    end
+  end
+
+  -- per client policy
+  local policy = {} --- @type table<integer, blink.cmp.LspConfigResolved>
+  local fallbacks = {} --- @type table<integer, { parents: integer[], mode: 'response' | 'match' }>
+  local filter = { bufnr = ctx.bufnr } ---@type blink.cmp.LspFilter
+  for _, client in ipairs(clients) do
+    local cfg = cmp_lsp.get(client.name, filter)
+    policy[client.id] = cfg
+    if cfg.fallback_for ~= nil then
+      local parents = resolve_fallback_parents(cfg.fallback_for, client.id, clients)
+      if #parents > 0 then fallbacks[client.id] = { parents = parents, mode = cfg.fallback_mode } end
+    end
+  end
+
+  -- fallback clients wait for the clients they fall back for
+  -- TODO: rework this to be on the rust side?
+
+  -- 'response' mode: hidden until the other client responds with no items
+  local haystacks = {} --- @type table<integer, blink.cmp.CompletionItem[]>
+  for client_id, items in pairs(items_by_client) do
+    local fallback = fallbacks[client_id]
+    local show = true
+    if fallback ~= nil then
+      for _, parent_id in ipairs(fallback.parents) do
+        local parent_items = items_by_client[parent_id]
+        if parent_items == nil or (fallback.mode == 'response' and #parent_items > 0) then
+          show = false
+          break
+        end
+      end
+    end
+    if show then haystacks[client_id] = items end
+  end
+
+  local filtered_items = fuzzy.fuzzy(line, col, haystacks, require('blink.cmp.config').completion.keyword.range)
+
+  -- 'match' mode: hidden until the other client's items are filtered out entirely
+  local counts = {} --- @type table<integer, integer>
+  for _, item in ipairs(filtered_items) do
+    counts[item.client_id] = (counts[item.client_id] or 0) + 1
+  end
+  local hidden = {} --- @type table<integer, true>
+  for client_id, fallback in pairs(fallbacks) do
+    if fallback.mode == 'match' and haystacks[client_id] ~= nil then
+      for _, parent_id in ipairs(fallback.parents) do
+        if (counts[parent_id] or 0) > 0 then
+          hidden[client_id] = true
+          break
+        end
       end
     end
   end
 
-  local filtered_items = fuzzy.fuzzy(line, col, items_by_source, require('blink.cmp.config').completion.keyword.range)
-
-  -- apply the per source max_items
-  filtered_items = require('blink.cmp.sources.lib').apply_max_items_for_completions(ctx, filtered_items)
+  -- apply the per client max_items
+  local totals = {} --- @type table<integer, integer>
+  local items = {} --- @type blink.cmp.CompletionItem[]
+  for _, item in ipairs(filtered_items) do
+    local client_id = item.client_id
+    if not hidden[client_id] then
+      totals[client_id] = (totals[client_id] or 0) + 1
+      local max_items = policy[client_id] and policy[client_id].max_items
+      if max_items == nil or totals[client_id] <= max_items then items[#items + 1] = item end
+    end
+  end
 
   -- apply the global max_items
-  return lib.list.slice(filtered_items, 1, config().max_items)
+  return lib.list.slice(items, 1, config().max_items)
 end
 
 function list.hide()
@@ -196,7 +273,7 @@ end
 function list.get_item_idx_in_list(item)
   if item == nil then return end
 
-  return lib.list.find_idx(list.items, function(i) return i.label == item.label and item.source_id == i.source_id end)
+  return lib.list.find_idx(list.items, function(i) return i.label == item.label and item.client_id == i.client_id end)
 end
 
 function list.select(idx, opts)

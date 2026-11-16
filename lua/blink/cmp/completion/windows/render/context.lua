@@ -11,8 +11,8 @@
 --- @field kind_hl string
 --- @field icon_gap string
 --- @field deprecated boolean
---- @field source_id string
---- @field source_name string
+--- @field client_id? integer
+--- @field client_name? string
 
 local lib = require('blink.lib')
 local kinds = require('blink.cmp.types').CompletionItemKind
@@ -50,9 +50,10 @@ end
 --- @return blink.cmp.DrawItemContext
 function draw_context.new(draw, item_idx, item, matched_indices, appearance)
   appearance = appearance or config()
-  local kind = item.kind_name or kinds[item.kind] or 'Unknown'
-  local kind_icon = item.kind_icon or appearance.kind_icons[kind] or appearance.kind_icons.Field
-  local kind_hl = item.kind_hl or ('BlinkCmpKind' .. (kinds[item.kind] or 'Unknown'))
+  local ext = item.blink or {}
+  local kind = ext.kind_name or kinds[item.kind] or 'Unknown'
+  local kind_icon = ext.kind_icon or appearance.kind_icons[kind] or appearance.kind_icons.Field
+  local kind_hl = ext.kind_hl or ('BlinkCmpKind' .. (kinds[item.kind] or 'Unknown'))
 
   local icon_spacing = appearance.nerd_font_variant == 'mono' and '' or ' '
 
@@ -71,9 +72,6 @@ function draw_context.new(draw, item_idx, item, matched_indices, appearance)
   local label_description = type(d.description) == 'string' and d.description:gsub('\n', newline_char) or ''
   if label_description:find('…') then label_description = label_description:gsub('…', '… ') end
 
-  local source_id = item.source_id
-  local source_name = item.source_name
-
   return {
     self = draw,
     item = item,
@@ -89,8 +87,8 @@ function draw_context.new(draw, item_idx, item, matched_indices, appearance)
     deprecated = (lib.is_not_nil(item.deprecated) and item.deprecated)
       or (lib.is_not_nil(item.tags) and vim.tbl_contains(item.tags or {}, 1))
       or false,
-    source_id = source_id,
-    source_name = source_name,
+    client_id = item.client_id,
+    client_name = item.client_name,
   } --[[@as blink.cmp.DrawItemContext]]
 end
 
