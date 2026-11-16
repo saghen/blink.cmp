@@ -3,14 +3,47 @@ local lib = require('blink.lib')
 
 local path_lib = {}
 
+local function bare_relative_dirname(opts, context)
+  local before_cursor = context.line:sub(1, context.pos.col)
+  local start_col = before_cursor:find([=[[^%s"'`<>|:*?(){}%[%]\=,;!]+$]=])
+  if not start_col then
+    if context.trigger.initial_kind == 'manual' and (before_cursor == '' or before_cursor:match([=[[%s"'`(=]$]=])) then
+      local cwd = context.mode == 'cmdline' and vim.fn.getcwd() or opts.get_cwd(context)
+      return cwd, context.pos.col + 1
+    end
+    return nil
+  end
+  local relative_path = before_cursor:sub(start_col)
+  if relative_path:match('^[/~$]') or relative_path:match('^%.%.?/') then return nil end
+  local prefix = before_cursor:sub(1, start_col - 1)
+  if prefix:match('[%w%.%+%-]+:$') or prefix:match('/%s+$') then return nil end
+
+  local cwd = context.mode == 'cmdline' and vim.fn.getcwd() or opts.get_cwd(context)
+  local relative_dir = relative_path:match('^(.*)/')
+  if relative_dir then return vim.fn.resolve(cwd .. '/' .. relative_dir) end
+  return cwd, start_col
+end
+
 --- @param opts blink.cmp.PathOpts
 --- @param context blink.cmp.Context
+--- @return string? dirname
+--- @return integer? first_segment_start One-indexed column for completing the first bare path segment
 function path_lib.dirname(opts, context)
+  local enable_bare_relative_paths = opts.enable_bare_relative_paths
+  if type(enable_bare_relative_paths) == 'function' then
+    enable_bare_relative_paths = enable_bare_relative_paths(context)
+  end
+  local bare_dirname, first_segment_start
+  if enable_bare_relative_paths then
+    bare_dirname, first_segment_start = bare_relative_dirname(opts, context)
+  end
+  if bare_dirname and not first_segment_start then return bare_dirname end
+
   -- HACK: move this :sub logic into the context?
   -- it's not obvious that you need to avoid going back a char if the start_col == end_col
   local line_before_cursor = context.line:sub(1, context.bounds.start_col - (context.bounds.length == 0 and 1 or 0))
   local s = regex.PATH:match_str(line_before_cursor)
-  if not s then return nil end
+  if not s then return bare_dirname, first_segment_start end
 
   local dirname = string.gsub(string.sub(line_before_cursor, s + 2), regex.NAME .. '*$', '') -- exclude '/'
   local prefix = string.sub(line_before_cursor, 1, s + 1) -- include '/'
@@ -49,16 +82,17 @@ function path_lib.dirname(opts, context)
   end
   -- Windows drive letter (C:/)
   if prefix:match('(%a:)[/\\]$') then return vim.fn.resolve(prefix:match('(%a:)[/\\]$') .. '/' .. dirname) end
-  return nil
+  return bare_dirname, first_segment_start
 end
 
 --- @param context blink.cmp.Context
 --- @param dirname string
 --- @param include_hidden boolean
 --- @param opts blink.cmp.PathOpts
+--- @param first_segment_start? integer
 --- @return blink.lib.Task<blink.lib.fs.DirEntry[]>
-function path_lib.candidates(context, dirname, include_hidden, opts)
-  local ranges = path_lib.get_text_edit_ranges(context)
+function path_lib.candidates(context, dirname, include_hidden, opts, first_segment_start)
+  local ranges = path_lib.get_text_edit_ranges(context, first_segment_start)
   return require('blink.lib.fs').list_dir(dirname, opts.max_entries):map(function(entries)
     return lib.list.filter_map(entries, function(entry)
       if include_hidden or entry.name:sub(1, 1) ~= '.' then
@@ -98,12 +132,13 @@ function path_lib.entry_to_completion_item(entry, dirname, range, opts)
 end
 
 --- @param context blink.cmp.Context
+--- @param first_segment_start? integer
 --- @return { file: lsp.Range, directory: lsp.Range }
-function path_lib.get_text_edit_ranges(context)
+function path_lib.get_text_edit_ranges(context, first_segment_start)
   local line_before_cursor = context.line:sub(1, context.pos.col)
   local next_letter_is_slash = context.line:sub(context.pos.col + 1, context.pos.col + 1) == '/'
 
-  local last_part_idx = path_lib.get_last_path_part(line_before_cursor)
+  local last_part_idx = first_segment_start or path_lib.get_last_path_part(line_before_cursor)
 
   -- TODO: return the insert and replace ranges, instead of only the insert range
   return {
