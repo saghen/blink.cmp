@@ -3,8 +3,8 @@
 -- Please update the code below to reproduce your issue and send the updated code, with reproduction
 --  steps, in your issue report
 --
--- If you get warnings about prebuilt binaries, you may use `fuzzy.implementation = 'lua'`
---  but note this has caveats: https://cmp.saghen.dev/configuration/fuzzy#rust-vs-lua-implementation
+-- If you do not have a Rust toolchain, remove the build hook and set
+-- `fuzzy.implementation = 'lua'` in the plugin options.
 
 vim.env.LAZY_STDPATH = '.repro'
 load(vim.fn.system('curl -s https://raw.githubusercontent.com/folke/lazy.nvim/main/bootstrap.lua'))()
@@ -15,8 +15,8 @@ require('lazy.minit').repro({
     {
       'saghen/blink.cmp',
       -- please test on `main` if possible
-      -- otherwise, remove this line and set `version = '*'`
-      build = 'cargo build --release',
+      dependencies = { 'saghen/blink.lib' },
+      build = function() require('blink.cmp').build():wait() end,
       opts = {},
     },
     {
