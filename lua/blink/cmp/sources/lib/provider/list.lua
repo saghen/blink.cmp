@@ -80,6 +80,7 @@ function list:append(response)
   for _, item in ipairs(response.items) do
     item.score_offset = (item.score_offset or 0) + source_score_offset
     item.pos = item.pos or self.context.pos
+    item.line = item.line or self.context.line
     item.source_id = self.provider.id
     item.source_name = self.provider.name
     item.kind = item.kind or require('blink.cmp.types').CompletionItemKind.Property

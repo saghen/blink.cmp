@@ -6,6 +6,7 @@
 --- @field source_id string
 --- @field source_name string
 --- @field pos? vim.Pos
+--- @field line? string Line at the time of `pos`, used to compensate edits in the client's encoding
 --- @field client_id? integer
 --- @field client_name? string
 --- @field kind_name? string
