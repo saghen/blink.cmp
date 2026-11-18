@@ -3,8 +3,13 @@ local nvim = require('blink.lib.nvim')
 local config = require('blink.cmp.config')
 local utils = require('blink.cmp.lib.utils')
 local context = require('blink.cmp.completion.trigger.context')
+local logger = require('blink.cmp.logger')
 
 local text_edits = {}
+
+--- Names of the clients we've warned about sending an invalid insert range
+--- @type table<string, true>
+local warned_invalid_insert_range = {}
 
 --- Applies one or more text edits to the current buffer, assuming utf-8 encoding
 --- @param text_edit lsp.TextEdit The main text edit (at the cursor). Can be dot repeated.
@@ -114,13 +119,27 @@ local function get_line_byte_from_position(position, offset_encoding)
   local bufnr = nvim.get_current_buf()
   local col = position.character
 
-  -- When on the first character, we can ignore the difference between byte and character
-  if col == 0 then return 0 end
+  -- When on or before the first character, we can ignore the difference between byte and character
+  if col <= 0 then return 0 end
 
   local line = nvim.buf_get_lines(bufnr, position.line, position.line + 1, false)[1] or ''
   col = vim.str_byteindex(line, offset_encoding or 'utf-16', col, false) or 0
 
   return math.min(col, #line)
+end
+
+--- Whether the insert range is on a single line, not reversed, and starts at the same position as the
+--- replace range, as required by the LSP spec. Some LSPs (e.g. rust-analyzer) may send an insert range
+--- which ends before it starts, on a different line
+--- @param text_edit lsp.InsertReplaceEdit
+--- @return boolean
+local function is_valid_insert_range(text_edit)
+  local insert, replace = text_edit.insert, text_edit.replace
+  return insert ~= nil
+    and insert.start.line == insert['end'].line
+    and insert.start.line == replace.start.line
+    and insert.start.character == replace.start.character
+    and insert.start.character <= insert['end'].character
 end
 
 --- Gets the text edit from an item, handling insert/replace ranges and converts
@@ -139,6 +158,20 @@ function text_edits.get_from_item(item)
     --- @cast item_text_edit lsp.InsertReplaceEdit
     if config.completion.keyword.range == 'full' and item_text_edit.replace ~= nil then
       range = item_text_edit.replace
+    -- fallback to the replace range when the insert range is invalid, and warn once per client so the
+    -- issue can still be reported upstream
+    elseif item_text_edit.replace ~= nil and not is_valid_insert_range(item_text_edit) then
+      range = item_text_edit.replace
+      local client_name = item.client_name or item.source_name or 'unknown'
+      if not warned_invalid_insert_range[client_name] then
+        warned_invalid_insert_range[client_name] = true
+        logger:notify(
+          vim.log.levels.WARN,
+          ('"%s" sent a completion item with an invalid insert range, using its replace range instead. Please report this to the language server.'):format(
+            client_name
+          )
+        )
+      end
     else
       range = item_text_edit.insert or item_text_edit.replace
     end

@@ -5,6 +5,8 @@ local auto_wrap = {}
 --- restored later by restore_auto_wrap(). Should be paired with restore_auto_wrap().
 function auto_wrap.disable()
   local formatoptions = vim.opt.formatoptions:get()
+  ---@cast formatoptions table<string, boolean>
+
   if formatoptions.t then
     vim.b.blink_cmp_restore_formatoptions_t = true
     vim.opt.formatoptions:remove('t')

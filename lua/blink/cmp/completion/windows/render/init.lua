@@ -9,8 +9,8 @@ local nvim = require('blink.lib.nvim')
 ---
 --- @field new fun(draw: blink.cmp.Draw): blink.cmp.Renderer
 --- @field draw fun(self: blink.cmp.Renderer, context: blink.cmp.Context, bufnr: integer, items: blink.cmp.CompletionItem[], draw?: blink.cmp.Draw)
---- @field get_columns fun(self: blink.cmp.Renderer, context: blink.cmp.Context, draw: blink.cmp.Draw): blink.cmp.DrawColumn[]
---- @field get_component_column_location fun(self: blink.cmp.Renderer, columns: blink.cmp.DrawColumn[], component_name: string): { [1]: integer, [2]: integer }
+--- @field get_columns fun(context: blink.cmp.Context, draw: blink.cmp.Draw): blink.cmp.DrawColumn[]
+--- @field get_component_column_location fun(columns: blink.cmp.DrawColumn[], component_name: string): { [1]: integer, [2]: integer }
 --- @field get_component_start_col fun(self: blink.cmp.Renderer, columns: blink.cmp.DrawColumn[], component_name: string): integer
 --- @field get_alignment_start_col fun(self: blink.cmp.Renderer): integer
 
@@ -20,12 +20,16 @@ local ns = nvim.create_namespace('blink_cmp_renderer')
 --- @diagnostic disable-next-line: missing-fields
 local renderer = {}
 
-function renderer.new(draw)
-  local padding = type(draw.padding) == 'number' and { draw.padding, draw.padding }
-    or { draw.padding[1] or 0, draw.padding[2] or draw.padding[1] or 0 }
+---@param padding integer | { [1]: integer, [2]: integer }
+---@return { [1]: integer, [2]: integer }
+local function resolve_padding(padding)
+  if type(padding) == 'number' then return { padding, padding } end
+  return { padding[1] or 0, padding[2] or padding[1] or 0 }
+end
 
+function renderer.new(draw)
   local self = setmetatable({}, { __index = renderer })
-  self.padding = padding
+  self.padding = resolve_padding(draw.padding)
   self.gap = draw.gap or 0
   self.def = draw
 
@@ -61,7 +65,7 @@ function renderer.new(draw)
   return self
 end
 
-function renderer:get_columns(context, draw)
+function renderer.get_columns(context, draw)
   local render_column = require('blink.cmp.completion.windows.render.column')
 
   local columns = draw.columns
@@ -95,11 +99,10 @@ function renderer:draw(context, bufnr, items, draw)
   -- the draw config may change at runtime (per buffer/mode), so prefer the one passed by the caller
   draw = draw or self.def
   self.def = draw
-  self.padding = type(draw.padding) == 'number' and { draw.padding, draw.padding }
-    or { draw.padding[1] or 0, draw.padding[2] or draw.padding[1] or 0 }
+  self.padding = resolve_padding(draw.padding)
   self.gap = draw.gap or 0
 
-  local columns = self:get_columns(context, draw)
+  local columns = self.get_columns(context, draw)
   local draw_contexts = require('blink.cmp.completion.windows.render.context').get_from_items(context, draw, items)
 
   -- render the columns
@@ -133,7 +136,7 @@ function renderer:draw(context, bufnr, items, draw)
   self.bufnr = bufnr
 end
 
-function renderer:get_component_column_location(columns, component_name)
+function renderer.get_component_column_location(columns, component_name)
   for column_idx, column in ipairs(columns) do
     for component_idx, other_component_name in ipairs(column.component_names) do
       if other_component_name == component_name then return { column_idx, component_idx } end
@@ -143,7 +146,7 @@ function renderer:get_component_column_location(columns, component_name)
 end
 
 function renderer:get_component_start_col(columns, component_name)
-  local column_idx, component_idx = unpack(self:get_component_column_location(columns, component_name))
+  local column_idx, component_idx = unpack(self.get_component_column_location(columns, component_name))
 
   -- add previous columns
   local start_col = self.padding[1]

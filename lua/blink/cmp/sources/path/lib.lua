@@ -77,7 +77,7 @@ function path_lib.is_slash_comment()
   return is_slash_comment and not no_filetype
 end
 
---- @param entry { name: string, type: string, stat: table }
+--- @param entry blink.lib.fs.DirEntry
 --- @param dirname string
 --- @param range lsp.Range
 --- @param opts blink.cmp.PathOpts
@@ -171,7 +171,7 @@ end
 -- For example: 'foo bar\ baz' -> { 'foo', 'bar\ baz' }
 ---@param str string
 ---@return table
-function path_lib:split_unescaped(str)
+function path_lib.split_unescaped(str)
   local result, current, escaping = {}, '', false
   for i = 1, #str do
     local c = str:sub(i, i)
@@ -195,7 +195,7 @@ end
 --- Returns:     'src/mod.rs',     'test/mod.rs',     'bar.rs'
 --- @param paths string[]
 --- @return table<string, string> -- <path, unique_prefix>
-function path_lib:compute_unique_suffixes(paths)
+function path_lib.compute_unique_suffixes(paths)
   local is_windows = vim.fn.has('win32') == 1
   local sep = is_windows and '\\' or '/'
   if is_windows then paths = vim.tbl_map(function(path) return (path:gsub('/', '\\')) end, paths) end

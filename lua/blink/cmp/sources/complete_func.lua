@@ -3,7 +3,7 @@ local utils = require('blink.cmp.lib.utils')
 local Kind = require('blink.cmp.types').CompletionItemKind
 
 ---@class blink.cmp.CompleteFuncOpts
----@field complete_func fun(): string|nil gets provider of the complete-func, nil to disable
+---@field complete_func fun(): blink.cmp.CompleteFuncProvider? Gets provider of the complete-func, nil to disable
 
 ---@class blink.cmp.CompleteFuncSource : blink.cmp.Source
 ---@field opts blink.cmp.CompleteFuncOpts
@@ -23,6 +23,13 @@ local Source = {}
 
 ---@alias blink.cmp.CompleteFuncWords (string | blink.cmp.CompleteFuncItem)[]
 
+---@class blink.cmp.CompleteFuncResponse
+---@field words blink.cmp.CompleteFuncWords
+---@field refresh? 'always'
+
+---@alias blink.cmp.CompleteFuncResult integer|blink.cmp.CompleteFuncWords|blink.cmp.CompleteFuncResponse|nil
+---@alias blink.cmp.CompleteFuncProvider string|fun(findstart: 0|1, base: string): blink.cmp.CompleteFuncResult
+
 ---@param _ string
 ---@param config blink.cmp.SourceProviderConfig
 ---@return blink.cmp.Source
@@ -31,34 +38,44 @@ function Source.new(_, config)
 
   self.opts = vim.tbl_deep_extend('force', {
     complete_func = function() return nil end,
-  }, config.opts or {})
+  }, config.opts or {}) --[[@as blink.cmp.CompleteFuncOpts]]
 
   return self
 end
 
 function Source:enabled()
   local complete_func = self.opts.complete_func()
-  return complete_func ~= nil and complete_func ~= '' and nvim.get_mode().mode == 'i'
+  local func_type = type(complete_func)
+
+  return (func_type == 'function' or (func_type == 'string' and complete_func ~= '')) and nvim.get_mode().mode == 'i'
 end
 
----Invoke an complete_func handling `v:lua.*`
----@return (table<{ words: blink.cmp.CompleteFuncWords, refresh: string }> | blink.cmp.CompleteFuncWords) | integer
----@overload fun(func: string, findstart: 1, base: ''): integer
----@overload fun(func: string, findstart: 0, base: string): table<{ words: blink.cmp.CompleteFuncWords, refresh: string }> | blink.cmp.CompleteFuncWords
+---Invoke a complete_func provider, supporting both Lua and Vimscript functions
+---@param func blink.cmp.CompleteFuncProvider
+---@param findstart 0|1
+---@param base string
+---@return blink.cmp.CompleteFuncResult
+---@overload fun(func: blink.cmp.CompleteFuncProvider, findstart: 1, base: ''): integer?
+---@overload fun(func: blink.cmp.CompleteFuncProvider, findstart: 0, base: string): blink.cmp.CompleteFuncWords|blink.cmp.CompleteFuncResponse|nil
 local function invoke_complete_func(func, findstart, base)
   local prev_pos = utils.get_vim_pos_cursor(0)
+  local result ---@type blink.cmp.CompleteFuncResult
 
-  local result
-  local match = func:match('^v:lua%.(.+)')
-
-  -- The call here used to be done in a pcall. However if the complete function errored, the 2nd return value of the
-  -- pcall would be a string and cause following code to error anyways. Letting the error propagate makes issues easier
-  -- to debug.
-  if match then
-    local fn = assert(loadstring('return ' .. match))()
-    result = fn(findstart, base)
-  else
-    result = nvim.call_function(func, { findstart, base })
+  if type(func) == 'function' then
+    -- Lua function (since nvim 0.13+)
+    result = func(findstart, base)
+  elseif type(func) == 'string' and func ~= '' then
+    local match = func:match('^v:lua%.(.+)')
+    if match then
+      -- Lua function referenced through a v:lua string
+      ---@type fun(findstart: 0|1, base: string): blink.cmp.CompleteFuncResult
+      local fn = assert(loadstring('return ' .. match))()
+      result = fn(findstart, base)
+    else
+      -- Vimscript function name or funcref
+      ---@type blink.cmp.CompleteFuncResult
+      result = nvim.call_function(func, { findstart, base })
+    end
   end
 
   local next_pos = utils.get_vim_pos_cursor(0)
@@ -135,10 +152,9 @@ function Source:get_completions(context, resolve)
           range = range,
           newText = cmp.word,
         },
-        labelDetails = {
-          description = cmp.menu,
-        },
       }
+      item.labelDetails = {}
+      item.labelDetails.description = cmp.menu
 
       -- if possible, prefer blink's 'kind' to remove redundancy
       local blink_kind = COMPLETE_ITEM_KIND_TO_BLINK_KIND[cmp.kind]

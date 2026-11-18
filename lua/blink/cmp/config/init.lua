@@ -10,6 +10,8 @@
 --- @field cmdline blink.cmp.CmdlineConfig
 --- @field term blink.cmp.TermConfig
 
+--- @class blink.cmp.ResolvedConfig : blink.cmp.ConfigStrict, blink.lib.Config
+
 --- @class blink.cmp.CmdlineConfig
 --- @field enabled boolean
 --- @field keymap blink.cmp.KeymapConfig
@@ -18,7 +20,7 @@
 --- @field enabled boolean
 --- @field keymap blink.cmp.KeymapConfig
 
---- @type blink.cmp.ConfigStrict | blink.lib.Config
+--- @type blink.cmp.ResolvedConfig
 local config = require('blink.lib.config').new({
   enabled = { true, { 'boolean', 'function' } },
   keymap = require('blink.cmp.config.keymap').get('default'),

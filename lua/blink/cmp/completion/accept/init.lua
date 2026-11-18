@@ -8,6 +8,7 @@ local function apply_item(ctx, item)
   item = vim.deepcopy(item)
 
   -- Get additional text edits, converted to utf-8
+  ---@type lsp.TextEdit[]
   local all_text_edits = vim.deepcopy(item.additionalTextEdits or {})
   all_text_edits = vim.tbl_map(
     function(text_edit) return text_edits_lib.to_utf_8(text_edit, text_edits_lib.offset_encoding_from_item(item)) end,

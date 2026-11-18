@@ -7,7 +7,6 @@
 --- @field show_without_menu boolean Show the ghost text when the menu is closed
 --- @field show_first_line_only boolean Only show the first line of ghost text for multi-line suggestions
 
-local config = require('blink.lib.config')
 return {
   enabled = { false, { 'boolean', 'function' } },
   show_with_selection = { true, 'boolean' },

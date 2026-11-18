@@ -58,7 +58,9 @@ local function choice_callback(snippet, events)
       node.node_callbacks = {
         [events.enter] = function(n)
           --[[@cast n LuaSnip.ChoiceNode]]
-          n:set_text({ '' }) -- Clear the current text, we'll restore it when leaving the node
+          -- Clear text but keep a non-empty placeholder to preserve extmark validity for nested nodes
+          n:set_text({ ' ' })
+
           local index = lib.list.find_idx(n.choices, function(choice) return choice == n.active_choice end)
           -- FIXME: Defer showing the completion menu when jumping to the next choice node.
           -- This is needed if the previous node is also a choice node. Possible race condition?

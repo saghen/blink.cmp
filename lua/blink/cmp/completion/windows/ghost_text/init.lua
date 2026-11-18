@@ -24,8 +24,9 @@ nvim.create_autocmd({ 'CursorMovedI' }, {
 })
 
 function ghost_text.enabled()
-  if type(config().enabled) == 'function' then return config().enabled() end
-  return config().enabled
+  local enabled = config().enabled
+  if type(enabled) == 'function' then return enabled() end
+  return enabled
 end
 
 function ghost_text.is_open() return ghost_text.extmark_id ~= nil end

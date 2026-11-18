@@ -172,7 +172,7 @@ function list.hide()
   list.context = nil
   list.items = {}
   list.selected_item_idx = nil
-  list.hide_emitter:emit({ context = ctx })
+  list.hide_emitter:emit({ context = ctx } --[[@as blink.cmp.CompletionListHideEvent?]])
 end
 
 ---------- Selection ----------
@@ -215,7 +215,7 @@ function list.select(idx, opts)
 
   list.is_explicitly_selected = opts.is_explicit_selection == nil and true or opts.is_explicit_selection
   list.selected_item_idx = idx
-  list.select_emitter:emit({ idx = idx, item = item, items = list.items, context = list.context })
+  list.select_emitter:emit({ idx = idx, item = item, items = list.items, context = list.context } --[[@as blink.cmp.CompletionListSelectEvent]])
   return true
 end
 

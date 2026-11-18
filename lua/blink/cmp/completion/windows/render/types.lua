@@ -1,6 +1,6 @@
 --- @class blink.cmp.Draw
+--- @field padding integer | {[1]: integer, [2]:integer} Padding on the left and right of the grid
 --- @field align_to? string | 'none' | 'cursor' Align the window to the component with the given name, or to the cursor
---- @field padding? integer | integer[] Padding on the left and right of the grid
 --- @field gap? integer Gap between columns
 --- @field cursorline_priority? integer Priority of the background highlight for the cursorline, defaults to 10000. Setting this to 0 will render it below other highlights
 --- @field snippet_indicator? string Appends an indicator to snippets label, `'~'` by default

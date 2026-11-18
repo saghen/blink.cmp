@@ -191,7 +191,7 @@ function context.get_term_command()
     start_col = 0,
   } end
 
-  local command_start_mark = assert(extmarks[1], 'expected terminal command start extmark')
+  local command_start_mark = extmarks[1]
   local command_start_col = command_start_mark[3] + 1
 
   return {

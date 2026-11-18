@@ -103,7 +103,7 @@ function cmp.library_available() return native:library_available() end
 
 --- Builds the native library if it's not already available
 --- @param opts? { force?: boolean, dev?: boolean }
---- @return blink.lib.Task
+--- @return blink.lib.Task<string[]>
 function cmp.build(opts)
   return native:build({ 'cargo', 'build', '--release' }, function(repo_root, platform)
     local target_dir = vim.uv.os_getenv('CARGO_TARGET_DIR') or repo_root .. '/target'
@@ -116,7 +116,7 @@ end
 
 --- Downloads the native library if it's not already available
 --- @param opts? { force?: boolean, match?: string }
---- @return blink.lib.Task
+--- @return blink.lib.Task<string>
 function cmp.download(opts)
   return native:download(
     function(git_tag, platform)
