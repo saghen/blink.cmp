@@ -226,11 +226,21 @@ mod tests {
         }
     }
 
+    /// Removes the test's frecency directory when dropped, so a failed assertion does not leave it behind.
+    struct TempDir(std::path::PathBuf);
+
+    impl Drop for TempDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
     #[test]
     fn test_use_frecency_disables_frecency_bonus() {
-        let dir =
-            std::env::temp_dir().join(format!("blink-cmp-frecency-test-{}", std::process::id()));
-        let mut db = FrecencyDB::new(&dir.join("frecency.dat")).unwrap();
+        let dir = TempDir(
+            std::env::temp_dir().join(format!("blink-cmp-frecency-test-{}", std::process::id())),
+        );
+        let mut db = FrecencyDB::new(&dir.0.join("frecency.dat")).unwrap();
         let haystack = vec![item("alpha"), item("beta")];
         for _ in 0..3 {
             db.access(&(&haystack[1]).into()).unwrap();
@@ -246,7 +256,5 @@ mod tests {
 
         assert!(score_of(true, "beta") > score_of(true, "alpha"));
         assert_eq!(score_of(false, "beta"), score_of(false, "alpha"));
-
-        std::fs::remove_dir_all(&dir).unwrap();
     }
 }
